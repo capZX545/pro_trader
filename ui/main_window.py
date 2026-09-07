@@ -8,6 +8,7 @@ from .advisor_page import AdvisorPage
 from .ml_page import MLPage
 from .forward_page import ForwardPage
 from .health_page import HealthPage
+from .vision_page import VisionPage
 from .quant_page import QuantLabPage
 
 
@@ -49,6 +50,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ("nav_lab", "🧬", ValidationLabPage()),
             ("nav_ml", "🧠", MLPage()),
             ("nav_quant", "📐", QuantLabPage()),
+            ("nav_vision", "👁", VisionPage()),
             ("nav_academy", "🎓", AcademyPage()),
             ("nav_risk", "🛡", RiskPage()),
             ("nav_journal", "📓", JournalPage()),
