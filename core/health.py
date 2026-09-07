@@ -210,11 +210,29 @@ def check_audit():
     return out
 
 
+def check_vision():
+    """Phase 12: robustness of the chart-image extractor to compression/noise/scaling/phone photos"""
+    import json
+    p = os.path.join(DATA, "vision_robustness.json")
+    if not os.path.exists(p):
+        def fix():
+            from core.vision import robustness_report
+            robustness_report()
+        return [Finding("vision", "info", "Vision robustness report not generated yet.", "گزارش مقاومت بینایی هنوز تولید نشده.", fix, ("Run", "اجرا"))]
+    out = []
+    for r in json.load(open(p)):
+        bad = r["dir_acc"] < 0.8 or r["count_err_pct"] > 15
+        out.append(Finding("vision", "warn" if bad else "info",
+                           f"chart images '{r['variant']}': candle count error {r['count_err_pct']:.0f}%, direction accuracy {r['dir_acc'] * 100:.0f}%" + (" → use a clean screenshot, not a photo" if bad else ""),
+                           f"تصویر چارت «{r['variant']}»: خطای شمارش کندل {r['count_err_pct']:.0f}٪، دقت جهت {r['dir_acc'] * 100:.0f}٪" + (" ← اسکرین‌شات تمیز بدهید نه عکس" if bad else "")))
+    return out
+
+
 def run_checks(quick=False, progress=None):
     findings = []
     steps = [("env", check_env), ("playbook", check_playbook), ("validation", check_validation), ("forward", check_forward), ("audit", check_audit)]
     if not quick:
-        steps += [("data", check_data), ("strategies", check_strategies)]
+        steps += [("data", check_data), ("strategies", check_strategies), ("vision", check_vision)]
     for k, (name, fn) in enumerate(steps):
         if progress:
             progress(int(k / len(steps) * 100), name)

@@ -1,0 +1,65 @@
+[
+ {
+  "variant": "blur",
+  "found": 59.6,
+  "truth": 60.0,
+  "dir_acc": 0.9,
+  "close_corr": 0.953,
+  "ok": 1.0,
+  "count_err_pct": 0.667
+ },
+ {
+  "variant": "clean",
+  "found": 60.0,
+  "truth": 60.0,
+  "dir_acc": 0.98,
+  "close_corr": 1.0,
+  "ok": 1.0,
+  "count_err_pct": 0.0
+ },
+ {
+  "variant": "jpeg30",
+  "found": 57.8,
+  "truth": 60.0,
+  "dir_acc": 0.755,
+  "close_corr": 0.652,
+  "ok": 1.0,
+  "count_err_pct": 3.667
+ },
+ {
+  "variant": "noise",
+  "found": 65.8,
+  "truth": 60.0,
+  "dir_acc": 0.915,
+  "close_corr": 0.882,
+  "ok": 1.0,
+  "count_err_pct": 9.667
+ },
+ {
+  "variant": "phone_photo",
+  "found": 41.6,
+  "truth": 60.0,
+  "dir_acc": 0.692,
+  "close_corr": 0.659,
+  "ok": 1.0,
+  "count_err_pct": 30.667
+ },
+ {
+  "variant": "scaled60",
+  "found": 59.9,
+  "truth": 60.0,
+  "dir_acc": 0.997,
+  "close_corr": 1.0,
+  "ok": 1.0,
+  "count_err_pct": 0.167
+ },
+ {
+  "variant": "watermark",
+  "found": 58.7,
+  "truth": 60.0,
+  "dir_acc": 0.924,
+  "close_corr": 0.955,
+  "ok": 1.0,
+  "count_err_pct": 2.167
+ }
+]

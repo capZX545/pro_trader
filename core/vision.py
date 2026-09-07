@@ -38,8 +38,16 @@ def _load(path_or_array):
         raise ValueError("cannot read image")
     h, w = img.shape[:2]
     scale = 1600 / max(h, w) if max(h, w) > 1600 else 1.0
+    if max(h, w) < 900:                       # small screenshots / thumbnails: upscale so 1-px wicks survive morphology
+        scale = 1200 / max(h, w)
     if scale != 1.0:
-        img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+        img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA if scale < 1 else cv2.INTER_CUBIC)
+    # sensor / compression noise: estimate from Laplacian of a flat background; denoise only when needed
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    lap = cv2.Laplacian(gray, cv2.CV_64F)
+    noise = float(np.median(np.abs(lap - np.median(lap)))) * 1.4826
+    if noise > 6.0:
+        img = cv2.bilateralFilter(img, 5, 40, 5)     # edge-preserving: keeps candle borders, kills grain
     return img
 
 
@@ -551,13 +559,49 @@ def synthetic_chart(n=60, theme="tradingview_dark", seed=0, size=(1000, 560), wi
     return buf, df
 
 
-def self_test(themes=None, n_per=3, n_candles=60):
-    """accuracy of the extractor on synthetic charts: candle-count error, direction accuracy, close correlation"""
+# Phase 12: robustness variants — what real screenshots look like (phone photos, compressed, watermarked, tiny)
+VARIANTS = ("clean", "jpeg30", "scaled60", "noise", "blur", "watermark", "phone_photo")
+
+
+def degrade(img, variant, seed=0):
+    """apply a realistic degradation to a BGR chart image"""
+    import cv2
+    rng = np.random.default_rng(seed)
+    out = img.copy()
+    if variant == "jpeg30":
+        ok, buf = cv2.imencode(".jpg", out, [cv2.IMWRITE_JPEG_QUALITY, 30]); out = cv2.imdecode(buf, 1)
+    elif variant == "scaled60":
+        h, w = out.shape[:2]; out = cv2.resize(out, (int(w * 0.6), int(h * 0.6)), interpolation=cv2.INTER_AREA)
+    elif variant == "noise":
+        out = np.clip(out.astype(np.int16) + rng.normal(0, 8, out.shape).astype(np.int16), 0, 255).astype(np.uint8)
+    elif variant == "blur":
+        out = cv2.GaussianBlur(out, (3, 3), 0)
+    elif variant == "watermark":
+        h, w = out.shape[:2]
+        cv2.putText(out, "TradingView", (w // 3, h // 2), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (128, 128, 128), 3, cv2.LINE_AA)
+        cv2.putText(out, "BTCUSDT 1H", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (200, 200, 200), 2, cv2.LINE_AA)
+    elif variant == "phone_photo":
+        # mild perspective + brightness gradient + JPEG
+        h, w = out.shape[:2]
+        src = np.float32([[0, 0], [w, 0], [w, h], [0, h]])
+        dst = np.float32([[w * 0.02, h * 0.03], [w * 0.98, 0], [w, h * 0.98], [0, h]])
+        out = cv2.warpPerspective(out, cv2.getPerspectiveTransform(src, dst), (w, h), borderValue=(40, 40, 40))
+        grad = np.linspace(0.85, 1.1, w, dtype=np.float32)[None, :, None]
+        out = np.clip(out.astype(np.float32) * grad, 0, 255).astype(np.uint8)
+        ok, buf = cv2.imencode(".jpg", out, [cv2.IMWRITE_JPEG_QUALITY, 60]); out = cv2.imdecode(buf, 1)
+    return out
+
+
+def self_test(themes=None, n_per=3, n_candles=60, variants=("clean",)):
+    """accuracy of the extractor on synthetic charts: candle-count error, direction accuracy, close correlation.
+    variants: subset of VARIANTS — robustness to compression / scaling / noise / watermark / phone photo"""
     themes = themes or list(THEMES)
     rows = []
     for th in themes:
         for s in range(n_per):
-            img, truth = synthetic_chart(n_candles, th, seed=s)
+          img0, truth = synthetic_chart(n_candles, th, seed=s)
+          for var in variants:
+            img = degrade(img0, var, seed=s) if var != "clean" else img0
             try:
                 ex = extract_candles(img)
                 got = ex["df"]
@@ -571,7 +615,22 @@ def self_test(themes=None, n_per=3, n_candles=60):
                 m = len(g)
                 dir_acc = float(((g.close >= g.open) == (t.close >= t.open)).mean())
                 corr = float(np.corrcoef(g.close, t.close)[0, 1]) if m > 3 else float("nan")
-                rows.append(dict(theme=th, seed=s, truth=len(truth), found=len(got), dir_acc=dir_acc, close_corr=corr, ok=True))
+                rows.append(dict(theme=th, variant=var, seed=s, truth=len(truth), found=len(got), dir_acc=dir_acc, close_corr=corr, ok=True))
             except Exception as e:
-                rows.append(dict(theme=th, seed=s, truth=len(truth), found=0, dir_acc=0.0, close_corr=float("nan"), ok=False, err=str(e)))
+                rows.append(dict(theme=th, variant=var, seed=s, truth=len(truth), found=0, dir_acc=0.0, close_corr=float("nan"), ok=False, err=str(e)))
     return pd.DataFrame(rows)
+
+
+def robustness_report(n_per=2, n_candles=60):
+    """per-variant summary → data/vision_robustness.json (Health/Vision page)"""
+    df = self_test(n_per=n_per, n_candles=n_candles, variants=VARIANTS)
+    g = df.groupby("variant").agg(found=("found", "mean"), truth=("truth", "mean"), dir_acc=("dir_acc", "mean"), close_corr=("close_corr", "mean"), ok=("ok", "mean"))
+    g["count_err_pct"] = (g["found"] - g["truth"]).abs() / g["truth"] * 100
+    out = g.round(3).reset_index().to_dict("records")
+    try:
+        import json, os
+        p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "vision_robustness.json")
+        json.dump(out, open(p, "w"), indent=1)
+    except Exception:
+        pass
+    return out
