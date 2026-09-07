@@ -34,6 +34,7 @@ jobs:
       - name: Icons
         run: python packaging/make_icons.py
       - name: PyInstaller
+        env: { QT_QPA_PLATFORM: offscreen }
         run: pyinstaller --noconfirm protrader.spec
       - name: Version
         shell: bash
