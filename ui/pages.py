@@ -177,7 +177,16 @@ class DashboardPage(QtWidgets.QWidget):
         for x in (self.t_price, self.t_chg, self.t_trend, self.t_regime, self.t_vol, self.t_rsi, self.t_health, self.t_fw):
             tiles.addWidget(x)
         v.addLayout(tiles)
+        # ---- self-training banner (Phase 12): what the bot is teaching itself right now
+        self.train = QtWidgets.QFrame(); self.train.setObjectName("card2")
+        th = QtWidgets.QHBoxLayout(self.train); th.setContentsMargins(14, 8, 14, 8)
+        self.train_lbl = QtWidgets.QLabel(t("train_idle")); self.train_lbl.setWordWrap(True)
+        self.train_bar = QtWidgets.QProgressBar(); self.train_bar.setFixedWidth(220); self.train_bar.setTextVisible(True)
+        th.addWidget(QtWidgets.QLabel("🤖")); th.addWidget(self.train_lbl, 1); th.addWidget(self.train_bar)
+        v.addWidget(self.train)
+        self._train_timer = QtCore.QTimer(self); self._train_timer.timeout.connect(self._train_status); self._train_timer.start(5000)
         QtCore.QTimer.singleShot(2500, self._bot_status)
+        QtCore.QTimer.singleShot(1000, self._train_status)
 
 
         body = QtWidgets.QHBoxLayout()
@@ -224,6 +233,24 @@ class DashboardPage(QtWidgets.QWidget):
         self.bar.changed.connect(self.refresh)
         self._set_lesson()
         self.status = None
+
+    def _train_status(self):
+        try:
+            from core import maintenance as M
+            s = M.training_status()
+        except Exception:
+            return
+        st = s.get("stage"); pr = int(s.get("progress") or 0)
+        if st and pr < 100 and st != "forward":
+            name = {"audit": t("train_audit"), "playbook-quick": t("train_quick"), "playbook-full": t("train_full")}.get(st, st)
+            self.train_lbl.setText(f"<b>{t('train_running')}:</b> {name} — {s.get('detail', '')}")
+            self.train_bar.setValue(pr); self.train_bar.show()
+        else:
+            a = s.get("audit_summary") or {}
+            self.train_lbl.setText(f"<b>{t('train_done')}</b> · {t('train_audit')}: {a.get('pass', 0)}/{a.get('n', 0)} ✓ · "
+                                   f"{t('train_proven')}: {s.get('proven_combos', 0)} · {t('train_tfs')}: {', '.join(s.get('playbook_tfs') or []) or '—'}"
+                                   + (f" · {s['playbook_age_days']} {t('days')}" if s.get("playbook_age_days") is not None else ""))
+            self.train_bar.hide()
 
     def _bot_status(self):
         def work():

@@ -1,5 +1,5 @@
   0% data BTC/USDT 1d 0s
-  3% 1d rsi_div 22s
-  8% 1d fib_pullback 44s
- 12% 1d ibs 65s
- 16% 1d adx_momentum_bot 86s
+  3% 1d stoch_rsi 20s
+  7% 1d morning_evening_star 42s
+ 11% 1d lw_vol_breakout 64s
+ 15% 1d bband_rsi_bot 85s

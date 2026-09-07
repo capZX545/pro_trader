@@ -132,6 +132,7 @@ def build_playbook(strategy_classes, progress=None, tfs=TFS, groups=GROUPS, resu
     max_syms = int(os.environ.get("PB_MAX_SYMS", "0") or 0)        # compute cap for small machines / CI
     if max_syms:
         groups = {g: s[:max_syms] for g, s in groups.items()}
+    pb["quick"] = bool(max_syms)
     for ti, tf in enumerate(todo):
         data = {}
         for g, syms in groups.items():
