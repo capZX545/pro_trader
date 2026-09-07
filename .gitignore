@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+data/*.parquet
+data/*.pkl
+data/journal.json
+data/forward.json
+data/models/*.bin
+tests/shots/
+.venv/
