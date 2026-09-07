@@ -12,4 +12,6 @@ def ww(p,a='w',to=300):
         if k is not None and k.isFinished(): wait(400); return
 os.makedirs('tests/shots',exist_ok=True); L=I18N.lang
 w.goto('nav_vision'); v=w.page('nav_vision'); wait(300)
-v.load_path('tests/vision_samples/tv_channel.png'); ww(v,'w'); v.selftest(); ww(v,'w2'); w.grab().save(f'tests/shots/{L}_vision.png'); print('ok')
+v.load_path('tests/vision_samples/tv_channel.png'); ww(v,'w')
+v.q_edit.setText('ریسک و استاپ کجاست؟' if L=='fa' else 'where is support and resistance?'); v.ask(); wait(300)
+w.grab().save(f'tests/shots/{L}_vision.png'); print('ok')

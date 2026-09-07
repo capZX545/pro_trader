@@ -74,7 +74,14 @@ class VisionPage(QtWidgets.QWidget):
         split.addLayout(left, 3)
         right = QtWidgets.QVBoxLayout()
         self.txt = QtWidgets.QTextEdit(); self.txt.setReadOnly(True); self.txt.setMinimumWidth(380)
-        ec = Card(t("vis_explain")); ec.add(self.txt); right.addWidget(ec, 2)
+        ec = Card(t("vis_explain")); ec.add(self.txt)
+        qrow = QtWidgets.QHBoxLayout()
+        self.q_edit = QtWidgets.QLineEdit(); self.q_edit.setPlaceholderText(t("vis_ask_ph")); self.q_edit.returnPressed.connect(self.ask)
+        self.q_btn = QtWidgets.QPushButton("💬 " + t("vis_ask")); self.q_btn.clicked.connect(self.ask)
+        qrow.addWidget(self.q_edit, 1); qrow.addWidget(self.q_btn)
+        qw = QtWidgets.QWidget(); qw.setLayout(qrow); ec.add(qw)
+        right.addWidget(ec, 2)
+        self._ctx = None
         self.tbl = make_table([t("vis_pattern"), t("vis_kind"), t("vis_where"), t("vis_stat")])
         pc = Card(t("vis_patterns")); pc.add(self.tbl); right.addWidget(pc, 2)
         self.card_tbl = make_table([t("vis_theme"), t("vis_found"), t("vis_diracc"), t("vis_corr")])
@@ -105,6 +112,15 @@ class VisionPage(QtWidgets.QWidget):
         self.path = p
         self.analyse()
 
+    def ask(self):
+        q = self.q_edit.text().strip()
+        if not q or not self._ctx:
+            return
+        from core import analyst as AN
+        ans, backend = AN.ask(q, self._ctx, I18N.lang)
+        self.txt.append(f"\n\n❓ {q}\n💬 [{backend}] {ans}")
+        self.txt.moveCursor(QtGui.QTextCursor.MoveOperation.End)
+
     # ------------------------------------------------------------------ analysis
     def analyse(self):
         if not self.path:
@@ -114,16 +130,44 @@ class VisionPage(QtWidgets.QWidget):
         path = self.path
         self.open_btn.setEnabled(False)
 
-        def work():
-            ex = V.extract_candles(path)
-            crop = ex["crop"]
-            if top and bot and top != bot:
+        def work(progress=None):
+            from core import vision2 as V2
+            u = V2.understand(path, lang=lang, progress=progress)
+            ex = u["ex"]; crop = ex["crop"]
+            if top and bot and top != bot:            # manual calibration overrides OCR
                 df = V.calibrate(ex["df"], px_top=crop[1], price_top=top, px_bot=crop[3], price_bot=bot)
+                out = V.analyse_chart(df, lang)
             else:
-                df = V.calibrate(ex["df"])
-            out = V.analyse_chart(df, lang)
+                df = u["df"]; out = u["numeric"]
             text = V.describe(out, lang)
+            fa = lang == "fa"
+            extra = []
+            if u["calibration"]:
+                c = u["calibration"]
+                extra.append((f"✓ Price axis read automatically ({c['n_ticks']} ticks, fit error {c['max_resid_pct']:.2f}%) → last close ≈ {df['close'].iloc[-1]:,.2f}"
+                              if not fa else f"✓ محور قیمت خودکار خوانده شد ({c['n_ticks']} برچسب، خطای برازش {c['max_resid_pct']:.2f}٪) → آخرین بسته ≈ {df['close'].iloc[-1]:,.2f}"))
+            if u["volume"]:
+                extra.append("✓ Volume pane detected and attached to the candles." if not fa else "✓ پنل حجم شناسایی و به کندل‌ها متصل شد.")
+            if u["overlay_text"]:
+                extra.append(("Drawn objects / indicators on the chart:" if not fa else "اشیای کشیده‌شده / اندیکاتورهای روی نمودار:") + "\n  • " + "\n  • ".join(u["overlay_text"][:8]))
+            wc = u["whole_chart"]
+            if wc:
+                nm = (lambda k: V2.CLASS_FA.get(k, k)) if fa else (lambda k: k)
+                extra.append((f"Image classifier (HOG+SVM, trained on synthetic charts, hold-out acc {u['detector_meta'].get('holdout_acc', 0) * 100:.0f}%): whole chart looks like "
+                              if not fa else f"طبقه‌بند تصویری (HOG+SVM آموزش‌دیده روی نمودارهای مصنوعی، دقت آزمون {u['detector_meta'].get('holdout_acc', 0) * 100:.0f}٪): کل نمودار شبیه ")
+                             + ", ".join(f"{nm(k)} {p_ * 100:.0f}%" for k, p_ in wc))
+            if u["image_patterns"]:
+                extra.append(("Localised image patterns (sliding window + NMS): " if not fa else "الگوهای تصویری موضعی (پنجرهٔ لغزان + NMS): ")
+                             + ", ".join(f"{(d['name_fa'] if fa else d['name'])} {d['conf'] * 100:.0f}% @bars {d['i0']}–{d['i1']}" for d in u["image_patterns"]))
+            text = text + "\n\n" + "\n".join(extra)
             yolo = V.yolo_detect(path)
+            ex = dict(ex); ex["annotated"] = u["annotated"]
+            out = dict(out); out["image_patterns"] = u["image_patterns"]
+            from core import analyst as AN
+            u2 = dict(u); u2["numeric"] = out; u2["df"] = df
+            brief, meta = AN.report(dict(vision=u2, calibrated=bool(top and bot)), lang)
+            self._ctx = dict(vision=u2, calibrated=bool(top and bot))
+            text = text + "\n\n" + brief
             return ex, df, out, text, yolo
         self.w = Worker(work); self.w.done.connect(self._show)
         self.w.error.connect(lambda e: (self.open_btn.setEnabled(True), self.txt.setPlainText(t("vis_fail") + "\n" + e))); self.w.start()
@@ -144,7 +188,7 @@ class VisionPage(QtWidgets.QWidget):
         self.t_rsi.set(f"{out['rsi']:.0f}" if out["rsi"] == out["rsi"] else "—")
         conf = float(np.mean([b["conf"] for b in ex["boxes"]])) if ex["boxes"] else 0
         self.t_conf.set(f"{conf * 100:.0f}%", C["green"] if conf > 0.8 else C["yellow"])
-        self.txt.setPlainText(text + ("\n\nYOLO: " + ", ".join(f"{d['name']} {d['conf']:.2f}" for d in yolo) if yolo else ""))
+        self.txt.setMarkdown(text.replace('\n', '  \n') + ("\n\nYOLO: " + ", ".join(f"{d['name']} {d['conf']:.2f}" for d in yolo) if yolo else ""))
         self.tbl.setSortingEnabled(False); self.tbl.setRowCount(0)
         for name, sgn, i in out.get("candles", []):
             r_ = self.tbl.rowCount(); self.tbl.insertRow(r_)
@@ -164,6 +208,13 @@ class VisionPage(QtWidgets.QWidget):
                 self.tbl.setItem(r_, 3, cell(f"{side} {stat}".strip(), col))
             else:
                 self.tbl.setItem(r_, 0, cell(str(p))); self.tbl.setItem(r_, 1, cell(t("vis_chart_pat")))
+        for d in out.get("image_patterns", []):
+            r_ = self.tbl.rowCount(); self.tbl.insertRow(r_)
+            self.tbl.setItem(r_, 0, cell(d["name_fa"] if I18N.lang == "fa" else d["name"]))
+            self.tbl.setItem(r_, 1, cell(t("vis_img_pat")))
+            self.tbl.setItem(r_, 2, cell(f"bar {d['i0']}–{d['i1']}"))
+            col = C["green"] if d["side"] == "bull" else (C["red"] if d["side"] == "bear" else None)
+            self.tbl.setItem(r_, 3, cell(f"{d['side']} · conf {d['conf'] * 100:.0f}%", col))
         self.tbl.setSortingEnabled(True)
         self._draw_recon(df)
 

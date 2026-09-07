@@ -74,6 +74,7 @@ class AIPage(QtWidgets.QWidget):
         self.tabs.addTab(self._sent_tab(), "📰 " + t("ai_tab_sent"))
         self.tabs.addTab(self._rl_tab(), "🤖 " + t("ai_tab_rl"))
         self.tabs.addTab(self._eng_tab(), "⚙ " + t("ai_tab_eng"))
+        self.tabs.addTab(self._an_tab(), "🧾 " + t("ai_tab_an"))
         self.status = QtWidgets.QLabel(""); self.status.setObjectName("subtitle"); v.addWidget(self.status)
 
     def _run(self, fn, done, *a, **kw):
@@ -261,6 +262,77 @@ class AIPage(QtWidgets.QWidget):
             ag = np.asarray(curves[0], float); bh = np.asarray(summ.get("bh_curve", []), float)
             m = min(len(ag), len(bh)) if len(bh) else len(ag)
             self.rl_plot.set(ag[:m], {"buy&hold": bh[:m]} if len(bh) else {}, None, overlay=True)
+
+    # ------------------------------------------------------------------ analyst (offline LLM layer)
+    def _an_tab(self):
+        from core import analyst as AN
+        w = QtWidgets.QWidget(); v = QtWidgets.QVBoxLayout(w)
+        st = AN.llm_status()
+        row = QtWidgets.QHBoxLayout()
+        self.an_btn = QtWidgets.QPushButton("▶ " + t("ai_run")); self.an_btn.setObjectName("primary"); self.an_btn.clicked.connect(self.run_an)
+        lbl = QtWidgets.QLabel(t("ai_llm_status").format(llama="✓" if st["llama_cpp"] else "✗", gguf=", ".join(st["gguf"]) or "—", mode=("local GGUF" if st["active"] else t("ai_llm_rules"))))
+        lbl.setWordWrap(True)
+        row.addWidget(self.an_btn); row.addWidget(lbl, 1); v.addLayout(row)
+        tiles = QtWidgets.QHBoxLayout()
+        self.an_bias = StatTile(t("ai_bias")); self.an_score = StatTile(t("ai_confl")); self.an_agree = StatTile(t("ai_agree")); self.an_n = StatTile(t("ai_evidence"))
+        for x in (self.an_bias, self.an_score, self.an_agree, self.an_n):
+            tiles.addWidget(x)
+        v.addLayout(tiles)
+        self.an_txt = QtWidgets.QTextEdit(); self.an_txt.setReadOnly(True)
+        c = Card(t("ai_brief")); c.add(self.an_txt); v.addWidget(c, 1)
+        qrow = QtWidgets.QHBoxLayout()
+        self.an_q = QtWidgets.QLineEdit(); self.an_q.setPlaceholderText(t("vis_ask_ph")); self.an_q.returnPressed.connect(self.ask_an)
+        b = QtWidgets.QPushButton("💬 " + t("vis_ask")); b.clicked.connect(self.ask_an)
+        qrow.addWidget(self.an_q, 1); qrow.addWidget(b); v.addLayout(qrow)
+        n = QtWidgets.QLabel(t("ai_an_note")); n.setWordWrap(True); n.setObjectName("subtitle"); v.addWidget(n)
+        self._an_ctx = None
+        return w
+
+    def run_an(self):
+        sym, tf = self.bar.symbol(), self.bar.timeframe()
+        lang = I18N.lang
+
+        def job():
+            from core import analyst as AN, vision2 as V2, playbook as PB
+            import cv2, os
+            df, _ = load_data(sym, tf)
+            tail = df.tail(120).reset_index(drop=True)
+            # run the SAME vision pipeline the user gets on a screenshot, on a rendered chart of live data
+            img = V2.render_df(tail, size=(1100, 520))
+            p = os.path.join(os.path.expanduser("~"), ".protrader_live_chart.png"); cv2.imwrite(p, img)
+            try:
+                u = V2.understand(p, lang=lang)
+            except Exception:
+                from core import vision as V
+                u = dict(numeric=V.analyse_chart(tail, lang), df=tail, image_patterns=[], overlays=dict(lines=[], curves=[]), calibration=None)
+            u["numeric"] = __import__("core.vision", fromlist=["analyse_chart"]).analyse_chart(tail, lang)  # exact data, not pixels
+            u["df"] = tail; u["calibration"] = dict(n_ticks=0)
+            fc = F.historical_forecasts(df["close"].values[-800:], h=5, n_origins=12)
+            pb = []
+            try:
+                for sid, sc, st_ in PB.best_for(tf, sym, k=3) or []:
+                    pb.append(dict(sid=sid, pf=round(float(st_.get("pf", 0)), 2) if isinstance(st_, dict) else "?", trades=st_.get("trades", "?") if isinstance(st_, dict) else "?"))
+            except Exception:
+                pass
+            ctx = dict(vision=u, forecast=fc, playbook=pb, calibrated=True)
+            txt, meta = AN.report(ctx, lang)
+            return ctx, txt, meta
+        self._run(job, self._an_done)
+
+    def _an_done(self, r):
+        ctx, txt, meta = r
+        self._an_ctx = ctx
+        self.an_txt.setMarkdown(txt.replace("\n", "  \n"))
+        self.an_bias.set(meta["bias"], color_for(meta["score"]) if abs(meta["score"]) > 0.25 else C["muted"])
+        self.an_score.set(f"{meta['score']:+.2f}", color_for(meta["score"])); self.an_agree.set(f"{meta['agreement'] * 100:.0f}%"); self.an_n.set(str(meta["n"]))
+
+    def ask_an(self):
+        q = self.an_q.text().strip()
+        if not q or not self._an_ctx:
+            return
+        from core import analyst as AN
+        ans, be = AN.ask(q, self._an_ctx, I18N.lang)
+        self.an_txt.append(f"\n\n❓ {q}\n💬 [{be}] {ans}")
 
     # ------------------------------------------------------------------ engines
     def _eng_tab(self):

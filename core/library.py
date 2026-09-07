@@ -132,4 +132,19 @@ BOTS = [
     ("3Commas", "semi-open", "DCA bot with safety orders, take-profit from average", "dca_bot"),
     ("Bitsgap", "semi-open", "Grid bot, range-bound profit", "grid_bot"),
     ("Pionex", "semi-open", "Grid / infinity grid / DCA", "grid_bot · dca_bot"),
+    # ---- Phase 11: AI libraries (what was learned from each and where it lives)
+    ("TensorTrade", "AI/RL", "Env = exchange + action scheme + reward scheme + observer; separation of concerns", "core/rl.TradingEnv (window observer, cost model, logret/DSR reward) · AI Desk ▸ RL"),
+    ("LEAN / QuantConnect", "engine", "Algorithm Framework: Alpha→Portfolio→Risk→Execution; consolidators; reality models", "core/engines.AlgorithmFramework · consolidate() · AI Desk ▸ Engines"),
+    ("Zipline", "engine", "Pipeline cross-sectional factors; VolumeShare/FixedBps slippage; PerShare commission", "core/engines.pipeline_rank · volume_share_slippage · AI Desk ▸ Engines"),
+    ("Backtrader (+AI)", "engine", "next()-loop event engine, bracket orders, sizers, SQN analyzer, next-bar fills", "core/engines.EventEngine · SignalStrategy adapter · parity_check vs vectorised backtester"),
+    ("Prophet / NeuralProphet", "AI/forecast", "Piecewise-linear trend with changepoints + seasonality + uncertainty band; changepoint prior", "core/forecast.prophet_like (damped, anchored) · AI Desk ▸ Forecast band"),
+    ("Kats", "AI/forecast", "CUSUM changepoint detection, ensemble backtesting", "core/forecast.cusum_changepoints · historical_forecasts"),
+    ("Darts / sktime", "AI/forecast", "Unified fit/predict API, historical_forecasts (rolling origin), Theta, MASE metric", "core/forecast.MODELS · historical_forecasts (MASE, direction p-value)"),
+    ("PyTorch Forecasting / GluonTS", "AI/forecast", "N-BEATS basis expansion; probabilistic (quantile) forecasts", "core/forecast.nbeats_like (mlp/ridge) · quantile_forecast (pinball loss)"),
+    ("FinBERT / finance BERT", "AI/NLP", "3-class finance sentiment; optional transformer backend", "core/sentiment.transformer_backend (auto if transformers installed) · FinBERT column"),
+    ("VADER / TextBlob / Flair / Stanza", "AI/NLP", "Rule lexicon with negation/boosters/caps, subjectivity, entity (ticker) extraction", "core/sentiment.vader_like · subjectivity · per_ticker · Loughran-McDonald lexicon · crowd flag"),
+    ("FinGPT / fin-tuned Llama·Mistral·DeepSeek·Qwen·Falcon", "AI/LLM", "Grounded report writing & instruction Q&A over market context; local inference", "core/analyst.report/ask (offline rule-writer) · local GGUF via llama-cpp in data/models · AI Desk ▸ Analyst · Vision ▸ Ask"),
+    ("Stable-Baselines3 / RLlib / Coach", "AI/RL", "Gym env contract, PPO/DQN, EvalCallback early stopping, multi-seed evaluation", "core/rl.LinearQAgent/LinearPolicyAgent · train_and_evaluate (val early-stop, random-p95 baseline) · sb3_backend"),
+    ("YOLO / Detectron2 / OpenCV+PyTorch", "AI/vision", "Detector = proposals → class scores → NMS; train on labelled (synthetic) data; multi-scale", "core/vision (OpenCV candle segmentation, OCR axis calibration, Hough drawings, volume pane) · core/vision2.PatternDetector (HOG+SVM sliding-window + NMS) · Chart Vision page"),
 ]
+

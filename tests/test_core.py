@@ -83,3 +83,33 @@ def test_phase11_forecast_sentiment_rl_engines():
     par = E.parity_check(df, sr)
     assert par["trade_count_gap"] == 0 and par["return_gap_pct"] < 2.0
     assert E.sqn_label(3.2) == "excellent"
+
+
+def test_phase11_vision2_understand():
+    import os
+    from core import vision2 as V2
+    p = os.path.join(os.path.dirname(__file__), "vision_samples", "tv_channel.png")
+    det = V2.PatternDetector.load()
+    if det is None:
+        det = V2.PatternDetector(); det.train(n_per_class=15)
+    u = V2.understand(p, detector=det)
+    assert u["calibration"] is not None and 70_000 < u["df"]["close"].iloc[-1] < 95_000   # axis OCR: BTC ≈ 83k
+    kinds = {l["kind"] for l in u["overlays"]["lines"]}
+    assert "trendline_down" in kinds                                                       # the drawn channel
+    assert u["numeric"]["trend"] == "down"
+    top = u["whole_chart"][0][0]
+    assert top in ("triangle_desc", "wedge_falling", "channel_down", "downtrend", "triangle_sym", "none")
+
+
+def test_phase11_analyst_grounded():
+    from core import analyst as AN, vision as V
+    import pandas as pd, numpy as np
+    rng = np.random.default_rng(1); c = 100 * np.exp(np.cumsum(rng.normal(0.001, 0.01, 150)))
+    df = pd.DataFrame(dict(open=c, high=c * 1.004, low=c * 0.996, close=c, volume=1.0))
+    num = V.analyse_chart(df)
+    ctx = dict(vision=dict(numeric=num, df=df, image_patterns=[], overlays=dict(lines=[], curves=[]), calibration=None), calibrated=True)
+    txt, meta = AN.report(ctx, "fa")
+    assert "سوگیری" in txt and -1 <= meta["score"] <= 1
+    ans, be = AN.ask("روند چیه؟", ctx, "fa")
+    assert "روند" in ans and be in ("rules", "local-llm")
+    assert AN._side(-1) == -1 and AN._side("bull") == 1
