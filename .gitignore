@@ -7,3 +7,4 @@ data/forward.json
 data/models/*.bin
 tests/shots/
 .venv/
+data/playbook.json.partial

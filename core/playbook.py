@@ -35,7 +35,8 @@ MIN_BARS = {"1m": 5000, "3m": 4000, "5m": 3000, "15m": 2000, "30m": 1500, "1h": 
 # breadth gates (Phase 12): a strategy is "proven" only if it is positive on ≥60 % of symbols AND ≥60 % of calendar years
 MIN_SYMBOL_BREADTH = 0.6
 MIN_YEAR_BREADTH = 0.6
-MAX_BARS = {"1m": 30000, "3m": 30000, "5m": 30000, "15m": 30000, "30m": 25000, "1h": 25000, "2h": 20000, "4h": 20000, "6h": 12000, "12h": 6000, "1d": 6000, "3d": 1500, "1wk": 600}
+# evaluation window per tf (bars). Intraday is capped for compute (2-core laptop: full build ≈ 1–2 h); still 5–10× the old 1000-bar window
+MAX_BARS = {"1m": 12000, "3m": 12000, "5m": 12000, "15m": 12000, "30m": 12000, "1h": 15000, "2h": 12000, "4h": 12000, "6h": 8000, "12h": 5000, "1d": 5000, "3d": 1500, "1wk": 600}
 
 
 def group_of(symbol):
@@ -105,24 +106,21 @@ def _recent_pf(trades, days=365):
     return profit_factor(p)
 
 
-def build_playbook(strategy_classes, progress=None, tfs=TFS, groups=GROUPS):
-    """Returns dict[tf][group][strategy_id] = stats. Also stores per-tf overall ranking."""
-    pb = {"ts": time.time(), "tfs": tfs, "table": {}, "best": {}}
-    total = len(tfs) * sum(len(v) for v in groups.values())
-    k = 0
-    data = {}
-    for tf in tfs:
-        for g, syms in groups.items():
-            for sym in syms:
-                k += 1
-                if progress:
-                    progress(int(k / total * 50), f"data {sym} {tf}")
-                try:
-                    df = get_ohlcv(sym, tf, max_age_sec=6 * 3600)
-                    if len(df) >= MIN_BARS[tf]:
-                        data[(tf, g, sym)] = df.tail(MAX_BARS.get(tf, 20000))
-                except Exception:
-                    pass
+PARTIAL = PATH + ".partial"
+
+
+def build_playbook(strategy_classes, progress=None, tfs=TFS, groups=GROUPS, resume=True):
+    """Returns dict[tf][group][strategy_id] = stats. Also stores per-tf overall ranking.
+    Resumable: each finished timeframe is written to playbook.json.partial; a restart skips finished tfs."""
+    pb = {"ts": time.time(), "tfs": list(tfs), "table": {}, "best": {}}
+    done_tfs = set()
+    if resume and os.path.exists(PARTIAL):
+        try:
+            part = json.load(open(PARTIAL))
+            if time.time() - part.get("ts", 0) < 3 * 86400:
+                pb["table"] = part.get("table", {}); done_tfs = set(pb["table"].keys())
+        except Exception:
+            pass
     try:
         from core.audit import failed_ids
         bad = failed_ids()
@@ -130,10 +128,22 @@ def build_playbook(strategy_classes, progress=None, tfs=TFS, groups=GROUPS):
     except Exception:
         pass
     tot_s = len(strategy_classes)
-    for si, cls in enumerate(strategy_classes):
-        if progress:
-            progress(50 + int(si / tot_s * 50), f"{cls.id}")
-        for tf in tfs:
+    todo = [tf for tf in tfs if tf not in done_tfs]
+    for ti, tf in enumerate(todo):
+        data = {}
+        for g, syms in groups.items():
+            for sym in syms:
+                if progress:
+                    progress(int(ti / max(len(todo), 1) * 100), f"data {sym} {tf}")
+                try:
+                    df = get_ohlcv(sym, tf, max_age_sec=6 * 3600)
+                    if len(df) >= MIN_BARS[tf]:
+                        data[(tf, g, sym)] = df.tail(MAX_BARS.get(tf, 12000))
+                except Exception:
+                    pass
+        for si, cls in enumerate(strategy_classes):
+            if progress:
+                progress(int((ti + si / tot_s) / max(len(todo), 1) * 100), f"{tf} {cls.id}")
             for g in groups:
                 trades = []; by_symbol = {}
                 for sym in groups[g]:
@@ -148,6 +158,11 @@ def build_playbook(strategy_classes, progress=None, tfs=TFS, groups=GROUPS):
                 st = _stats(trades, by_symbol)
                 if st:
                     pb["table"].setdefault(tf, {}).setdefault(g, {})[cls.id] = st
+        pb["table"].setdefault(tf, {})
+        try:
+            json.dump(dict(ts=time.time(), table=pb["table"]), open(PARTIAL, "w"), default=float)
+        except Exception:
+            pass
     # ranking per (tf, group)
     for tf, gd in pb["table"].items():
         for g, sd in gd.items():
@@ -172,6 +187,10 @@ def build_playbook(strategy_classes, progress=None, tfs=TFS, groups=GROUPS):
             pb["best"].setdefault(tf, {})[g] = [(sid, sc) for sid, sc, _ in rows[:6]]
     os.makedirs(os.path.dirname(PATH), exist_ok=True)
     json.dump(pb, open(PATH, "w"), indent=1, default=float)
+    try:
+        os.remove(PARTIAL)
+    except Exception:
+        pass
     return pb
 
 
