@@ -174,3 +174,16 @@ Phase-10 honest results (strict CI grades, all markets): `oneil_sell_rules` C on
 4h/30m crypto; `jesse_anchor` C on 4h crypto (PF 1.21, n 421); `davey_robust` not proven (score 52); `chan_kalman`,
 `elder_impulse_safezone`, `freqtrade_sample` low scores (31–37) — kept in the library as faithful references, the
 playbook & advisor will not recommend them.
+
+## Phase 11 — AI layer: Chart Vision + AI Desk (`core/vision.py`, `core/forecast.py`, `core/sentiment.py`, `core/rl.py`, `core/engines.py`)
+What was studied and what was ported (pure numpy/sklearn core; heavy libraries auto-enabled when installed):
+
+| Area | Libraries studied | What the bot learned | Optional heavy path |
+|---|---|---|---|
+| **Chart Vision** (page 👁) | YOLO, OpenCV+PyTorch, Detectron2 | OpenCV candle segmentation → OHLC reconstruction → numeric pattern library + FA/EN explanation; self-test model card; price calibration | `data/models/chart_yolo.pt` (ultralytics) |
+| **Forecast** (AI Desk tab) | Prophet, NeuralProphet, Darts, Kats, sktime, GluonTS, PyTorch-Forecasting (N-BEATS) | naive / drift / SES / Holt / Theta / Prophet-like (piecewise trend + changepoints + damping) / N-BEATS-like MLP & ridge / quantile GBR; **rolling-origin backtest with MASE vs naive** and direction p-value; CUSUM changepoints | — |
+| **Sentiment** (AI Desk tab) | VADER, TextBlob, FinBERT, Flair, Stanza, FinGPT | VADER-style rule engine + Loughran-McDonald finance lexicon, subjectivity, ticker extraction, RSS headline fetch, crowd-extremity contrarian flag | `transformers` + ProsusAI/finbert |
+| **RL agent** (AI Desk tab) | TensorTrade, Stable-Baselines3, RLlib, Intel Coach | Gym-style `TradingEnv` (window features, costs, log-return or differential-Sharpe reward), linear Q-learning & REINFORCE agents, time split + early stopping on validation, comparison with buy&hold and **95th percentile of random agents** | `stable_baselines3` + `gymnasium` (`rl.sb3_backend`) |
+| **Engines** (AI Desk tab) | LEAN/QuantConnect, Zipline, Backtrader, FreqAI | Backtrader-style event engine (next-bar fills, brackets, risk sizer, SQN analyzer), **parity check** vs the vectorised backtester (equal trade count, return gap < 1% on tested strategies), Zipline pipeline ranks, Zipline slippage models, LEAN Alpha→Portfolio→Risk→Execution framework, FreqAI retrain schedule | — |
+
+Verdict shown in the UI is always relative to a baseline: on liquid crypto 1h data the forecasting models mostly do **not** beat naive and the RL agents do **not** beat buy&hold/random-p95 — the app says so instead of pretending.

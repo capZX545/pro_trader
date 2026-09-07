@@ -64,3 +64,22 @@ if __name__ == "__main__":
     for k, v in list(globals().items()):
         if k.startswith("test_"):
             v(); print("PASS", k)
+
+
+def test_phase11_forecast_sentiment_rl_engines():
+    import numpy as np, pandas as pd
+    from core import forecast as F, sentiment as SE, rl as RL, engines as E
+    rng = np.random.default_rng(0); n = 900
+    c = 100 * np.exp(np.cumsum(rng.normal(0, 0.01, n)))
+    res = F.historical_forecasts(c, h=5, n_origins=8)
+    assert set(["naive", "theta", "prophet_like"]).issubset(res.model) and (res.MASE > 0).all()
+    df_s, agg = SE.score_headlines(["AAPL beats estimates, shares surge", "TSLA plunges after weak guidance"])
+    assert df_s.compound.iloc[0] > 0 > df_s.compound.iloc[1] and "regime" in agg
+    df = pd.DataFrame({"open": c, "high": c * 1.005, "low": c * 0.995, "close": c, "volume": 1.0}, index=pd.date_range("2024", periods=n, freq="h"))
+    r, summ, curves = RL.train_and_evaluate(df, "q", episodes=3, seeds=(0,))
+    assert len(r) == 1 and "random_p95" in summ and len(curves[0]) > 10
+    import strategies as S
+    sr = S.get("ema_cross").run(df)
+    par = E.parity_check(df, sr)
+    assert par["trade_count_gap"] == 0 and par["return_gap_pct"] < 2.0
+    assert E.sqn_label(3.2) == "excellent"

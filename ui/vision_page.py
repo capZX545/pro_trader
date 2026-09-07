@@ -153,12 +153,15 @@ class VisionPage(QtWidgets.QWidget):
         for p in out.get("chart_patterns", []):
             r_ = self.tbl.rowCount(); self.tbl.insertRow(r_)
             if isinstance(p, dict):
-                self.tbl.setItem(r_, 0, cell(str(p.get("name", ""))))
+                nm = p.get("name_fa") if I18N.lang == "fa" and p.get("name_fa") else p.get("name", "")
+                self.tbl.setItem(r_, 0, cell(str(nm)))
                 self.tbl.setItem(r_, 1, cell(t("vis_chart_pat")))
-                self.tbl.setItem(r_, 2, cell(str(p.get("end", p.get("idx", "")))))
-                side = p.get("side", p.get("dir", ""))
-                stat = p.get("fail_rate", p.get("stats", ""))
-                self.tbl.setItem(r_, 3, cell(f"{side} {stat}"))
+                self.tbl.setItem(r_, 2, cell(f"bar {p.get('i_start', '')}–{p.get('i_end', p.get('end', ''))}"))
+                side = str(p.get("side", p.get("dir", "")))
+                st = p.get("stats") or {}
+                stat = f"fail {st.get('fail', '?')}% · move {st.get('move', '?')}% · rank {st.get('rank', '?')}" if isinstance(st, dict) and st else ""
+                col = C["green"] if side in ("long", "bull", "bullish", "buy") else (C["red"] if side in ("short", "bear", "bearish", "sell") else None)
+                self.tbl.setItem(r_, 3, cell(f"{side} {stat}".strip(), col))
             else:
                 self.tbl.setItem(r_, 0, cell(str(p))); self.tbl.setItem(r_, 1, cell(t("vis_chart_pat")))
         self.tbl.setSortingEnabled(True)
