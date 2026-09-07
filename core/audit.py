@@ -20,8 +20,8 @@ import time
 import numpy as np
 import pandas as pd
 
-APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PATH = os.path.join(APP_DIR, "data", "audit.json")
+from core.paths import data as _data
+PATH = _data("audit.json")
 
 
 def _rw(n=2500, seed=0, start=100.0, freq="1h"):

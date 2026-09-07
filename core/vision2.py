@@ -26,7 +26,8 @@ except Exception:  # pragma: no cover
 from core import vision as V
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(ROOT, "data", "models", "pattern_hog.pkl")
+from core.paths import data as _data
+MODEL_PATH = _data("models", "pattern_hog.pkl")
 
 PATTERN_CLASSES = ["none", "uptrend", "downtrend", "range", "head_shoulders_top", "head_shoulders_bottom", "double_top",
                    "double_bottom", "triangle_asc", "triangle_desc", "triangle_sym", "wedge_rising", "wedge_falling",

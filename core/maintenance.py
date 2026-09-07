@@ -14,7 +14,8 @@ import threading
 import traceback
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOG = os.path.join(APP_DIR, "data", "maintenance.log")
+from core.paths import data as _data
+LOG = _data("maintenance.log")
 STATE = {"running": False, "last": {}, "current": None, "progress": 0}
 _stop = threading.Event()
 

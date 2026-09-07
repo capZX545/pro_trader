@@ -19,7 +19,8 @@ from core.backtest import run_backtest
 from core.data import get_ohlcv
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CACHE = os.path.join(APP_DIR, "data", "validation.json")
+from core.paths import data as _data
+CACHE = _data("validation.json")
 
 DEFAULT_UNIVERSE = [
     ("BTC/USDT", "1h"), ("ETH/USDT", "1h"), ("SOL/USDT", "1h"), ("BTC/USDT", "4h"), ("ETH/USDT", "4h"), ("BTC/USDT", "1d"),

@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+from core.paths import DATA_DIR as CACHE_DIR
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 # ---- Universe (symbol -> yahoo ticker, binance symbol or None) ----

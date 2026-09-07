@@ -729,7 +729,8 @@ def robustness_report(n_per=2, n_candles=60):
     out = g.round(3).reset_index().to_dict("records")
     try:
         import json, os
-        p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "vision_robustness.json")
+        from core.paths import data as _data
+        p = _data("vision_robustness.json")
         json.dump(out, open(p, "w"), indent=1)
     except Exception:
         pass
@@ -758,7 +759,8 @@ REAL_EXPECT = {
 def real_report():
     """run the extractor on the real screenshot set → list of dict(file, expected, found, ok, note)"""
     import os, glob, json
-    root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tests", "real_charts")
+    from core.paths import bundled, data as _data
+    root = bundled("tests", "real_charts")
     out = []
     for f in sorted(glob.glob(os.path.join(root, "*"))):
         name = os.path.basename(f)
@@ -770,8 +772,7 @@ def real_report():
         ok = None if exp is None else abs(n - exp) <= 0.2 * exp
         out.append(dict(file=name, expected=exp, found=n, ok=ok, theme=th, note=note))
     try:
-        p = os.path.join(os.path.dirname(root), "..", "data", "vision_real.json")
-        json.dump(out, open(os.path.normpath(p), "w"), indent=1)
+        json.dump(out, open(_data("vision_real.json"), "w"), indent=1)
     except Exception:
         pass
     return out

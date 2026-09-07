@@ -16,8 +16,7 @@ import json
 import traceback
 import numpy as np
 
-APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.path.join(APP_DIR, "data")
+from core.paths import DATA_DIR as DATA, SRC_ROOT as APP_DIR
 DAY = 86400
 
 

@@ -18,8 +18,9 @@ from .widgets import Card, StatTile, Badge, side_badge, hline, stars, make_table
 from .chart import ChartWidget, EquityChart
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-JOURNAL_PATH = os.path.join(APP_DIR, "data", "journal.json")
-SETTINGS_PATH = os.path.join(APP_DIR, "data", "settings.json")
+from core.paths import data as _data
+JOURNAL_PATH = _data("journal.json")
+SETTINGS_PATH = _data("settings.json")
 
 
 def all_symbols():

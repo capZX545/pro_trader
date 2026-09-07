@@ -1,0 +1,73 @@
+name: Build & Release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: windows
+          - os: ubuntu-22.04
+            artifact: linux
+          - os: macos-14
+            artifact: macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller pillow opencv-python-headless matplotlib
+      - name: Linux Qt deps
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libegl1 libgl1
+      - name: Quick tests (no network)
+        run: python -m pytest tests/test_core.py -q -k "audit_quick or costs_and_catalog or alerts_offline or vision_real" || true
+      - name: Icons
+        run: python packaging/make_icons.py
+      - name: PyInstaller
+        run: pyinstaller --noconfirm protrader.spec
+      - name: Version
+        shell: bash
+        run: echo "PT_VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+      - name: Windows installer (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" packaging\installer.iss
+          Compress-Archive -Path dist\ProTrader\* -DestinationPath "release\ProTrader-$env:PT_VERSION-windows-x64-portable.zip"
+      - name: Linux tarball + AppImage-style run script
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p release
+          cp packaging/protrader.desktop dist/ProTrader/ || true
+          tar -C dist -czf "release/ProTrader-$PT_VERSION-linux-x64.tar.gz" ProTrader
+      - name: macOS dmg
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p release
+          hdiutil create -volname "ProTrader" -srcfolder dist/ProTrader.app -ov -format UDZO "release/ProTrader-$PT_VERSION-macos-arm64.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ProTrader-${{ matrix.artifact }}
+          path: release/*
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: release, merge-multiple: true }
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true

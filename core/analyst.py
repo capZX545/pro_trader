@@ -225,7 +225,7 @@ def local_llm(max_tokens=400):
         from llama_cpp import Llama
     except Exception:
         _LLM = False; return None
-    ggufs = sorted(glob.glob(os.path.join(ROOT, "data", "models", "*.gguf")))
+    ggufs = sorted(glob.glob(os.path.join(__import__("core.paths", fromlist=["x"]).data("models"), "*.gguf")))
     if not ggufs:
         _LLM = False; return None
     try:
@@ -240,7 +240,7 @@ def local_llm(max_tokens=400):
 
 
 def llm_status():
-    ggufs = glob.glob(os.path.join(ROOT, "data", "models", "*.gguf"))
+    ggufs = glob.glob(os.path.join(__import__("core.paths", fromlist=["x"]).data("models"), "*.gguf"))
     try:
         import llama_cpp  # noqa
         has = True

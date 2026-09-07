@@ -17,7 +17,8 @@ from ui.theme import QSS, I18N  # noqa: E402
 
 def main():
     # language
-    settings = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "settings.json")
+    from core.paths import data as _data
+    settings = _data("settings.json")
     lang = "en"
     if os.path.exists(settings):
         try:
@@ -33,6 +34,11 @@ def main():
     app.setApplicationName("ProTrader Academy")
     app.setStyle("Fusion")
     app.setStyleSheet(QSS)
+    try:
+        from core.paths import bundled
+        app.setWindowIcon(QtGui.QIcon(bundled("assets", "icon.png")))
+    except Exception:
+        pass
     font = QtGui.QFont("Segoe UI" if sys.platform.startswith("win") else "Helvetica", 10)
     app.setFont(font)
 

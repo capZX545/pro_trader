@@ -17,8 +17,8 @@ import pandas as pd
 from core.backtest import run_backtest
 from core.data import get_ohlcv
 
-APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PATH = os.path.join(APP_DIR, "data", "playbook.json")
+from core.paths import SRC_ROOT as APP_DIR, data as _data
+PATH = _data("playbook.json")
 
 TFS = ["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "3d", "1wk"]   # 1mo has too few bars to prove anything
 GROUPS = {
@@ -129,6 +129,9 @@ def build_playbook(strategy_classes, progress=None, tfs=TFS, groups=GROUPS, resu
         pass
     tot_s = len(strategy_classes)
     todo = [tf for tf in tfs if tf not in done_tfs]
+    max_syms = int(os.environ.get("PB_MAX_SYMS", "0") or 0)        # compute cap for small machines / CI
+    if max_syms:
+        groups = {g: s[:max_syms] for g, s in groups.items()}
     for ti, tf in enumerate(todo):
         data = {}
         for g, syms in groups.items():
@@ -185,6 +188,10 @@ def build_playbook(strategy_classes, progress=None, tfs=TFS, groups=GROUPS, resu
                 rows.append((sid, round(float(score), 3), st))
             rows.sort(key=lambda r: -r[1])
             pb["best"].setdefault(tf, {})[g] = [(sid, sc) for sid, sc, _ in rows[:6]]
+            # high win-rate subset (WR ≥ 50 % with lower-CI WR ≥ 45 %) — same proof gates, ranked by WR
+            hw = [(sid, sc, st) for sid, sc, st in rows if st["wr"] >= 50 and st.get("wr_lo", st["wr"]) >= 45]
+            hw.sort(key=lambda r: -r[2]["wr"])
+            pb.setdefault("best_wr", {}).setdefault(tf, {})[g] = [(sid, round(float(st["wr"]), 1)) for sid, sc, st in hw[:6]]
     os.makedirs(os.path.dirname(PATH), exist_ok=True)
     json.dump(pb, open(PATH, "w"), indent=1, default=float)
     try:

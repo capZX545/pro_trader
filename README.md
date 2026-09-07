@@ -210,3 +210,20 @@ Everything below was added because the previous playbook was **over-optimistic**
 | Chart Vision tested only on clean renders | Robustness variants (JPEG-30, 60 % scale, noise, blur, watermark, phone photo) with denoise/upscale pre-processing. Current: clean 98 % direction accuracy, scaled 99.7 %, noise 91 %, JPEG-30 76 %, phone photo 69 % → the app tells you to upload a clean screenshot | `core/vision.py degrade/robustness_report`, Health |
 
 **Still true:** profitability is not guaranteed. The dynamic costs cut BTC 1h returns of trend strategies by a further 1–3 pp vs the old model (and stress ×2 by 15–25 pp). The playbook, portfolio and alerts only surface what survived out-of-sample, breadth and audit — the forward test decides the rest.
+
+## نصب  |  Install (desktop, no Python needed)
+
+**Releases → latest** (built automatically by GitHub Actions on every `v*` tag):
+
+| OS | file | how |
+|---|---|---|
+| Windows 10/11 x64 | `ProTrader-Setup-<ver>-windows-x64.exe` | run the installer → Start-menu / desktop shortcut. Portable: `…-windows-x64-portable.zip` → unzip → `ProTrader.exe` |
+| macOS 11+ (Apple Silicon) | `ProTrader-<ver>-macos-arm64.dmg` | drag to Applications (first run: right-click → Open, app is unsigned) |
+| Linux x64 | `ProTrader-<ver>-linux-x64.tar.gz` | `tar xzf …; ./ProTrader/ProTrader` |
+
+User data (cache, playbook, journal, settings, Telegram token) lives in `%APPDATA%\ProTrader` / `~/Library/Application Support/ProTrader` / `~/.local/share/protrader`; the install folder is never written to (`core/paths.py`).
+
+Build locally: `bash packaging/build.sh` (Linux/macOS) or `packaging\build.bat` (Windows; Inno Setup 6 for the installer). From source: `pip install -r requirements.txt && python main.py`.
+
+### First run — nothing to teach
+The app teaches itself: on first start the maintenance thread runs the strategy audit, then builds the Playbook (multi-year, breadth-gated; ~1–3 h on a laptop, resumable, progress in Health), then starts scanning for proven signals every 15 minutes and records them in the forward test. The user's only job is to set a Telegram token (optional) and follow the Portfolio page.

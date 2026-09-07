@@ -16,9 +16,9 @@ import time
 import threading
 import requests
 
-APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SETTINGS = os.path.join(APP_DIR, "data", "settings.json")
-LOG = os.path.join(APP_DIR, "data", "alerts.json")
+from core.paths import data as _data
+SETTINGS = _data("settings.json")
+LOG = _data("alerts.json")
 _lock = threading.Lock()
 _desktop_hook = None      # callable(title, body) set by the UI
 

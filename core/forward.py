@@ -23,7 +23,8 @@ from core.data import get_ohlcv
 from core.costs import cost_for
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PATH = os.path.join(APP_DIR, "data", "forward.json")
+from core.paths import data as _data
+PATH = _data("forward.json")
 _lock = threading.Lock()
 MAX_BARS = 200
 TF_MIN = {"5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440, "1wk": 10080}

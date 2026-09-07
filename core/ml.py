@@ -21,7 +21,8 @@ from core import indicators as ta
 from core import indicators2 as I2
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_DIR = os.path.join(APP_DIR, "data", "models")
+from core.paths import data as _data
+MODEL_DIR = _data("models")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 
