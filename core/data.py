@@ -55,14 +55,19 @@ UNIVERSE = {
     },
 }
 
-TIMEFRAMES = ["5m", "15m", "30m", "1h", "4h", "1d", "1wk"]
+TIMEFRAMES = ["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "3d", "1wk", "1mo"]   # 1 minute → 1 month
 # bars of history to request from Binance per timeframe (≈ 70d / 100d / 120d / 1y / 2.7y / 4y)
 # multi-year history (Phase 12): 5m ≈ 6 mo, 15m ≈ 1.4 y, 30m ≈ 2 y, 1h ≈ 4 y, 4h ≈ 8 y, 1d = full history
-_BINANCE_LIMIT = {"1m": 5000, "5m": 50000, "15m": 50000, "30m": 35000, "1h": 35000, "4h": 18000, "1d": 4000, "1wk": 600}
+_BINANCE_LIMIT = {"1m": 40000, "3m": 40000, "5m": 50000, "15m": 50000, "30m": 35000, "1h": 35000, "2h": 20000, "4h": 18000, "6h": 12000, "12h": 6000,
+                  "1d": 4000, "3d": 1500, "1wk": 600, "1mo": 150}
 
 # how much history to request per timeframe
-_PERIOD = {"1m": "7d", "5m": "60d", "15m": "60d", "30m": "60d", "1h": "730d", "4h": "730d", "1d": "max", "1wk": "max"}
-_BINANCE_TF = {"1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m", "1h": "1h", "4h": "4h", "1d": "1d", "1wk": "1w"}
+_PERIOD = {"1m": "7d", "3m": "7d", "5m": "60d", "15m": "60d", "30m": "60d", "1h": "730d", "2h": "730d", "4h": "730d", "6h": "730d", "12h": "730d",
+           "1d": "max", "3d": "max", "1wk": "max", "1mo": "max"}
+_BINANCE_TF = {"1m": "1m", "3m": "3m", "5m": "5m", "15m": "15m", "30m": "30m", "1h": "1h", "2h": "2h", "4h": "4h", "6h": "6h", "12h": "12h", "1d": "1d",
+               "3d": "3d", "1wk": "1w", "1mo": "1M"}
+# Yahoo has no 3m/2h/4h/6h/12h/3d → fetch a finer interval and resample
+_YF_BASE = {"3m": "1m", "2h": "1h", "4h": "1h", "6h": "1h", "12h": "1h", "3d": "1d"}
 
 
 def resolve(symbol_name: str):
@@ -172,10 +177,11 @@ def _fetch_yahoo(ticker: str, tf: str) -> pd.DataFrame:
     import yfinance as yf
     interval = tf
     period = _PERIOD.get(tf, "2y")
-    if tf == "4h":  # yahoo has no 4h -> build from 1h
-        raw = yf.download(ticker, period="730d", interval="1h", progress=False, auto_adjust=True, threads=False)
+    if tf in _YF_BASE:  # yahoo lacks this interval -> build from a finer one
+        base = _YF_BASE[tf]
+        raw = yf.download(ticker, period=_PERIOD[base], interval=base, progress=False, auto_adjust=True, threads=False)
         raw = _normalize(raw)
-        return resample(raw, "4h")
+        return resample(raw, tf)
     raw = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=True, threads=False)
     if raw is None or raw.empty:
         raise RuntimeError(f"No data for {ticker}")
@@ -183,7 +189,8 @@ def _fetch_yahoo(ticker: str, tf: str) -> pd.DataFrame:
 
 
 def resample(df: pd.DataFrame, rule: str) -> pd.DataFrame:
-    r = {"1h": "1h", "4h": "4h", "1d": "1D", "1wk": "1W"}.get(rule, rule)
+    r = {"1m": "1min", "3m": "3min", "5m": "5min", "15m": "15min", "30m": "30min", "1h": "1h", "2h": "2h", "4h": "4h", "6h": "6h", "12h": "12h",
+         "1d": "1D", "3d": "3D", "1wk": "1W", "1mo": "1MS"}.get(rule, rule)
     o = df.resample(r, label="left", closed="left").agg(
         {"open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"}
     ).dropna(subset=["open"])

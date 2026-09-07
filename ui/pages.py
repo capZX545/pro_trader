@@ -283,7 +283,7 @@ class DashboardPage(QtWidgets.QWidget):
         self.chart.set_data(df.tail(400), title=f"{sym} · {tf}" + ("" if ok else f"  [{t('offline')}]"))
         c = df.close
         px = c.iloc[-1]
-        bars_24h = {"15m": 96, "30m": 48, "1h": 24, "4h": 6, "1d": 1, "1wk": 1}.get(tf, 24)
+        bars_24h = {"1m": 1440, "3m": 480, "5m": 288, "15m": 96, "30m": 48, "1h": 24, "2h": 12, "4h": 6, "6h": 4, "12h": 2, "1d": 1, "3d": 1, "1wk": 1, "1mo": 1}.get(tf, 24)
         chg = (px / c.iloc[-1 - bars_24h] - 1) * 100 if len(c) > bars_24h else 0
         e50, e200 = ta.ema(c, 50).iloc[-1], ta.ema(c, 200).iloc[-1]
         adx, _, _ = ta.adx(df)

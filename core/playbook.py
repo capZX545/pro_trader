@@ -20,7 +20,7 @@ from core.data import get_ohlcv
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PATH = os.path.join(APP_DIR, "data", "playbook.json")
 
-TFS = ["5m", "15m", "30m", "1h", "4h", "1d"]
+TFS = ["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "3d", "1wk"]   # 1mo has too few bars to prove anything
 GROUPS = {
     "crypto": ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT", "LINK/USDT", "ADA/USDT", "DOGE/USDT", "AVAX/USDT",
                "DOT/USDT", "LTC/USDT", "TRX/USDT", "ATOM/USDT", "BCH/USDT", "ETC/USDT", "UNI/USDT"],
@@ -31,11 +31,11 @@ GROUPS = {
     "forex": ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD", "USD/CHF", "NZD/USD", "EUR/GBP", "EUR/JPY", "GBP/JPY", "AUD/JPY"],
 }
 # min bars of history for a (tf) to be worth testing
-MIN_BARS = {"5m": 3000, "15m": 2000, "30m": 1500, "1h": 1500, "4h": 800, "1d": 600}
+MIN_BARS = {"1m": 5000, "3m": 4000, "5m": 3000, "15m": 2000, "30m": 1500, "1h": 1500, "2h": 1200, "4h": 800, "6h": 700, "12h": 600, "1d": 600, "3d": 300, "1wk": 200, "1mo": 100}
 # breadth gates (Phase 12): a strategy is "proven" only if it is positive on ≥60 % of symbols AND ≥60 % of calendar years
 MIN_SYMBOL_BREADTH = 0.6
 MIN_YEAR_BREADTH = 0.6
-MAX_BARS = {"5m": 30000, "15m": 30000, "30m": 25000, "1h": 25000, "4h": 20000, "1d": 6000}
+MAX_BARS = {"1m": 30000, "3m": 30000, "5m": 30000, "15m": 30000, "30m": 25000, "1h": 25000, "2h": 20000, "4h": 20000, "6h": 12000, "12h": 6000, "1d": 6000, "3d": 1500, "1wk": 600}
 
 
 def group_of(symbol):

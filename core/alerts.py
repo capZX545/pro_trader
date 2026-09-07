@@ -117,7 +117,7 @@ def scan(tfs=None, min_conf=None, lang="fa", progress=None, dry=False):
     from core import playbook as PB, forward as FW
     from core.data import get_ohlcv
     s = settings().get("alerts", {})
-    tfs = tfs or s.get("tfs", ["1h", "4h", "1d"])
+    tfs = tfs or s.get("tfs", ["15m", "1h", "4h", "1d"])
     min_conf = s.get("min_conf", 55) if min_conf is None else min_conf
     pb = PB.load()
     if not pb:

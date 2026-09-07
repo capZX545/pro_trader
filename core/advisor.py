@@ -20,8 +20,8 @@ from core import indicators as ta
 from core import playbook as PB
 from core import validation as V
 
-TF_MIN = {"5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440}
-MAX_AGE = {"5m": 2, "15m": 2, "30m": 2, "1h": 2, "4h": 1, "1d": 1}   # bars
+TF_MIN = {"1m": 1, "3m": 3, "5m": 5, "15m": 15, "30m": 30, "1h": 60, "2h": 120, "4h": 240, "6h": 360, "12h": 720, "1d": 1440, "3d": 4320, "1wk": 10080, "1mo": 43200}
+MAX_AGE = {"1m": 3, "3m": 2, "5m": 2, "15m": 2, "30m": 2, "1h": 2, "2h": 1, "4h": 1, "6h": 1, "12h": 1, "1d": 1, "3d": 1, "1wk": 1, "1mo": 1}   # bars
 
 
 def regime(df):
@@ -46,7 +46,7 @@ def next_close_minutes(df, tf):
     return max(0.0, (nxt - now).total_seconds() / 60)
 
 
-def advise(symbol, timeframes=("5m", "15m", "30m", "1h", "4h", "1d"), k=5, progress=None, record=True):
+def advise(symbol, timeframes=("1m", "5m", "15m", "30m", "1h", "2h", "4h", "12h", "1d", "1wk"), k=5, progress=None, record=True):
     import strategies as S
     out = {"symbol": symbol, "ts": time.time(), "tfs": {}, "verdict": None}
     htf_bias = 0

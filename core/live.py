@@ -23,7 +23,7 @@ from core.backtest import run_backtest
 BINANCE_DATA = "https://data-api.binance.vision"
 BINANCE_WS = "wss://data-stream.binance.vision/stream?streams="
 STABLES = {"USDC", "FDUSD", "TUSD", "BUSD", "DAI", "USDP", "EUR", "EURI", "AEUR", "USD1", "USDE", "XUSD", "BFUSD", "PAXG", "TRY", "BRL", "ARS", "COP", "JPY", "ZAR", "PLN", "RON", "UAH", "CZK", "MXN"}
-_TF = {"1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m", "1h": "1h", "4h": "4h", "1d": "1d"}
+_TF = {"1m": "1m", "3m": "3m", "5m": "5m", "15m": "15m", "30m": "30m", "1h": "1h", "2h": "2h", "4h": "4h", "6h": "6h", "12h": "12h", "1d": "1d", "3d": "3d", "1wk": "1w", "1mo": "1M"}
 
 
 # ---------------------------------------------------------------- universe

@@ -45,7 +45,7 @@ class LiveMarketPage(QtWidgets.QWidget):
 
         top = QtWidgets.QHBoxLayout()
         self.tf = QtWidgets.QComboBox()
-        self.tf.addItems(["5m", "15m", "30m", "1h", "4h", "1d"])
+        self.tf.addItems(["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "3d", "1wk", "1mo"])
         self.tf.setCurrentText("1h")
         self.topn = QtWidgets.QSpinBox()
         self.topn.setRange(10, 500)

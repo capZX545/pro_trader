@@ -132,7 +132,7 @@ class ForwardPage(QtWidgets.QWidget):
         self.tbl_sid.setSortingEnabled(True); self.tbl_sid.resizeColumnsToContents()
 
         self.tbl_tf.setSortingEnabled(False); self.tbl_tf.setRowCount(0)
-        for tf in ("5m", "15m", "30m", "1h", "4h", "1d", "1wk"):
+        for tf in ("1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "3d", "1wk", "1mo"):
             a = rep["by_tf"].get(tf)
             if not a:
                 continue
