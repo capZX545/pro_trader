@@ -111,11 +111,14 @@ def _candle_colours(hsv, mask_fg):
         if num <= 1:
             scores.append(0); continue
         w_, h_, a_ = st[1:, 2], st[1:, 3], st[1:, 4]
-        cand = (h_ >= 3) & (w_ <= 40) & (w_ >= 2) & (h_ >= w_ * 0.8) & (a_ >= 5) & (w_ * h_ < 5000)
-        # candles of one colour share a similar width → reward width consistency
+        cand = (h_ >= 5) & (w_ <= 40) & (w_ >= 2) & (h_ >= w_ * 1.5) & (a_ >= 5) & (w_ * h_ < 5000)
+        # candles of one colour share a similar width → reward width consistency; line fragments (anti-aliased MA /
+        # dotted indicators) are tiny (median h < 12 px) → weight by median height so they cannot win
         if cand.sum() >= 3:
             ws_ = w_[cand]; medw = np.median(ws_)
-            consistent = int((np.abs(ws_ - medw) <= max(1, 0.5 * medw)).sum())
+            ok_ = cand.copy(); ok_[cand] = np.abs(ws_ - medw) <= max(1, 0.5 * medw)
+            # score = total candle-like ink height (tall bodies/wicks dominate; dotted/dashed indicator fragments are short)
+            consistent = float(np.minimum(h_[ok_], 200).sum()) / 20.0
         else:
             consistent = 0
         scores.append(consistent)
@@ -154,8 +157,22 @@ def extract_candles(path_or_array, min_candles=8):
     fg = diff > 45
     peaks = _candle_colours(hsv, fg)
     H = hsv[..., 0]
+
+    def _blob_score(mm):
+        """how many candle-like (narrow, taller-than-wide, width-consistent) blobs a binary mask forms"""
+        num_, lab_, st_, _ = cv2.connectedComponentsWithStats(mm.astype(np.uint8), connectivity=8)
+        if num_ <= 1:
+            return 0
+        w_, h_, a_ = st_[1:, 2], st_[1:, 3], st_[1:, 4]
+        cand = (h_ >= 5) & (w_ <= 40) & (w_ >= 2) & (h_ >= w_ * 1.5) & (a_ >= 5) & (w_ * h_ < 5000)
+        if cand.sum() < 3:
+            return 0
+        ws_ = w_[cand]; medw = np.median(ws_)
+        ok_ = cand.copy(); ok_[cand] = np.abs(ws_ - medw) <= max(1, 0.5 * medw)
+        return float(np.minimum(h_[ok_], 200).sum()) / 20.0
     S = hsv[..., 1]
     Vv = hsv[..., 2]
+    hue_gray = False
     sat_fg = fg & (S > 60) & (Vv > 60)
     gray_fg = fg & (S <= 60) & ((Vv > 150) if dark else (Vv < 110))   # white-ish (dark theme) / black-ish (light theme)
     # decide the colour scheme from pixel mass: two saturated hues, one saturated + one gray (MetaTrader), or mono
@@ -167,6 +184,17 @@ def extract_candles(path_or_array, min_candles=8):
         pa, pb = peaks[0], None
     else:
         pa = int(hist.argmax()) if sat_mass else None; pb = None
+    # two hues that are BOTH bullish-green (e.g. MetaTrader: green wicks + a green-ish grid) is not a real 2-colour
+    # scheme; fall through to the "hue + gray" path where body fill decides direction
+    if pb is not None and _is_bull_hue(pa) and _is_bull_hue(pb) and gray_mass > 0.2 * sat_mass:
+        pb = None
+    # MetaTrader-light / mono charts: black (or white) hollow+filled candles with coloured indicator lines. If the
+    # gray class forms clearly more candle-like blobs than the best hue class, ignore the hues.
+    gray_score = _blob_score(gray_fg) if gray_mass > 200 else 0
+    hue_score = _blob_score(sat_fg & (_hue_dist(H, pa) <= 12)) if pa is not None else 0
+    hue_score_b = _blob_score(sat_fg & (_hue_dist(H, pb) <= 12)) if pb is not None else 0
+    if gray_score >= max(12, 1.5 * max(hue_score, hue_score_b)):
+        pa, pb = None, None          # coloured classes are indicator lines/dots; candles are the gray class
     if pb is not None:
         da, db = _hue_dist(H, pa), _hue_dist(H, pb)
         ma = sat_fg & (da <= 12) & (da <= db)
@@ -186,6 +214,7 @@ def extract_candles(path_or_array, min_candles=8):
         else:
             bull, bear = gray_fg, ma
         theme = f"hue {pa} + gray"
+        hue_gray = True
     else:
         # monochrome: filled body = bear, hollow body = bull is handled later by body fill ratio
         m_all = fg & ((Vv > 150) if dark else (Vv < 110))
@@ -212,6 +241,57 @@ def extract_candles(path_or_array, min_candles=8):
         comps.append(dict(x=int(x), y=int(y), w=int(w_), h=int(h_), area=int(area), k=k))
     if len(comps) < min_candles:
         raise ValueError("too few candle-like objects found")
+    # text lines (legends, indicator titles, OHLC readouts): many tiny blobs whose TOP edges share the same row.
+    # Candles never share a top row in numbers; drop every row band where ≥8 blobs share top±2 and blob height ≤ 20 px
+    tops = np.array([c["y"] for c in comps]); hgt = np.array([c["h"] for c in comps])
+    tv, tc = np.unique(tops // 3, return_counts=True)
+    wid = np.array([c["w"] for c in comps])
+    H_img = mask.shape[0]
+    text_rows = set(int(t_) for t_, n_ in zip(tv, tc)
+                    if n_ >= 8 and t_ * 3 < 0.12 * H_img and np.median(hgt[(tops // 3) == t_]) <= 14 and np.median(wid[(tops // 3) == t_]) <= 14)
+    if text_rows:
+        comps = [c for c in comps if (c["y"] // 3) not in text_rows]
+        if len(comps) < min_candles:
+            raise ValueError("only text-like objects found")
+    # ---- pane selection (Phase 12, real screenshots): split the plot into horizontal bands separated by rows with
+    # (almost) no candle-like components, then keep the band that looks most like a PRICE series: many blobs, their
+    # vertical centres wander (volume bars are anchored to a baseline; text sits on one row), continuous in x.
+    if len(comps) >= 2 * min_candles:
+        Hm = mask.shape[0]
+        occ = np.zeros(Hm + 1, int)
+        for c in comps:
+            occ[c["y"]:c["y"] + c["h"]] += 1
+        empty = occ == 0
+        # gaps of ≥ 12 px with nothing → band borders
+        bands, start, run = [], 0, 0
+        for yy in range(Hm):
+            if empty[yy]:
+                run += 1
+                if run == 12:
+                    if yy - 11 - start >= 20:
+                        bands.append((start, yy - 11))
+                    start = None
+            else:
+                if start is None:
+                    start = yy
+                run = 0
+        if start is not None and Hm - start >= 20:
+            bands.append((start, Hm))
+        if len(bands) >= 2:
+            best, best_score = None, -1
+            for (b0, b1) in bands:
+                inb = [c for c in comps if b0 <= c["y"] + c["h"] / 2 < b1]
+                if len(inb) < min_candles:
+                    continue
+                cy = np.array([c["y"] + c["h"] / 2 for c in inb]); bt = np.array([c["y"] + c["h"] for c in inb]); tp = np.array([c["y"] for c in inb])
+                wander = float(np.std(cy)) / max(b1 - b0, 1)                    # price: centres spread over the band
+                base_share = float(np.bincount(bt // 3).max()) / len(inb)       # volume: bottoms share one row
+                top_share = float(np.bincount(tp // 3).max()) / len(inb)        # text: tops share one row
+                score = len(inb) * (0.2 + wander) * (1 - 0.8 * max(base_share, top_share)) * ((b1 - b0) / Hm) ** 0.5
+                if score > best_score:
+                    best, best_score = (b0, b1), score
+            if best is not None:
+                comps = [c for c in comps if best[0] <= c["y"] + c["h"] / 2 < best[1]]
     # the price pane = the horizontal band holding the most components whose bottom edge is NOT aligned (volume bars
     # all share one baseline → exclude any y-bottom shared by >25% of components)
     bottoms = np.array([c["y"] + c["h"] for c in comps])
@@ -293,14 +373,34 @@ def extract_candles(path_or_array, min_candles=8):
             body_top, body_bot = top, bot
         else:
             body_top, body_bot = top + int(body_rows[0]), top + int(body_rows[-1])
-        nb = int(bull[top:bot + 1, a:b].sum()); nr = int(bear[top:bot + 1, a:b].sum())
+        # colour vote on the BODY rows first (wicks may be drawn in one shared colour, e.g. MetaTrader green wicks
+        # with white/black bodies); fall back to the whole candle when the body is degenerate (doji)
+        bt, bb = body_top, body_bot + 1
+        nb = int(bull[bt:bb, a:b].sum()); nr = int(bear[bt:bb, a:b].sum())
+        if nb + nr < 3:
+            nb = int(bull[top:bot + 1, a:b].sum()); nr = int(bear[top:bot + 1, a:b].sum())
         is_bull = nb >= nr
-        if theme == "mono" and body_bot > body_top + 2:
+        conf_c = abs(nb - nr) / max(nb + nr, 1)
+        if body_bot > body_top + 2 and (theme == "mono" or conf_c < 0.35 or (b - a) >= 4):
             inner = mask[body_top + 1:body_bot, a + 1:b - 1] if b - a > 2 else mask[body_top + 1:body_bot, a:b]
             fill = float(inner.mean()) if inner.size else 1.0
-            is_bull = fill < 0.5
+            if theme == "mono":
+                is_bull = fill < 0.5
+            elif hue_gray and (b - a) >= 4:
+                # MetaTrader "hue + gray": the coloured class is usually the wick/outline colour for BOTH directions;
+                # a filled gray body = one direction, hollow body = the other. Filled body colour decides:
+                gray_in = float(gray_fg[body_top + 1:body_bot, a + 1:b - 1].mean()) if inner.size else 0.0
+                if fill < 0.35:
+                    is_bull = True                       # hollow = bull (MT default: bull candles are hollow/black on dark bg)
+                elif gray_in > 0.5:
+                    is_bull = not dark                   # filled white body on dark bg = bear (MT default); on light bg filled black = bear too
+                    is_bull = False
+            elif fill < 0.35 and (b - a) >= 4:
+                # hollow body: an outlined candle. Hollow = bull on MT/TradingView-hollow style; if the outline colour
+                # is a clear bear hue keep the colour vote
+                is_bull = True if conf_c < 0.6 else is_bull
         boxes.append(dict(x0=a + x0, x1=b + x0, top=top + y0, bot=bot + y0, body_top=body_top + y0, body_bot=body_bot + y0,
-                          bull=is_bull, conf=abs(nb - nr) / max(nb + nr, 1)))
+                          bull=is_bull, conf=conf_c))
     if len(boxes) < min_candles:
         raise ValueError("too few candles after geometry filtering")
     # drop outliers in width (legend blobs, text) and in height (price-axis highlights, cursor lines, clipped candles)
@@ -631,6 +731,47 @@ def robustness_report(n_per=2, n_candles=60):
         import json, os
         p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "vision_robustness.json")
         json.dump(out, open(p, "w"), indent=1)
+    except Exception:
+        pass
+    return out
+
+
+# real-screenshot regression set (Phase 12): tests/real_charts/*.  Expected candle counts are approximate (hand count ±15 %)
+REAL_EXPECT = {
+    "mt_xauusd-h1-deriv-com-limited.png": (95, "MetaTrader dark, green wicks + white/hollow bodies, grid, MACD-EA text lines"),
+    "mt_usdjpy-h1-instafinance-ltd.png": (105, "MetaTrader light, black hollow/filled candles, red MA, blue PSAR dots, CCI pane"),
+    "mt_eurgbp-h1-instafinance-ltd.png": (105, "MetaTrader light, same style"),
+    "tradingview-candlestick-chart-screenshot-2.png": (80, "TradingView dark, clean"),
+    "tradingview-candlestick-chart-screenshot-3.png": (115, "TradingView dark, drawings"),
+    "tradingview-candlestick-chart-screenshot-5.png": (55, "TradingView hourly TSLA, large"),
+    "tradingview-btcusd-candlestick-chart-scr-1.png": (65, "TradingView light"),
+    "tradingview-btcusd-candlestick-chart-scr-3.jpg": (70, "TradingView dark JPEG"),
+    "binance-app-mobile-candlestick-chart-scr-2.jpg": (68, "Binance app phone screenshot"),
+    "binance-app-mobile-candlestick-chart-scr-3.jpg": (55, "Binance app phone screenshot"),
+    "binance-app-mobile-candlestick-chart-scr-4.jpg": (70, "Binance app phone screenshot"),
+    # known-hard (kept to measure progress, not asserted): heavy annotations / tiny price pane
+    "tradingview-candlestick-chart-screenshot-1.png": (None, "SMC-annotated chart with dozens of boxes and 3 colour classes"),
+    "binance-app-mobile-candlestick-chart-scr-1.jpg": (None, "phone screenshot, price pane only ~150 px tall"),
+}
+
+
+def real_report():
+    """run the extractor on the real screenshot set → list of dict(file, expected, found, ok, note)"""
+    import os, glob, json
+    root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tests", "real_charts")
+    out = []
+    for f in sorted(glob.glob(os.path.join(root, "*"))):
+        name = os.path.basename(f)
+        exp, note = REAL_EXPECT.get(name, (None, ""))
+        try:
+            ex = extract_candles(f); n = len(ex["df"]); th = ex.get("theme")
+        except Exception as e:
+            n, th = 0, f"ERR {e}"
+        ok = None if exp is None else abs(n - exp) <= 0.2 * exp
+        out.append(dict(file=name, expected=exp, found=n, ok=ok, theme=th, note=note))
+    try:
+        p = os.path.join(os.path.dirname(root), "..", "data", "vision_real.json")
+        json.dump(out, open(os.path.normpath(p), "w"), indent=1)
     except Exception:
         pass
     return out

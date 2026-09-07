@@ -220,6 +220,11 @@ def check_vision():
             robustness_report()
         return [Finding("vision", "info", "Vision robustness report not generated yet.", "گزارش مقاومت بینایی هنوز تولید نشده.", fix, ("Run", "اجرا"))]
     out = []
+    pr = os.path.join(DATA, "vision_real.json")
+    if os.path.exists(pr):
+        rr = json.load(open(pr)); sc = [r for r in rr if r["ok"] is not None]
+        out.append(Finding("vision", "info", f"real screenshots: {sum(r['ok'] for r in sc)}/{len(sc)} decoded within ±20 % (MetaTrader, TradingView, Binance app); {len(rr) - len(sc)} known-hard images tracked",
+                           f"اسکرین‌شات واقعی: {sum(r['ok'] for r in sc)}/{len(sc)} با خطای ≤۲۰٪ (متاتریدر، تریدینگ‌ویو، اپ بایننس)؛ {len(rr) - len(sc)} تصویر سخت رصد می‌شود"))
     for r in json.load(open(p)):
         bad = r["dir_acc"] < 0.8 or r["count_err_pct"] > 15
         out.append(Finding("vision", "warn" if bad else "info",

@@ -19,30 +19,30 @@
  },
  {
   "variant": "jpeg30",
-  "found": 57.8,
+  "found": 58.8,
   "truth": 60.0,
-  "dir_acc": 0.755,
-  "close_corr": 0.652,
+  "dir_acc": 0.992,
+  "close_corr": 0.999,
   "ok": 1.0,
-  "count_err_pct": 3.667
+  "count_err_pct": 2.0
  },
  {
   "variant": "noise",
-  "found": 65.8,
+  "found": 60.0,
   "truth": 60.0,
-  "dir_acc": 0.915,
-  "close_corr": 0.882,
+  "dir_acc": 0.973,
+  "close_corr": 1.0,
   "ok": 1.0,
-  "count_err_pct": 9.667
+  "count_err_pct": 0.0
  },
  {
   "variant": "phone_photo",
-  "found": 41.6,
+  "found": 43.1,
   "truth": 60.0,
-  "dir_acc": 0.692,
-  "close_corr": 0.659,
+  "dir_acc": 0.739,
+  "close_corr": 0.71,
   "ok": 1.0,
-  "count_err_pct": 30.667
+  "count_err_pct": 28.167
  },
  {
   "variant": "scaled60",
@@ -55,11 +55,11 @@
  },
  {
   "variant": "watermark",
-  "found": 58.7,
+  "found": 59.7,
   "truth": 60.0,
-  "dir_acc": 0.924,
-  "close_corr": 0.955,
+  "dir_acc": 0.98,
+  "close_corr": 0.998,
   "ok": 1.0,
-  "count_err_pct": 2.167
+  "count_err_pct": 0.5
  }
 ]

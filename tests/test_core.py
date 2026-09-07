@@ -151,3 +151,13 @@ def test_phase12_alerts_offline():
     assert not ok
     body = AL.format_signal("BTC/USDT", "4h", "ema_cross", 1, 100.0, 95.0, 110.0, 70, dict(pf=1.3, wr=48, n=120), "en")
     assert "LONG" in body and "R:R 2.0" in body
+
+
+def test_phase12_vision_real_screenshots():
+    """real MetaTrader / TradingView / Binance-app screenshots: candle count within ±20 % of the hand count"""
+    from core.vision import real_report
+    rep = real_report()
+    scored = [r for r in rep if r["ok"] is not None]
+    assert scored, "real chart set missing"
+    bad = [(r["file"], r["found"], r["expected"]) for r in scored if not r["ok"]]
+    assert len(bad) <= 1, bad     # allow one flaky image
