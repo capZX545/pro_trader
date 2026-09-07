@@ -127,6 +127,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.nav_group.button(i).setChecked(True)
         self.stack.setCurrentIndex(i)
 
+    def closeEvent(self, e):
+        # stop live sockets / timers cleanly so the process exits (Windows would otherwise keep a ghost process)
+        for _, _, pg_ in self.pages:
+            for m in ("stop_stream", "stop"):
+                fn = getattr(pg_, m, None)
+                if callable(fn):
+                    try:
+                        fn()
+                    except Exception:
+                        pass
+        super().closeEvent(e)
+
     def open_chart(self, sym, tf, sid):
         page = self.pages[1][2]
         self.goto(1)

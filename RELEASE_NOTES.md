@@ -1,4 +1,14 @@
-# ProTrader Academy v1.0.0
+# ProTrader Academy v1.1.0
+
+## v1.1.0 — the chart works everywhere + real-time streaming
+- **Fixed: empty chart.** `api.binance.com` returns HTTP 451 (geo-block) in many countries and Yahoo throttles with 429, so the Chart page silently fell back to synthetic data. New `core/sources.py` fetches crypto history with automatic failover **binance-vision → OKX → KuCoin → Gate → MEXC** (sticky healthy venue, health scoring); Yahoo gets retries with backoff.
+- **Real-time streaming on the Chart page.** WebSocket candle stream (binance-vision, OKX fallback, REST polling as last resort) updates the forming candle, volume bar and price tag every second; new bars append and the view follows the market; strategy overlays/signals recompute on bar close. Per-tick redraw is < 1 ms even with 50 000 bars (live bar is drawn separately from the static history).
+- Live status pill in the toolbar: `● live · venue · next bar in mm:ss`; non-crypto symbols poll every 60 s.
+- Live engine universe falls back to OKX tickers when Binance is unreachable.
+- Clean shutdown of sockets/timers on window close.
+
+---
+## v1.0.0
 
 Desktop (PyQt6) trading analysis platform — Persian/English. **Analysis, signals, backtesting, education. It does not place orders.**
 

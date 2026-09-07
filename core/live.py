@@ -34,7 +34,26 @@ def binance_usdt_universe(min_quote_volume_24h=1_000_000, force=False):
     """All TRADING spot pairs quoted in USDT, filtered by 24h quote volume, sorted by volume desc. Cached 1h."""
     if not force and _universe_cache["symbols"] and time.time() - _universe_cache["ts"] < 3600:
         return _universe_cache["symbols"]
-    info = requests.get(f"{BINANCE_DATA}/api/v3/exchangeInfo", timeout=20).json()
+    try:
+        info = requests.get(f"{BINANCE_DATA}/api/v3/exchangeInfo", timeout=20).json()
+    except Exception:
+        # binance-vision blocked → OKX spot tickers (same shape: symbol, quoteVolume, 24h %, last)
+        j = requests.get("https://www.okx.com/api/v5/market/tickers", params={"instType": "SPOT"}, timeout=20).json()
+        rows = []
+        for t in j.get("data", []):
+            inst = t["instId"]
+            if not inst.endswith("-USDT"):
+                continue
+            base = inst[:-5]
+            if base in STABLES or any(x in base for x in ("UP", "DOWN", "BULL", "BEAR")):
+                continue
+            last, o = float(t["last"] or 0), float(t["open24h"] or 0)
+            qv = float(t.get("volCcy24h") or 0)          # volCcy24h is already in quote (USDT)
+            if qv >= min_quote_volume_24h:
+                rows.append((base + "USDT", qv, (last / o - 1) * 100 if o else 0.0, last))
+        rows.sort(key=lambda r: -r[1])
+        _universe_cache.update(ts=time.time(), symbols=rows)
+        return rows
     syms = {s["symbol"] for s in info["symbols"] if s["quoteAsset"] == "USDT" and s["status"] == "TRADING"
             and s["isSpotTradingAllowed"] and not any(x in s["baseAsset"] for x in ("UP", "DOWN", "BULL", "BEAR"))
             and s["baseAsset"] not in STABLES}
@@ -47,14 +66,11 @@ def binance_usdt_universe(min_quote_volume_24h=1_000_000, force=False):
 
 
 def fetch_klines(bsym, tf="1h", limit=1000):
-    r = requests.get(f"{BINANCE_DATA}/api/v3/klines", params={"symbol": bsym, "interval": _TF[tf], "limit": limit}, timeout=15)
-    r.raise_for_status()
-    rows = r.json()
-    df = pd.DataFrame(rows, columns=["t", "open", "high", "low", "close", "volume", "ct", "qv", "n", "tb", "tq", "i"])
-    df["time"] = pd.to_datetime(df["t"], unit="ms")
-    df = df.set_index("time")[["open", "high", "low", "close", "volume"]].astype(float)
-    df = _normalize(df)
-    df.attrs.update(symbol=bsym, tf=tf)
+    """History for one symbol via multi-venue failover (binance-vision → OKX → KuCoin → Gate → MEXC)."""
+    from core import sources
+    base = bsym[:-4] if bsym.upper().endswith("USDT") else bsym
+    df, venue = sources.fetch_crypto(base, tf, limit=limit)
+    df.attrs.update(symbol=bsym, tf=tf, venue=venue)
     return df
 
 

@@ -349,12 +349,19 @@ class DashboardPage(QtWidgets.QWidget):
 
 # ---------------------------------------------------------------- Chart & signals
 class ChartPage(QtWidgets.QWidget):
+    tick = QtCore.pyqtSignal(object, float, float, float, float, float, bool)   # stream thread → UI thread (ts as object: ms > 2^31)
+    stream_status = QtCore.pyqtSignal(str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         v = QtWidgets.QVBoxLayout(self)
         v.setContentsMargins(16, 12, 16, 12)
         v.setSpacing(10)
         self.bar = SymbolBar()
+        # live indicator (● LIVE · venue · next bar in mm:ss)
+        self.live_lbl = QtWidgets.QLabel("")
+        self.live_lbl.setStyleSheet(f"color:{C['muted']}; font-weight:600; padding:0 8px;")
+        self.bar.layout().insertWidget(self.bar.layout().count() - 1, self.live_lbl)
         v.addWidget(self.bar)
         split = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
         self.chart = ChartWidget()
@@ -395,6 +402,132 @@ class ChartPage(QtWidgets.QWidget):
         self.param_widgets = {}
         self._build_params()
         self.df = None
+        self.res = None
+        self.stream = None
+        self._stream_key = None
+        self._last_recompute = 0.0
+        self.tick.connect(self._on_tick)
+        self.stream_status.connect(self._on_stream_status)
+        self._clock = QtCore.QTimer(self)
+        self._clock.timeout.connect(self._tick_clock)
+        self._clock.start(1000)
+
+    # ------------------------------------------------------------------ live stream
+    def hideEvent(self, e):
+        # page hidden (user navigated elsewhere): keep the socket — cheap, and the chart stays in sync on return
+        super().hideEvent(e)
+
+    def closeEvent(self, e):
+        self.stop_stream()
+        super().closeEvent(e)
+
+    def start_stream(self, sym, tf):
+        from core.data import resolve
+        from core.sources import CandleStream
+        key = (sym, tf)
+        if self._stream_key == key and self.stream is not None and self.stream.is_alive():
+            return
+        self.stop_stream()
+        try:
+            cat, (yt, bs) = resolve(sym)
+        except Exception:
+            bs = None
+        if not bs:
+            # non-crypto (Yahoo): no websocket → poll every 60 s via get_ohlcv (cache-busting) in a worker
+            self._poll_timer = QtCore.QTimer(self)
+            self._poll_timer.timeout.connect(lambda: self._poll_refresh(sym, tf))
+            self._poll_timer.start(60_000)
+            self._stream_key = key
+            self._on_stream_status("polling 60s")
+            return
+        base = bs[:-4]
+        self.stream = CandleStream(base, tf,
+                                   on_candle=lambda ts, o, h, l, c, v, x: self.tick.emit(ts, o, h, l, c, v, x),
+                                   on_status=lambda st: self.stream_status.emit(st))
+        self.stream.start()
+        self._stream_key = key
+
+    def stop_stream(self):
+        if getattr(self, "_poll_timer", None):
+            self._poll_timer.stop(); self._poll_timer = None
+        if self.stream is not None:
+            try:
+                self.stream.stop()
+            except Exception:
+                pass
+            self.stream = None
+        self._stream_key = None
+
+    def _poll_refresh(self, sym, tf):
+        if (sym, tf) != (self.bar.symbol(), self.bar.timeframe()):
+            return
+        def work():
+            return get_ohlcv(sym, tf, max_age_sec=30)
+        self._pw = Worker(work)
+        def done(df):
+            if self.df is None or df is None or not len(df):
+                return
+            r = df.iloc[-1]
+            appended = self.chart.update_last_bar(df.index[-1], r.open, r.high, r.low, r.close, r.volume, False)
+            if appended:
+                self._recompute()
+        self._pw.done.connect(done)
+        self._pw.error.connect(lambda e: None)
+        self._pw.start()
+
+    def _on_stream_status(self, st):
+        ok = st.startswith("live")
+        self._live_text = st
+        self.chart.set_live_status(("● " if ok else "○ ") + st, ok)
+        self.live_lbl.setStyleSheet(f"color:{C['green'] if ok else C['muted']}; font-weight:600; padding:0 8px;")
+        self._tick_clock()
+
+    def _tick_clock(self):
+        """Countdown to the close of the current bar (like TradingView)."""
+        if self.df is None or not len(self.df):
+            self.live_lbl.setText(""); return
+        from core.sources import TF_SECONDS
+        sec = TF_SECONDS.get(self.bar.timeframe(), 3600)
+        now = pd.Timestamp.utcnow().tz_localize(None)
+        remain = int((self.df.index[-1] + pd.Timedelta(seconds=sec) - now).total_seconds())
+        remain = max(remain, 0)
+        h, m, s_ = remain // 3600, (remain % 3600) // 60, remain % 60
+        cd = f"{h:02d}:{m:02d}:{s_:02d}" if h else f"{m:02d}:{s_:02d}"
+        st = getattr(self, "_live_text", "")
+        dot = "●" if st.startswith("live") else "○"
+        self.live_lbl.setText(f"{dot} {st} · {t('next_bar')} {cd}" if st else "")
+
+    def _on_tick(self, ts, o, h, l, c, v, closed):
+        if self.df is None:
+            return
+        appended = self.chart.update_last_bar(pd.Timestamp(int(ts), unit="ms"), o, h, l, c, v, closed)
+        # recompute strategy on bar close (or when a brand-new bar appears) — throttled to once per 3 s
+        if (closed or appended) and time.time() - self._last_recompute > 3:
+            self._last_recompute = time.time()
+            self._recompute()
+
+    def _recompute(self):
+        """Re-run the strategy on the live frame in a worker and refresh overlays/signals without touching the view."""
+        if self.df is None:
+            return
+        sym, tf, sid = self.bar.symbol(), self.bar.timeframe(), self.bar.strategy_id()
+        params = self.params()
+        df = self.df.copy()
+        def work():
+            strat = S.get(sid, **params)
+            res = strat.run(df)
+            bt = run_backtest(df, res)
+            return df, res, bt
+        self._rw = Worker(work)
+        def done(r):
+            if (sym, tf) != (self.bar.symbol(), self.bar.timeframe()):
+                return
+            df2, res, bt = r
+            vr = self.chart.price_plot.viewRange()
+            self._show(sym, tf, sid, df2, True, res, bt, keep_view=vr)
+        self._rw.done.connect(done)
+        self._rw.error.connect(lambda e: None)
+        self._rw.start()
 
     def _build_params(self):
         while self.param_form.rowCount():
@@ -450,22 +583,34 @@ class ChartPage(QtWidgets.QWidget):
             bt = run_backtest(df, res)
             return df, ok, res, bt
 
+        self.stop_stream()
         self.w = Worker(work)
-        self.w.done.connect(lambda r: self._show(sym, tf, sid, *r))
+        self.w.done.connect(lambda r: (self._show(sym, tf, sid, *r), self.start_stream(sym, tf)))
         self.w.error.connect(lambda e: (self.bar.btn.setEnabled(True), self.bar.btn.setText(t("run")), QtWidgets.QMessageBox.warning(self, "Error", e)))
         self.w.start()
 
-    def _show(self, sym, tf, sid, df, ok, res, bt):
+    def _show(self, sym, tf, sid, df, ok, res, bt, keep_view=None):
         self.bar.btn.setEnabled(True)
         self.bar.btn.setText(t("run"))
         self.df = df
         self.res = res
         cls = S.REGISTRY[sid]
         st = bt.stats
+        venue = df.attrs.get("venue") or ""
         title = f"{sym} · {tf} · {strat_name(cls)}   |   WR {st['win_rate']:.0f}%  PF {st['profit_factor']:.2f}  Ret {st['return_pct']:+.1f}%  DD {st['max_dd_pct']:.1f}%"
         if not ok:
             title += f"  [{t('offline')}]"
+        elif df.attrs.get("stale"):
+            title += f"  [{t('stale_cache')}]"
         self.chart.set_data(df, res, trades=bt.trades, title=title)
+        if keep_view is not None:
+            try:
+                self.chart.price_plot.setXRange(*keep_view[0], padding=0)
+            except Exception:
+                pass
+        if getattr(self, "_live_text", ""):
+            self._on_stream_status(self._live_text)
+        self._tick_clock()
         # table
         sig = res.signal
         idxs = np.where(sig.values != 0)[0][-60:][::-1]

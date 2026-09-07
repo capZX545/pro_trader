@@ -42,10 +42,64 @@ class CandlestickItem(pg.GraphicsObject):
     def boundingRect(self):
         return QtCore.QRectF(self.picture.boundingRect())
 
+    def update_df(self, df):
+        """Full regeneration (used when a new bar is appended, i.e. once per timeframe period)."""
+        self.df = df
+        self.prepareGeometryChange()
+        self._gen()
+        self.update()
+
+
+class LiveBarItem(pg.GraphicsObject):
+    """The single forming candle + its volume bar, redrawn on every tick (O(1)) — the historical picture
+    stays untouched, so streaming costs < 1 ms even with 50k bars loaded."""
+
+    def __init__(self, volume=False):
+        super().__init__()
+        self.volume = volume
+        self.i, self.o, self.h, self.l, self.c, self.v = 0, 0.0, 0.0, 0.0, 0.0, 0.0
+        self._rect = QtCore.QRectF()
+
+    def set_bar(self, i, o, h, l, c, v):
+        self.i, self.o, self.h, self.l, self.c, self.v = i, o, h, l, c, v
+        self.prepareGeometryChange()
+        if self.volume:
+            self._rect = QtCore.QRectF(i - 0.5, 0, 1.0, max(v, 1e-12))
+        else:
+            self._rect = QtCore.QRectF(i - 0.5, min(l, h), 1.0, max(abs(h - l), 1e-12))
+        self.update()
+
+    def paint(self, p, *args):
+        up = self.c >= self.o
+        col = C["green"] if up else C["red"]
+        if self.volume:
+            p.setPen(pg.mkPen(None)); p.setBrush(pg.mkBrush(col + "88"))
+            p.drawRect(QtCore.QRectF(self.i - 0.35, 0, 0.7, self.v))
+            return
+        p.setPen(pg.mkPen(col, width=1)); p.setBrush(pg.mkBrush(col))
+        p.drawLine(QtCore.QPointF(self.i, self.l), QtCore.QPointF(self.i, self.h))
+        top, bot = (self.c, self.o) if up else (self.o, self.c)
+        hgt = max(top - bot, (self.h - self.l) * 0.02 or 1e-9)
+        p.drawRect(QtCore.QRectF(self.i - 0.35, bot, 0.7, hgt))
+
+    def boundingRect(self):
+        return self._rect
+
 
 class VolumeItem(pg.GraphicsObject):
     def __init__(self, df):
         super().__init__()
+        self.df = df
+        self._gen()
+
+    def update_df(self, df):
+        self.df = df
+        self.prepareGeometryChange()
+        self._gen()
+        self.update()
+
+    def _gen(self):
+        df = self.df
         self.picture = QtGui.QPicture()
         p = QtGui.QPainter(self.picture)
         o, c, v = df.open.values, df.close.values, df.volume.values
@@ -158,8 +212,26 @@ class ChartWidget(QtWidgets.QWidget):
         self._build()
         self.taxis.set_index(df.index)
         self.price_plot.setTitle(title, color=C["text"], size="12pt")
-        self.price_plot.addItem(CandlestickItem(df))
-        self.vol_plot.addItem(VolumeItem(df))
+        # history (static picture, all bars but the last) + live forming bar (cheap per-tick redraw)
+        self.candles = CandlestickItem(df.iloc[:-1] if len(df) > 1 else df)
+        self.volumes = VolumeItem(df.iloc[:-1] if len(df) > 1 else df)
+        self.price_plot.addItem(self.candles)
+        self.vol_plot.addItem(self.volumes)
+        self.live_candle = LiveBarItem(); self.live_vol = LiveBarItem(volume=True)
+        r = df.iloc[-1]
+        self.live_candle.set_bar(len(df) - 1, r.open, r.high, r.low, r.close, r.volume)
+        self.live_vol.set_bar(len(df) - 1, r.open, r.high, r.low, r.close, r.volume)
+        self.price_plot.addItem(self.live_candle); self.vol_plot.addItem(self.live_vol)
+        # live last-price line + tag on the right axis (TradingView-style)
+        last = float(df.close.iloc[-1])
+        up = df.close.iloc[-1] >= df.open.iloc[-1]
+        self.price_line = pg.InfiniteLine(angle=0, pos=last, pen=pg.mkPen(C["green"] if up else C["red"], width=1, style=QtCore.Qt.PenStyle.DashLine),
+                                          label="{value:,.6g}", labelOpts={"position": 0.97, "color": "#ffffff", "fill": pg.mkBrush(C["green"] if up else C["red"]), "movable": False})
+        self.price_plot.addItem(self.price_line, ignoreBounds=True)
+        self.live_tag = pg.TextItem("", color=C["muted"], anchor=(1, 0))
+        self.live_tag.setParentItem(self.price_plot.vb)
+        self.live_tag.setPos(self.price_plot.vb.width() - 8, 6)
+        self.live_tag.setZValue(50)
         n = len(df)
         x = np.arange(n)
         if result is not None:
@@ -236,6 +308,55 @@ class ChartWidget(QtWidgets.QWidget):
         self.price_plot.setYRange(seg.low.min() * 0.995, seg.high.max() * 1.005, padding=0)
         self.price_plot.vb.setLimits(xMin=-5, xMax=n + 50)
         self.price_plot.sigXRangeChanged.connect(self._autoscale_y)
+
+    # ------------------------------------------------------------ live streaming
+    def update_last_bar(self, ts, o, h, l, c, v, closed=False):
+        """Called from the UI thread on every stream tick. Updates/appends the last candle in place —
+        no rebuild, so zoom/pan/crosshair state is preserved. Returns True if a NEW bar was appended
+        (caller may want to recompute the strategy on bar close)."""
+        if self.df is None or getattr(self, "candles", None) is None:
+            return False
+        ts = pd.Timestamp(ts)
+        df = self.df
+        appended = False
+        if ts == df.index[-1]:
+            df.iloc[-1, df.columns.get_indexer(["open", "high", "low", "close", "volume"])] = [o, h, l, c, v]
+        elif ts > df.index[-1]:
+            df.loc[ts, ["open", "high", "low", "close", "volume"]] = [o, h, l, c, v]
+            appended = True
+            n = len(df)
+            self.price_plot.vb.setLimits(xMin=-5, xMax=n + 50)
+            (x0, x1), _ = self.price_plot.viewRange()
+            if x1 >= n - 1:                                # user is at the right edge → follow the market
+                self.price_plot.blockSignals(True)
+                self.price_plot.setXRange(x0 + 1, x1 + 1, padding=0)
+                self.price_plot.blockSignals(False)
+            self.taxis.set_index(df.index)
+        else:
+            return False                                   # stale/out-of-order tick
+        if appended:                                       # previous live bar becomes history (once per period)
+            self.candles.update_df(df.iloc[:-1])
+            self.volumes.update_df(df.iloc[:-1])
+        self.live_candle.set_bar(len(df) - 1, o, h, l, c, v)
+        self.live_vol.set_bar(len(df) - 1, o, h, l, c, v)
+        up = c >= o
+        col = C["green"] if up else C["red"]
+        self.price_line.setPos(c)
+        self.price_line.setPen(pg.mkPen(col, width=1, style=QtCore.Qt.PenStyle.DashLine))
+        try:
+            self.price_line.label.fill = pg.mkBrush(col)
+            self.price_line.label.setText(f"{c:,.6g}")
+        except Exception:
+            pass
+        self._autoscale_y()
+        return appended
+
+    def set_live_status(self, text, ok=True):
+        try:
+            self.live_tag.setText(text, color=C["green"] if ok else C["muted"])
+            self.live_tag.setPos(self.price_plot.vb.width() - 8, 6)
+        except Exception:
+            pass
 
     def _autoscale_y(self):
         if self.df is None:

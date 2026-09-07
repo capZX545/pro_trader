@@ -116,61 +116,16 @@ def _normalize(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-BINANCE_HOSTS = ["https://api.binance.com", "https://data-api.binance.vision"]
+BINANCE_HOSTS = ["https://data-api.binance.vision", "https://api.binance.com"]   # kept for backward compat
 
 
 def _fetch_binance(bsym: str, tf: str, limit: int = 1500, since_ms=None) -> pd.DataFrame:
-    last_err = None
-    for host in BINANCE_HOSTS:
-        try:
-            return _fetch_binance_host(host, bsym, tf, limit, since_ms)
-        except Exception as e:
-            last_err = e
-    raise last_err
-
-
-def _fetch_binance_host(host: str, bsym: str, tf: str, limit: int = 1500, since_ms=None) -> pd.DataFrame:
-    """Backward pagination from now (limit bars) — or, if since_ms is given, only bars after that time
-    (incremental refresh: a 4-year 1h cache is topped up with one request instead of 35)."""
-    url = f"{host}/api/v3/klines"
-    frames = []
-    end = None
-    remaining = limit
-    if since_ms is not None:
-        start = since_ms + 1
-        while True:
-            r = requests.get(url, params={"symbol": bsym, "interval": _BINANCE_TF[tf], "startTime": start, "limit": 1000}, timeout=15)
-            r.raise_for_status(); rows = r.json()
-            if not rows:
-                break
-            frames.append(rows); start = rows[-1][0] + 1
-            if len(rows) < 1000:
-                break
-        rows = [x for f in frames for x in f]
-        if not rows:
-            return pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
-        df = pd.DataFrame(rows, columns=["t", "open", "high", "low", "close", "volume", "ct", "qv", "n", "tb", "tq", "i"])
-        df["time"] = pd.to_datetime(df["t"], unit="ms")
-        return _normalize(df.set_index("time")[["open", "high", "low", "close", "volume"]].astype(float))
-    while remaining > 0:
-        params = {"symbol": bsym, "interval": _BINANCE_TF[tf], "limit": min(1000, remaining)}
-        if end:
-            params["endTime"] = end
-        r = requests.get(url, params=params, timeout=15)
-        r.raise_for_status()
-        rows = r.json()
-        if not rows:
-            break
-        frames.append(rows)
-        end = rows[0][0] - 1
-        remaining -= len(rows)
-        if len(rows) < params["limit"]:
-            break
-    rows = [x for f in reversed(frames) for x in f]
-    df = pd.DataFrame(rows, columns=["t", "open", "high", "low", "close", "volume", "ct", "qv", "n", "tb", "tq", "i"])
-    df["time"] = pd.to_datetime(df["t"], unit="ms")
-    df = df.set_index("time")[["open", "high", "low", "close", "volume"]].astype(float)
-    return _normalize(df)
+    """Crypto OHLCV via multi-venue failover (binance-vision → OKX → KuCoin → Gate → MEXC).
+    api.binance.com is geo-blocked (HTTP 451) in many countries — that was the reason the chart page stayed empty."""
+    from core import sources
+    base = bsym[:-4] if bsym.upper().endswith("USDT") else bsym
+    df, venue = sources.fetch_crypto(base, tf, limit=limit, since_ms=since_ms)
+    return df
 
 
 def _fetch_yahoo(ticker: str, tf: str) -> pd.DataFrame:
@@ -182,7 +137,15 @@ def _fetch_yahoo(ticker: str, tf: str) -> pd.DataFrame:
         raw = yf.download(ticker, period=_PERIOD[base], interval=base, progress=False, auto_adjust=True, threads=False)
         raw = _normalize(raw)
         return resample(raw, tf)
-    raw = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=True, threads=False)
+    raw = None
+    for attempt in range(3):                      # Yahoo throttles (429) → short backoff then retry
+        try:
+            raw = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=True, threads=False)
+        except Exception:
+            raw = None
+        if raw is not None and not raw.empty:
+            break
+        time.sleep(1.5 * (attempt + 1))
     if raw is None or raw.empty:
         raise RuntimeError(f"No data for {ticker}")
     return _normalize(raw)

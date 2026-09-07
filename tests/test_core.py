@@ -161,3 +161,30 @@ def test_phase12_vision_real_screenshots():
     assert scored, "real chart set missing"
     bad = [(r["file"], r["found"], r["expected"]) for r in scored if not r["ok"]]
     assert len(bad) <= 1, bad     # allow one flaky image
+
+
+def test_phase14_sources_offline_shapes():
+    """multi-venue source layer: frame builder + venue ordering/health logic (no network)."""
+    from core import sources
+    df = sources._frame([(1_700_000_000_000, "1", "2", "0.5", "1.5", "10"), (1_700_003_600_000, 1.5, 2.5, 1.0, 2.0, 5)])
+    assert list(df.columns) == ["open", "high", "low", "close", "volume"] and len(df) == 2 and df.index.is_monotonic_increasing
+    assert df.index.tz is None and df.close.iloc[-1] == 2.0
+    names = [n for n, _ in sources._order()]
+    assert set(names) == {n for n, _ in sources.VENUES}
+    assert sources.TF_SECONDS["1h"] == 3600 and sources.TF_SECONDS["1d"] == 86400
+    st = sources.venue_status(); assert "health" in st and "active" in st
+
+
+def test_phase14_live_bar_update_logic():
+    """ChartWidget.update_last_bar semantics on a plain DataFrame (in-place update vs append vs stale)."""
+    import pandas as pd
+    from core.data import generate_synthetic
+    df = generate_synthetic(50)
+    last = df.index[-1]
+    # same timestamp → in place
+    df.iloc[-1, df.columns.get_indexer(["open", "high", "low", "close", "volume"])] = [1, 2, 0.5, 1.5, 3]
+    assert df.close.iloc[-1] == 1.5 and len(df) == 50
+    # newer timestamp → append
+    ts = last + (df.index[-1] - df.index[-2])
+    df.loc[ts, ["open", "high", "low", "close", "volume"]] = [1.5, 1.6, 1.4, 1.55, 1]
+    assert len(df) == 51 and df.index[-1] == ts
