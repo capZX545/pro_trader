@@ -22,13 +22,20 @@ PATH = os.path.join(APP_DIR, "data", "playbook.json")
 
 TFS = ["5m", "15m", "30m", "1h", "4h", "1d"]
 GROUPS = {
-    "crypto": ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT", "LINK/USDT"],
-    "stocks": ["NVIDIA (NVDA)", "Apple (AAPL)", "Microsoft (MSFT)", "Tesla (TSLA)", "S&P 500", "Nasdaq 100", "Dow Jones"],
-    "commodities": ["Gold (XAU/USD)", "Silver (XAG/USD)", "Crude Oil (WTI)", "Copper"],
-    "forex": ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD"],
+    "crypto": ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT", "LINK/USDT", "ADA/USDT", "DOGE/USDT", "AVAX/USDT",
+               "DOT/USDT", "LTC/USDT", "TRX/USDT", "ATOM/USDT", "BCH/USDT", "ETC/USDT", "UNI/USDT"],
+    "stocks": ["NVIDIA (NVDA)", "Apple (AAPL)", "Microsoft (MSFT)", "Tesla (TSLA)", "Amazon (AMZN)", "Google (GOOGL)", "Meta (META)",
+               "JPMorgan (JPM)", "Exxon (XOM)", "Walmart (WMT)", "Caterpillar (CAT)", "S&P 500", "Nasdaq 100", "Dow Jones", "Russell 2000",
+               "DAX", "SPY", "QQQ", "IWM", "EEM"],
+    "commodities": ["Gold (XAU/USD)", "Silver (XAG/USD)", "Crude Oil (WTI)", "Brent Oil", "Copper", "Natural Gas", "Platinum", "GLD", "USO"],
+    "forex": ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD", "USD/CHF", "NZD/USD", "EUR/GBP", "EUR/JPY", "GBP/JPY", "AUD/JPY"],
 }
 # min bars of history for a (tf) to be worth testing
 MIN_BARS = {"5m": 3000, "15m": 2000, "30m": 1500, "1h": 1500, "4h": 800, "1d": 600}
+# breadth gates (Phase 12): a strategy is "proven" only if it is positive on ≥60 % of symbols AND ≥60 % of calendar years
+MIN_SYMBOL_BREADTH = 0.6
+MIN_YEAR_BREADTH = 0.6
+MAX_BARS = {"5m": 30000, "15m": 30000, "30m": 25000, "1h": 25000, "4h": 20000, "1d": 6000}
 
 
 def group_of(symbol):
@@ -41,11 +48,12 @@ def group_of(symbol):
 
 
 def _oos(df, cls, warm=300):
-    """Trades from 3 sequential OOS folds over the last 60% of data."""
+    """Trades from sequential OOS folds over the last 60% of data (one fold per ~1500 bars, min 3)."""
     n = len(df)
-    edges = np.linspace(int(n * 0.4), n, 4).astype(int)
+    k = int(max(3, min(8, n * 0.6 // 1500)))
+    edges = np.linspace(int(n * 0.4), n, k + 1).astype(int)
     trades = []
-    for k in range(3):
+    for k in range(len(edges) - 1):
         a, b = edges[k], edges[k + 1]
         seg = df.iloc[max(0, a - warm):b]
         res = cls().run(seg)
@@ -54,8 +62,22 @@ def _oos(df, cls, warm=300):
     return trades
 
 
-def _stats(trades):
-    """Honest stats: point estimates + Wilson/bootstrap confidence intervals + t-stat + reliability grade."""
+def _breadth(by_symbol, trades):
+    """share of symbols with positive net PnL and share of calendar years with positive net PnL"""
+    sym_pos = [sum(t.pnl for t in ts) > 0 for ts in by_symbol.values() if len(ts) >= 3]
+    years = {}
+    for t in trades:
+        y = getattr(t.exit_time, "year", None)
+        if y is not None:
+            years[y] = years.get(y, 0.0) + t.pnl
+    yr_pos = [v > 0 for v in years.values()]
+    return dict(symbols=int(len(sym_pos)), symbols_pos=float(np.mean(sym_pos)) if sym_pos else 0.0,
+                years=int(len(yr_pos)), years_pos=float(np.mean(yr_pos)) if yr_pos else 0.0,
+                worst_year=float(min(years.values())) if years else 0.0)
+
+
+def _stats(trades, by_symbol=None):
+    """Honest stats: point estimates + Wilson/bootstrap confidence intervals + t-stat + reliability grade + breadth."""
     if len(trades) < 5:
         return None
     from core.stats import full_report
@@ -67,7 +89,7 @@ def _stats(trades):
                 exp=float(p.mean()), hold=float(np.mean([t.bars for t in trades])),
                 payoff=float(p[w].mean() / abs(p[~w].mean())) if (~w).any() and w.any() else 0.0,
                 longs=int(sum(1 for t in trades if t.side == 1)), shorts=int(sum(1 for t in trades if t.side == -1)),
-                last_year_pf=_recent_pf(trades))
+                last_year_pf=_recent_pf(trades), **({"breadth": _breadth(by_symbol, trades)} if by_symbol else {}))
 
 
 def _recent_pf(trades, days=365):
@@ -96,27 +118,34 @@ def build_playbook(strategy_classes, progress=None, tfs=TFS, groups=GROUPS):
                 if progress:
                     progress(int(k / total * 50), f"data {sym} {tf}")
                 try:
-                    df = get_ohlcv(sym, tf)
+                    df = get_ohlcv(sym, tf, max_age_sec=6 * 3600)
                     if len(df) >= MIN_BARS[tf]:
-                        data[(tf, g, sym)] = df
+                        data[(tf, g, sym)] = df.tail(MAX_BARS.get(tf, 20000))
                 except Exception:
                     pass
+    try:
+        from core.audit import failed_ids
+        bad = failed_ids()
+        strategy_classes = [c for c in strategy_classes if c.id not in bad]
+    except Exception:
+        pass
     tot_s = len(strategy_classes)
     for si, cls in enumerate(strategy_classes):
         if progress:
             progress(50 + int(si / tot_s * 50), f"{cls.id}")
         for tf in tfs:
             for g in groups:
-                trades = []
+                trades = []; by_symbol = {}
                 for sym in groups[g]:
                     df = data.get((tf, g, sym))
                     if df is None:
                         continue
                     try:
-                        trades += _oos(df, cls)
+                        ts = _oos(df, cls)
                     except Exception:
                         continue
-                st = _stats(trades)
+                    trades += ts; by_symbol[sym] = ts
+                st = _stats(trades, by_symbol)
                 if st:
                     pb["table"].setdefault(tf, {}).setdefault(g, {})[cls.id] = st
     # ranking per (tf, group)
@@ -130,7 +159,14 @@ def build_playbook(strategy_classes, progress=None, tfs=TFS, groups=GROUPS):
                     continue
                 if st["last_year_pf"] == st["last_year_pf"] and st["last_year_pf"] < 0.9:
                     continue
+                # breadth gates: must work on most symbols of the group and in most years (not one lucky market/regime)
+                br = st.get("breadth") or {}
+                if br.get("symbols", 0) >= 3 and br.get("symbols_pos", 0) < MIN_SYMBOL_BREADTH:
+                    continue
+                if br.get("years", 0) >= 2 and br.get("years_pos", 0) < MIN_YEAR_BREADTH:
+                    continue
                 score = min(st["pf_lo"], 3) * np.sqrt(min(st["n"], 200) / 200) * {"A": 1.0, "B": 0.9, "C": 0.7, "D": 0.5}[st["grade"]]
+                score *= 0.5 + 0.5 * min(br.get("symbols_pos", 1.0), br.get("years_pos", 1.0))   # breadth-weighted
                 rows.append((sid, round(float(score), 3), st))
             rows.sort(key=lambda r: -r[1])
             pb["best"].setdefault(tf, {})[g] = [(sid, sc) for sid, sc, _ in rows[:6]]
@@ -190,3 +226,36 @@ def tf_summary():
                        best=sorted(proven, key=lambda c: -c[2]["pf"])[:3],
                        highest_wr=sorted([c for c in proven], key=lambda c: -c[2]["wr"])[:3])
     return out
+
+
+def proven_ids(tf=None):
+    """set of strategy ids proven anywhere (or on a given tf) — used to hide unproven strategies from default pickers"""
+    pb = load()
+    if not pb:
+        return set()
+    out = set()
+    for tf_, gd in pb.get("best", {}).items():
+        if tf and tf_ != tf:
+            continue
+        for g, rows in gd.items():
+            out.update(sid for sid, _ in rows)
+    try:
+        from core.audit import failed_ids
+        out -= failed_ids()
+    except Exception:
+        pass
+    return out
+
+
+def proven_table():
+    """flat rows for the Portfolio page: (tf, group, sid, score, stats)"""
+    pb = load()
+    rows = []
+    if not pb:
+        return rows
+    for tf, gd in pb.get("best", {}).items():
+        for g, lst in gd.items():
+            for sid, sc in lst:
+                rows.append((tf, g, sid, sc, pb["table"][tf][g][sid]))
+    rows.sort(key=lambda r: -r[3])
+    return rows

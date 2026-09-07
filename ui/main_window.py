@@ -11,6 +11,7 @@ from .health_page import HealthPage
 from .vision_page import VisionPage
 from .ai_page import AIPage
 from .quant_page import QuantLabPage
+from .portfolio_page import PortfolioPage
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -54,6 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ("nav_vision", "👁", VisionPage()),
             ("nav_ai", "🤖", AIPage()),
             ("nav_academy", "🎓", AcademyPage()),
+            ("nav_portfolio", "💼", PortfolioPage()),
             ("nav_risk", "🛡", RiskPage()),
             ("nav_journal", "📓", JournalPage()),
             ("nav_health", "🩺", HealthPage()),
@@ -83,6 +85,31 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pages[0][2].goto.connect(self.goto)
         self.setStatusBar(QtWidgets.QStatusBar())
         self.statusBar().showMessage(t("ready"))
+        self._init_tray()
+
+    # ---- desktop notifications (Phase 12 alerts)
+    def _init_tray(self):
+        try:
+            from core import alerts as AL
+            self.tray = QtWidgets.QSystemTrayIcon(self.windowIcon() if not self.windowIcon().isNull() else self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ComputerIcon), self)
+            self.tray.setToolTip(t("app"))
+            self.tray.activated.connect(lambda r: (self.showNormal(), self.raise_()))
+            if QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
+                self.tray.show()
+            self._notify_sig.connect(self._notify)
+            AL.set_desktop_hook(lambda title, body: self._notify_sig.emit(title, body))
+        except Exception:
+            pass
+
+    _notify_sig = QtCore.pyqtSignal(str, str)
+
+    def _notify(self, title, body):
+        try:
+            if getattr(self, "tray", None) and self.tray.isVisible():
+                self.tray.showMessage(title, body, QtWidgets.QSystemTrayIcon.MessageIcon.Information, 15000)
+            self.statusBar().showMessage(f"🔔 {title}: {body.splitlines()[0]}", 30000)
+        except Exception:
+            pass
         QtCore.QTimer.singleShot(300, self.pages[0][2].refresh)
 
     def index_of(self, key):

@@ -183,9 +183,36 @@ def check_env():
     return out
 
 
+def check_audit():
+    """Phase 12: look-ahead / random-data audit of every strategy (data/audit.json)"""
+    from core import audit as A
+    a = A.load()
+    out = []
+    if not a:
+        def fix():
+            import strategies as S
+            A.run_all(S.ALL_STRATEGIES)
+        out.append(Finding("audit", "warn", "Strategy audit has never run (look-ahead & random-data tests).",
+                           "ممیزی استراتژی‌ها هرگز اجرا نشده (آزمون نگاه‌به‌آینده و دادهٔ تصادفی).", fix, ("Run audit", "اجرای ممیزی")))
+        return out
+    s = a.get("summary", {})
+    for sid, v in a.get("results", {}).items():
+        if v["status"] == "fail":
+            out.append(Finding("audit", "error", f"{sid}: {'; '.join(v['findings'][:2])} → excluded from Playbook/Advisor",
+                               f"{sid}: {'; '.join(v['findings'][:2])} ← از پلی‌بوک/مشاور حذف شد"))
+        elif v["status"] == "warn":
+            out.append(Finding("audit", "info", f"{sid}: {'; '.join(f for f in v['findings'] if not f.startswith('random-data PF'))[:160]}",
+                               f"{sid}: {'; '.join(f for f in v['findings'] if not f.startswith('random-data PF'))[:160]}"))
+    if _age(A.PATH) > 30:
+        out.append(Finding("audit", "warn", f"Audit is {_age(A.PATH):.0f} days old.", f"ممیزی {_age(A.PATH):.0f} روز قدیمی است."))
+    out.append(Finding("audit", "info", f"Audit: {s.get('pass', 0)} pass · {s.get('warn', 0)} warn · {s.get('fail', 0)} fail of {s.get('n', 0)} strategies.",
+                       f"ممیزی: {s.get('pass', 0)} قبول · {s.get('warn', 0)} هشدار · {s.get('fail', 0)} رد از {s.get('n', 0)} استراتژی."))
+    return out
+
+
 def run_checks(quick=False, progress=None):
     findings = []
-    steps = [("env", check_env), ("playbook", check_playbook), ("validation", check_validation), ("forward", check_forward)]
+    steps = [("env", check_env), ("playbook", check_playbook), ("validation", check_validation), ("forward", check_forward), ("audit", check_audit)]
     if not quick:
         steps += [("data", check_data), ("strategies", check_strategies)]
     for k, (name, fn) in enumerate(steps):

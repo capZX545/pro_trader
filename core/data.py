@@ -18,69 +18,50 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 # ---- Universe (symbol -> yahoo ticker, binance symbol or None) ----
 UNIVERSE = {
     "Crypto": {
-        "BTC/USDT": ("BTC-USD", "BTCUSDT"),
-        "ETH/USDT": ("ETH-USD", "ETHUSDT"),
-        "SOL/USDT": ("SOL-USD", "SOLUSDT"),
-        "BNB/USDT": ("BNB-USD", "BNBUSDT"),
-        "XRP/USDT": ("XRP-USD", "XRPUSDT"),
-        "ADA/USDT": ("ADA-USD", "ADAUSDT"),
-        "DOGE/USDT": ("DOGE-USD", "DOGEUSDT"),
-        "AVAX/USDT": ("AVAX-USD", "AVAXUSDT"),
-        "LINK/USDT": ("LINK-USD", "LINKUSDT"),
-        "DOT/USDT": ("DOT-USD", "DOTUSDT"),
-        "TON/USDT": ("TON11419-USD", "TONUSDT"),
-        "LTC/USDT": ("LTC-USD", "LTCUSDT"),
+        "BTC/USDT": ("BTC-USD", "BTCUSDT"), "ETH/USDT": ("ETH-USD", "ETHUSDT"), "SOL/USDT": ("SOL-USD", "SOLUSDT"),
+        "BNB/USDT": ("BNB-USD", "BNBUSDT"), "XRP/USDT": ("XRP-USD", "XRPUSDT"), "ADA/USDT": ("ADA-USD", "ADAUSDT"),
+        "DOGE/USDT": ("DOGE-USD", "DOGEUSDT"), "AVAX/USDT": ("AVAX-USD", "AVAXUSDT"), "LINK/USDT": ("LINK-USD", "LINKUSDT"),
+        "DOT/USDT": ("DOT-USD", "DOTUSDT"), "TON/USDT": ("TON11419-USD", "TONUSDT"), "LTC/USDT": ("LTC-USD", "LTCUSDT"),
+        "TRX/USDT": ("TRX-USD", "TRXUSDT"), "NEAR/USDT": ("NEAR-USD", "NEARUSDT"), "UNI/USDT": ("UNI7083-USD", "UNIUSDT"),
+        "ATOM/USDT": ("ATOM-USD", "ATOMUSDT"), "APT/USDT": ("APT21794-USD", "APTUSDT"), "ARB/USDT": ("ARB11841-USD", "ARBUSDT"),
+        "OP/USDT": ("OP-USD", "OPUSDT"), "SUI/USDT": ("SUI20947-USD", "SUIUSDT"), "BCH/USDT": ("BCH-USD", "BCHUSDT"),
+        "ETC/USDT": ("ETC-USD", "ETCUSDT"), "FIL/USDT": ("FIL-USD", "FILUSDT"), "INJ/USDT": ("INJ-USD", "INJUSDT"),
     },
     "Forex": {
-        "EUR/USD": ("EURUSD=X", None),
-        "GBP/USD": ("GBPUSD=X", None),
-        "USD/JPY": ("USDJPY=X", None),
-        "USD/CHF": ("USDCHF=X", None),
-        "AUD/USD": ("AUDUSD=X", None),
-        "USD/CAD": ("USDCAD=X", None),
-        "NZD/USD": ("NZDUSD=X", None),
-        "EUR/GBP": ("EURGBP=X", None),
-        "EUR/JPY": ("EURJPY=X", None),
-        "GBP/JPY": ("GBPJPY=X", None),
+        "EUR/USD": ("EURUSD=X", None), "GBP/USD": ("GBPUSD=X", None), "USD/JPY": ("USDJPY=X", None), "USD/CHF": ("USDCHF=X", None),
+        "AUD/USD": ("AUDUSD=X", None), "USD/CAD": ("USDCAD=X", None), "NZD/USD": ("NZDUSD=X", None), "EUR/GBP": ("EURGBP=X", None),
+        "EUR/JPY": ("EURJPY=X", None), "GBP/JPY": ("GBPJPY=X", None), "AUD/JPY": ("AUDJPY=X", None), "EUR/CHF": ("EURCHF=X", None),
         "DXY": ("DX-Y.NYB", None),
     },
     "Commodities": {
-        "Gold (XAU/USD)": ("GC=F", None),
-        "Silver (XAG/USD)": ("SI=F", None),
-        "Crude Oil (WTI)": ("CL=F", None),
-        "Brent Oil": ("BZ=F", None),
-        "Natural Gas": ("NG=F", None),
-        "Copper": ("HG=F", None),
+        "Gold (XAU/USD)": ("GC=F", None), "Silver (XAG/USD)": ("SI=F", None), "Crude Oil (WTI)": ("CL=F", None), "Brent Oil": ("BZ=F", None),
+        "Natural Gas": ("NG=F", None), "Copper": ("HG=F", None), "Platinum": ("PL=F", None), "Corn": ("ZC=F", None), "Wheat": ("ZW=F", None),
     },
     "Indices": {
-        "S&P 500": ("^GSPC", None),
-        "Nasdaq 100": ("^NDX", None),
-        "Dow Jones": ("^DJI", None),
-        "DAX": ("^GDAXI", None),
-        "FTSE 100": ("^FTSE", None),
-        "Nikkei 225": ("^N225", None),
-        "VIX": ("^VIX", None),
+        "S&P 500": ("^GSPC", None), "Nasdaq 100": ("^NDX", None), "Dow Jones": ("^DJI", None), "Russell 2000": ("^RUT", None),
+        "DAX": ("^GDAXI", None), "FTSE 100": ("^FTSE", None), "Nikkei 225": ("^N225", None), "Euro Stoxx 50": ("^STOXX50E", None),
+        "Hang Seng": ("^HSI", None), "VIX": ("^VIX", None),
     },
     "Stocks": {
-        "Apple (AAPL)": ("AAPL", None),
-        "Microsoft (MSFT)": ("MSFT", None),
-        "NVIDIA (NVDA)": ("NVDA", None),
-        "Tesla (TSLA)": ("TSLA", None),
-        "Amazon (AMZN)": ("AMZN", None),
-        "Google (GOOGL)": ("GOOGL", None),
-        "Meta (META)": ("META", None),
-        "AMD": ("AMD", None),
-        "Coinbase (COIN)": ("COIN", None),
-        "MicroStrategy (MSTR)": ("MSTR", None),
+        "Apple (AAPL)": ("AAPL", None), "Microsoft (MSFT)": ("MSFT", None), "NVIDIA (NVDA)": ("NVDA", None), "Tesla (TSLA)": ("TSLA", None),
+        "Amazon (AMZN)": ("AMZN", None), "Google (GOOGL)": ("GOOGL", None), "Meta (META)": ("META", None), "AMD": ("AMD", None),
+        "Coinbase (COIN)": ("COIN", None), "MicroStrategy (MSTR)": ("MSTR", None), "JPMorgan (JPM)": ("JPM", None), "Exxon (XOM)": ("XOM", None),
+        "Johnson & Johnson (JNJ)": ("JNJ", None), "Walmart (WMT)": ("WMT", None), "Netflix (NFLX)": ("NFLX", None), "Boeing (BA)": ("BA", None),
+        "Berkshire (BRK-B)": ("BRK-B", None), "Visa (V)": ("V", None), "UnitedHealth (UNH)": ("UNH", None), "Caterpillar (CAT)": ("CAT", None),
+    },
+    "ETFs": {
+        "SPY": ("SPY", None), "QQQ": ("QQQ", None), "IWM": ("IWM", None), "GLD": ("GLD", None), "TLT": ("TLT", None), "XLE": ("XLE", None),
+        "XLF": ("XLF", None), "EEM": ("EEM", None), "HYG": ("HYG", None), "USO": ("USO", None),
     },
 }
 
 TIMEFRAMES = ["5m", "15m", "30m", "1h", "4h", "1d", "1wk"]
 # bars of history to request from Binance per timeframe (≈ 70d / 100d / 120d / 1y / 2.7y / 4y)
-_BINANCE_LIMIT = {"1m": 5000, "5m": 20000, "15m": 10000, "30m": 6000, "1h": 9000, "4h": 6000, "1d": 1500, "1wk": 600}
+# multi-year history (Phase 12): 5m ≈ 6 mo, 15m ≈ 1.4 y, 30m ≈ 2 y, 1h ≈ 4 y, 4h ≈ 8 y, 1d = full history
+_BINANCE_LIMIT = {"1m": 5000, "5m": 50000, "15m": 50000, "30m": 35000, "1h": 35000, "4h": 18000, "1d": 4000, "1wk": 600}
 
 # how much history to request per timeframe
-_PERIOD = {"1m": "7d", "5m": "60d", "15m": "60d", "30m": "60d", "1h": "730d", "4h": "730d", "1d": "10y", "1wk": "max"}
+_PERIOD = {"1m": "7d", "5m": "60d", "15m": "60d", "30m": "60d", "1h": "730d", "4h": "730d", "1d": "max", "1wk": "max"}
 _BINANCE_TF = {"1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m", "1h": "1h", "4h": "4h", "1d": "1d", "1wk": "1w"}
 
 
@@ -104,7 +85,7 @@ def _read_cache(path):
 
 def _write_cache(df, path):
     try:
-        _write_cache(df, path)
+        df.to_parquet(path)
     except Exception:
         df.to_pickle(path)   # pyarrow/fastparquet not installed → pickle fallback (same filename)
 
@@ -133,21 +114,39 @@ def _normalize(df: pd.DataFrame) -> pd.DataFrame:
 BINANCE_HOSTS = ["https://api.binance.com", "https://data-api.binance.vision"]
 
 
-def _fetch_binance(bsym: str, tf: str, limit: int = 1500) -> pd.DataFrame:
+def _fetch_binance(bsym: str, tf: str, limit: int = 1500, since_ms=None) -> pd.DataFrame:
     last_err = None
     for host in BINANCE_HOSTS:
         try:
-            return _fetch_binance_host(host, bsym, tf, limit)
+            return _fetch_binance_host(host, bsym, tf, limit, since_ms)
         except Exception as e:
             last_err = e
     raise last_err
 
 
-def _fetch_binance_host(host: str, bsym: str, tf: str, limit: int = 1500) -> pd.DataFrame:
+def _fetch_binance_host(host: str, bsym: str, tf: str, limit: int = 1500, since_ms=None) -> pd.DataFrame:
+    """Backward pagination from now (limit bars) — or, if since_ms is given, only bars after that time
+    (incremental refresh: a 4-year 1h cache is topped up with one request instead of 35)."""
     url = f"{host}/api/v3/klines"
     frames = []
     end = None
     remaining = limit
+    if since_ms is not None:
+        start = since_ms + 1
+        while True:
+            r = requests.get(url, params={"symbol": bsym, "interval": _BINANCE_TF[tf], "startTime": start, "limit": 1000}, timeout=15)
+            r.raise_for_status(); rows = r.json()
+            if not rows:
+                break
+            frames.append(rows); start = rows[-1][0] + 1
+            if len(rows) < 1000:
+                break
+        rows = [x for f in frames for x in f]
+        if not rows:
+            return pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
+        df = pd.DataFrame(rows, columns=["t", "open", "high", "low", "close", "volume", "ct", "qv", "n", "tb", "tq", "i"])
+        df["time"] = pd.to_datetime(df["t"], unit="ms")
+        return _normalize(df.set_index("time")[["open", "high", "low", "close", "volume"]].astype(float))
     while remaining > 0:
         params = {"symbol": bsym, "interval": _BINANCE_TF[tf], "limit": min(1000, remaining)}
         if end:
@@ -204,20 +203,39 @@ def get_ohlcv(symbol_name: str, tf: str = "1h", use_cache: bool = True, max_age_
             pass
     df = None
     errors = []
+    cached = None
+    if os.path.exists(path):
+        try:
+            cached = _read_cache(path)
+        except Exception:
+            cached = None
     if bs:
         try:
-            df = _fetch_binance(bs, tf, _BINANCE_LIMIT.get(tf, 1500))
+            want = _BINANCE_LIMIT.get(tf, 1500)
+            if cached is not None and len(cached) >= min(want, 2000) * 0.9 and len(cached) > 100:
+                # incremental top-up: fetch only bars after the last cached (drop the last cached bar: it may have been open)
+                last_ms = int(cached.index[-2].value // 1_000_000)
+                new = _fetch_binance(bs, tf, since_ms=last_ms)
+                df = pd.concat([cached.iloc[:-1], new]) if len(new) else cached
+                df = df[~df.index.duplicated(keep="last")].sort_index()
+                if len(df) < want * 0.8 and len(cached) < want * 0.8:   # cache predates the multi-year limits → full refetch
+                    df = _fetch_binance(bs, tf, want)
+            else:
+                df = _fetch_binance(bs, tf, want)
         except Exception as e:
             errors.append(f"binance: {e}")
     if df is None or df.empty:
         try:
             df = _fetch_yahoo(yt, tf)
+            if cached is not None and len(cached) > len(df):   # yahoo intraday windows are short: keep older cached bars
+                df = pd.concat([cached, df]); df = df[~df.index.duplicated(keep="last")].sort_index()
         except Exception as e:
             errors.append(f"yahoo: {e}")
     if df is None or df.empty:
-        # last resort: stale cache
-        if os.path.exists(path):
-            return _read_cache(path)
+        # last resort: stale cache (flagged so the UI can warn)
+        if cached is not None:
+            cached.attrs.update(symbol=symbol_name, tf=tf, stale=True)
+            return cached
         raise RuntimeError("; ".join(errors) or "no data")
     try:
         _write_cache(df, path)

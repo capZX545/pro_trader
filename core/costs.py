@@ -47,3 +47,64 @@ def cost_for(symbol_name, stress=1.0):
     c = COSTS.get(asset_class(symbol_name), COSTS["default"])
     return dict(commission_bps=c["commission"] * stress, slippage_bps=c["spread_half"] * stress,
                 slip_atr=c["slip_atr"] * stress)
+
+
+# ------------------------------------------------------------------ Phase 12: dynamic, per-bar cost model
+# What was missing (and why the old numbers were optimistic):
+#   * spread widens when volatility spikes and when volume is thin (news, Asian session, weekends in crypto);
+#   * market impact grows with order size relative to bar volume (square-root law, Almgren/Kyle);
+#   * perpetual-futures / CFD positions pay funding / overnight swap while held;
+#   * every asset class has a session pattern (FX spread ×2–3 at 22:00–00:00 UTC, equities only RTH).
+FUNDING = {  # per-day carry cost in bps when holding leveraged/CFD positions (used only if the backtest is told the position is leveraged)
+    "crypto": 3.0, "crypto_alt": 4.0, "forex": 0.5, "indices": 1.0, "commodities": 1.2, "stocks": 1.5, "default": 2.0,
+}
+
+
+def dynamic_costs(df, symbol_name, stress=1.0, notional=10_000.0, leveraged=False):
+    """Per-bar arrays (bps): spread_half, slippage(extra adverse on market/stop fills), impact, funding_per_bar.
+    spread_half_t = base × (0.6 + 0.4 × vol_ratio_t) × session_mult_t × (1 + thin_volume_penalty_t)
+    impact_t      = 10 bps × sqrt(notional / dollar_volume_t) (square-root law, capped)
+    """
+    import numpy as np, pandas as pd
+    c = COSTS.get(asset_class(symbol_name), COSTS["default"])
+    cls = asset_class(symbol_name)
+    n = len(df)
+    close = df["close"].values
+    r = pd.Series(np.log(close)).diff().abs()
+    vol = r.rolling(20, min_periods=5).mean(); vol_ratio = (vol / vol.rolling(200, min_periods=20).median()).fillna(1.0).clip(0.5, 4.0).values
+    v = df["volume"].values.astype(float)
+    if np.nansum(v) > 0:
+        rv = (pd.Series(v) / pd.Series(v).rolling(50, min_periods=10).median()).fillna(1.0).clip(0.1, 10).values
+        thin = np.where(rv < 0.5, (0.5 - rv) * 2.0, 0.0)          # up to +100 % spread when volume < 50 % of normal
+        dollar_vol = v * close
+        impact = np.where(dollar_vol > 0, 10.0 * np.sqrt(notional / np.maximum(dollar_vol, 1.0)), 0.0)
+        impact = np.clip(impact, 0.0, 50.0)
+    else:
+        thin = np.zeros(n); impact = np.zeros(n)
+    sess = np.ones(n)
+    if isinstance(df.index, pd.DatetimeIndex):
+        h = df.index.hour.values; dow = df.index.dayofweek.values
+        if cls == "forex":
+            sess = np.where((h >= 21) | (h < 1), 2.5, np.where((h >= 7) & (h < 17), 1.0, 1.4))   # rollover / Asia wider
+            sess = np.where(dow >= 5, 3.0, sess)
+        elif cls.startswith("crypto"):
+            sess = np.where(dow >= 5, 1.3, 1.0)                                                   # weekend liquidity
+        elif cls in ("stocks", "indices"):
+            sess = np.where((h < 14) | (h >= 20), 1.8, 1.0)                                       # outside US RTH (UTC)
+    spread_half = c["spread_half"] * (0.6 + 0.4 * vol_ratio) * sess * (1 + thin) * stress
+    slippage = spread_half * 0.5 + impact * 0.5                                                 # extra adverse on market/stop fills
+    funding_bar = np.zeros(n)
+    if leveraged and isinstance(df.index, pd.DatetimeIndex) and n > 2:
+        bar_days = ((df.index[1:] - df.index[:-1]).median() / pd.Timedelta(days=1))
+        funding_bar[:] = FUNDING.get(cls, FUNDING["default"]) * bar_days * stress
+    return dict(spread_half=spread_half, slippage=slippage, impact=impact, funding_bar=funding_bar, commission=c["commission"] * stress,
+                slip_atr=c["slip_atr"] * stress)
+
+
+def cost_summary(df, symbol_name, stress=1.0):
+    """average round-trip cost in bps for the UI ('what one trade costs here')"""
+    import numpy as np
+    d = dynamic_costs(df, symbol_name, stress)
+    rt = 2 * (d["commission"] + float(np.nanmean(d["spread_half"])) + float(np.nanmean(d["slippage"])))
+    return dict(round_trip_bps=rt, spread_half_avg=float(np.nanmean(d["spread_half"])), spread_half_max=float(np.nanmax(d["spread_half"])),
+                impact_avg=float(np.nanmean(d["impact"])), commission=d["commission"])

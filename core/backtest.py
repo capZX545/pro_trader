@@ -40,7 +40,7 @@ class BacktestResult:
 def run_backtest(df: pd.DataFrame, res, initial_capital=10_000.0, risk_pct=1.0, commission_bps=5.0,
                  slippage_bps=2.0, max_bars=200, default_sl_atr=2.0, default_tp_atr=4.0, next_open=True,
                  allow_short=True, breakeven_at_r=None, slip_atr=None, symbol=None, stress=1.0,
-                 protections=None) -> BacktestResult:
+                 protections=None, cost_model="dynamic", leveraged=False) -> BacktestResult:
     """slip_atr: extra adverse slippage on STOP fills as a fraction of ATR (fast-market fills). If `symbol` is given
     (or df.attrs['symbol'] is set) and costs are not explicitly passed, the per-asset-class cost model is used.
     protections: None | True (Freqtrade-style defaults) | list of protection dicts (see core/protections.py)."""
@@ -58,6 +58,15 @@ def run_backtest(df: pd.DataFrame, res, initial_capital=10_000.0, risk_pct=1.0, 
         if slip_atr is None:
             slip_atr = cm["slip_atr"]
     slip_atr = slip_atr or 0.0
+    # Phase 12: dynamic per-bar spread/impact/funding when a symbol is known (cost_model="dynamic", default)
+    dyn = None
+    if symbol and cost_model == "dynamic":
+        try:
+            from core.costs import dynamic_costs
+            dyn = dynamic_costs(df, symbol, stress, notional=initial_capital * risk_pct, leveraged=leveraged)
+            commission_bps = dyn["commission"]
+        except Exception:
+            dyn = None
     bk = getattr(res, "bt_kwargs", None) or {}
     if bk:  # strategy-defined overrides (time stop / long-only) — part of the strategy's definition
         max_bars = bk.get("max_bars", max_bars)
@@ -73,6 +82,12 @@ def run_backtest(df: pd.DataFrame, res, initial_capital=10_000.0, risk_pct=1.0, 
     stops = res.stop.values if res.stop is not None else np.full(n, np.nan)
     tgts = res.target.values if res.target is not None else np.full(n, np.nan)
     cost = (commission_bps + slippage_bps) / 10_000.0
+    if dyn is not None:
+        cost_arr = (commission_bps + dyn["spread_half"]) / 10_000.0          # limit-ish fills: commission + half spread
+        cost_mkt = (commission_bps + dyn["spread_half"] + dyn["slippage"]) / 10_000.0   # market/stop fills: + slippage/impact
+        fund_arr = dyn["funding_bar"] / 10_000.0
+    else:
+        cost_arr = np.full(n, cost); cost_mkt = np.full(n, cost); fund_arr = np.zeros(n)
     xl = res.exit_long.fillna(False).astype(bool).values if getattr(res, "exit_long", None) is not None else np.zeros(n, bool)
     xs = res.exit_short.fillna(False).astype(bool).values if getattr(res, "exit_short", None) is not None else np.zeros(n, bool)
 
@@ -86,8 +101,12 @@ def run_backtest(df: pd.DataFrame, res, initial_capital=10_000.0, risk_pct=1.0, 
 
     def close_pos(i, px, reason):
         nonlocal cash, pos, be_moved
-        px_eff = px * (1 - cost * pos)  # slippage against us
+        c_i = cost_mkt[i] if reason.startswith("stop") or reason == "reverse" else cost_arr[i]
+        px_eff = px * (1 - c_i * pos)  # slippage against us
         pnl = (px_eff - entry_px) * size * pos
+        held = max(i - entry_i, 0)
+        if held and fund_arr[entry_i:i].any():
+            pnl -= float(fund_arr[entry_i:i].sum()) * entry_px * size   # funding / swap while held
         cash += pnl
         risk_per_unit = abs(entry_px - stop_px)
         r = (px_eff - entry_px) * pos / risk_per_unit if risk_per_unit > 0 else 0.0
@@ -138,7 +157,7 @@ def run_backtest(df: pd.DataFrame, res, initial_capital=10_000.0, risk_pct=1.0, 
             else:
                 ei = i
                 px = c[i]
-            px_eff = px * (1 + cost * side)
+            px_eff = px * (1 + cost_mkt[min(ei, n - 1)] * side)
             sp = stops[i]
             tp = tgts[i]
             if np.isnan(sp) or (side == 1 and sp >= px_eff) or (side == -1 and sp <= px_eff):

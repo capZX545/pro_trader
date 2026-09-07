@@ -1,6 +1,7 @@
 """All application pages."""
 import os
 import json
+import html
 import time
 import numpy as np
 import pandas as pd
@@ -72,8 +73,17 @@ class SymbolBar(QtWidgets.QWidget):
                 self.cat.addItem(c, c)
             self.strat = QtWidgets.QComboBox()
             self.strat.setMinimumWidth(280)
+            self.proven_only = QtWidgets.QCheckBox(t("proven_only"))
+            try:
+                from core import playbook as PB
+                self.proven_only.setChecked(bool(PB.proven_ids()))
+            except Exception:
+                self.proven_only.setChecked(False)
+            self.proven_only.setToolTip(t("proven_only_tip"))
+            self.proven_only.toggled.connect(self._fill_strats)
             self._fill_strats()
             self.cat.currentIndexChanged.connect(self._fill_strats)
+            h.addWidget(self.proven_only)
             h.addWidget(QtWidgets.QLabel(t("category")))
             h.addWidget(self.cat)
             h.addWidget(QtWidgets.QLabel(t("strategy")))
@@ -89,9 +99,23 @@ class SymbolBar(QtWidgets.QWidget):
         cur = self.strat.currentData()
         self.strat.blockSignals(True)
         self.strat.clear()
+        proven = set()
+        if getattr(self, "proven_only", None) is not None and self.proven_only.isChecked():
+            try:
+                from core import playbook as PB
+                proven = PB.proven_ids()
+            except Exception:
+                proven = set()
         for cls in S.ALL_STRATEGIES:
             if cat is None or cls.category == cat:
-                self.strat.addItem(f"{strat_name(cls)}  ·  {cls.category}", cls.id)
+                if proven and cls.id not in proven:
+                    continue
+                tag = " ✓" if cls.id in proven else ""
+                self.strat.addItem(f"{strat_name(cls)}{tag}  ·  {cls.category}", cls.id)
+        if self.strat.count() == 0:   # nothing proven in this category → show all so the user is never stuck
+            for cls in S.ALL_STRATEGIES:
+                if cat is None or cls.category == cat:
+                    self.strat.addItem(f"{strat_name(cls)}  ·  {cls.category}", cls.id)
         if cur:
             i = self.strat.findData(cur)
             if i >= 0:
@@ -1221,6 +1245,11 @@ class SettingsPage(QtWidgets.QWidget):
         f.addRow(t("data_src"), self.clear)
         c.v.addLayout(f)
         v.addWidget(c)
+        try:
+            from .portfolio_page import AlertsPanel
+            al = Card(t("alerts")); al.add(AlertsPanel()); v.addWidget(al)
+        except Exception:
+            pass
         about = Card(t("about"))
         lbl = QtWidgets.QLabel(f"<b>{t('app')}</b> v1.0<br><br>{t('disclaimer')}")
         lbl.setWordWrap(True)
@@ -1239,7 +1268,12 @@ class SettingsPage(QtWidgets.QWidget):
 
     def _lang(self):
         lang = self.lang.currentData()
-        json.dump({"lang": lang}, open(SETTINGS_PATH, "w"))
+        try:
+            cur = json.load(open(SETTINGS_PATH))
+        except Exception:
+            cur = {}
+        cur["lang"] = lang
+        json.dump(cur, open(SETTINGS_PATH, "w"), indent=1)
         QtWidgets.QMessageBox.information(self, "OK", "Restart the app to apply language.\nبرای اعمال زبان، برنامه را دوباره باز کنید.")
 
 
@@ -1247,8 +1281,9 @@ class SettingsPage(QtWidgets.QWidget):
 class IndicatorEncyclopedia(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        from core.indicators2 import INDICATOR_CATALOG, catalog_groups
-        self.cat = INDICATOR_CATALOG
+        from core.indicators2 import catalog_groups
+        from core.indicator_uses import full_catalog
+        self.cat = full_catalog()
         h = QtWidgets.QHBoxLayout(self)
         h.setContentsMargins(0, 0, 0, 0)
         left = QtWidgets.QVBoxLayout()
@@ -1293,6 +1328,20 @@ class IndicatorEncyclopedia(QtWidgets.QWidget):
             it.setData(QtCore.Qt.ItemDataRole.UserRole, d["key"])
             self.list.addItem(it)
 
+    @staticmethod
+    def _sheet(d, sfx):
+        if "uses_" + sfx not in d:
+            return ""
+        from html import escape as esc
+        def ul(items, color=None):
+            st = f" style='color:{color}'" if color else ""
+            return "<ul style='line-height:1.7'>" + "".join(f"<li{st}>{esc(x)}</li>" for x in items) + "</ul>"
+        return (f"<p><b>{t('ind_params')}:</b> <code style='color:{C['accent2']}'>{esc(str(d.get('params', '—')))}</code></p>"
+                f"<h3 style='color:{C['accent2']}'>{t('ind_uses')}</h3>{ul(d['uses_' + sfx])}"
+                f"<h3 style='color:{C['accent2']}'>{t('ind_signals')}</h3>{ul(d['signals_' + sfx])}"
+                f"<h3 style='color:{C['red']}'>{t('ind_pitfalls')}</h3>{ul(d['pitfalls_' + sfx], C['muted'])}"
+                f"<h3 style='color:{C['accent2']}'>{t('ind_combos')}</h3><p style='color:{C['muted']}'>{esc(' · '.join(d['combos_' + sfx]))}</p>")
+
     def _show(self, cur, prev=None):
         if not cur:
             return
@@ -1309,8 +1358,9 @@ class IndicatorEncyclopedia(QtWidgets.QWidget):
         <h1 style='margin:0;color:white'>{d['name_' + sfx]}</h1>
         <div style='color:{C['muted']};font-size:13px'>{other}</div>
         <p><span style='background:{C['accent']}33;color:{C['accent2']};padding:3px 10px;border-radius:10px'>{d['group']}</span></p>
-        <h3 style='color:{C['accent2']}'>{t('ind_how')}</h3><p style='line-height:1.6'>{d['how_' + sfx]}</p>
-        <h3 style='color:{C['accent2']}'>{t('ind_read')}</h3><p style='line-height:1.7'>{d['read_' + sfx]}</p>
+        <h3 style='color:{C['accent2']}'>{t('ind_how')}</h3><p style='line-height:1.6'>{html.escape(d['how_' + sfx])}</p>
+        <h3 style='color:{C['accent2']}'>{t('ind_read')}</h3><p style='line-height:1.7'>{html.escape(d['read_' + sfx])}</p>
+        {self._sheet(d, sfx)}
         <h3 style='color:{C['accent2']}'>{t('ind_used')}</h3><p style='color:{C['muted']}'>{used or '—'}</p>
         <p style='color:{C['muted']};font-size:12px'>{t('ind_ml_note')}</p>
         </div>""")

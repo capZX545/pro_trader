@@ -49,7 +49,15 @@ def _run(name, fn):
 
 def task_forward():
     from core import forward as FW
-    return FW.update()
+    r = FW.update()
+    try:
+        from core import alerts as AL
+        sent = AL.scan()
+        if sent:
+            log(f"alerts: {len(sent)} new signal(s) pushed")
+    except Exception as e:
+        log(f"alerts error: {e}")
+    return r
 
 
 def task_health_autofix():

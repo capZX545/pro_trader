@@ -113,3 +113,41 @@ def test_phase11_analyst_grounded():
     ans, be = AN.ask("روند چیه؟", ctx, "fa")
     assert "روند" in ans and be in ("rules", "local-llm")
     assert AN._side(-1) == -1 and AN._side("bull") == 1
+
+
+def test_phase12_audit_quick():
+    """look-ahead + determinism + sanity on 12 representative strategies (fast); full run: python -m core.audit"""
+    import strategies as S
+    from core import audit as A
+    ids = ["ema_cross", "supertrend", "turtle", "rsi_div", "ichimoku", "bollinger_mr", "vwap_reversion", "zigzag_hs", "macd_hist", "connors_rsi2", "donchian_breakout", "keltner_pullback"]
+    cls = [S.REGISTRY[i] for i in ids if i in S.REGISTRY] or S.ALL_STRATEGIES[:12]
+    df = A._rw(1500, seed=7)
+    for c in cls:
+        r = A.audit_strategy(c, df, quick=True)
+        assert r["status"] != "fail", (c.id, r["findings"])
+
+
+def test_phase12_costs_and_catalog():
+    from core.costs import dynamic_costs, cost_summary
+    from core import audit as A
+    df = A._rw(600, seed=3)
+    d = dynamic_costs(df, "EUR/USD")
+    assert len(d["spread_half"]) == len(df) and (d["spread_half"] > 0).all()
+    assert cost_summary(df, "BTC/USDT")["round_trip_bps"] > 5
+    from core.indicator_uses import coverage
+    n, m = coverage()
+    assert n >= 80 and m == n
+    from core.backtest import run_backtest
+    import strategies as S
+    res = S.get("ema_cross").run(df)
+    a = run_backtest(df, res, symbol="BTC/USDT", cost_model="static").stats["return_pct"]
+    b = run_backtest(df, res, symbol="BTC/USDT", stress=3.0).stats["return_pct"]
+    assert b <= a + 1e-9   # stressed dynamic costs can never beat static baseline
+
+
+def test_phase12_alerts_offline():
+    from core import alerts as AL
+    ok, msg = AL.telegram_send("x", token="", chat_id="")
+    assert not ok
+    body = AL.format_signal("BTC/USDT", "4h", "ema_cross", 1, 100.0, 95.0, 110.0, 70, dict(pf=1.3, wr=48, n=120), "en")
+    assert "LONG" in body and "R:R 2.0" in body
