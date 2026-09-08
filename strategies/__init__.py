@@ -1,5 +1,5 @@
 from .base import Strategy, StrategyResult
-from . import trend, meanrev, priceaction, masters, bots, ensemble, highwr, masters2, bots2, bots3, scalp
+from . import trend, meanrev, priceaction, masters, bots, ensemble, highwr, masters2, bots2, bots3, scalp, orderflow
 
 ALL_STRATEGIES = [
     # Trend
@@ -38,6 +38,7 @@ ALL_STRATEGIES = [
     bots3.ChanKalmanMR, bots3.ElderImpulseSafeZone, bots3.JesseAnchorPullback, bots3.ONeilSellRules, bots3.FreqtradeSample, bots3.DaveyRobustBreakout,
     # Phase 16: low-timeframe / scalping research pass (VWAP, order-flow, Brooks, Volman, Crabel, Market Profile, funding)
     *scalp.SCALP_STRATEGIES,
+    *orderflow.ORDERFLOW_STRATEGIES,
 ]
 
 REGISTRY = {s.id: s for s in ALL_STRATEGIES}

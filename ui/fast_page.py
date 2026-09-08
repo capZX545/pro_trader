@@ -24,7 +24,8 @@ class FastSignalsPage(QtWidgets.QWidget):
         for w_, lbl in ((self.tf, t("timeframe")), (self.topn, t("live_topn")), (self.votes, t("fs_min_votes")), (self.fee, t("fs_fee_tier"))):
             bar.addWidget(QtWidgets.QLabel(lbl)); bar.addWidget(w_)
         self.btn = QtWidgets.QPushButton("⚡ " + t("fs_scan")); self.btn.setObjectName("primary"); self.btn.clicked.connect(self.run)
-        bar.addWidget(self.btn); bar.addWidget(self.auto); bar.addStretch()
+        self.btn_wfo = QtWidgets.QPushButton("🧪 " + t("fs_wfo")); self.btn_wfo.setToolTip(t("fs_wfo_tip")); self.btn_wfo.clicked.connect(self.run_wfo)
+        bar.addWidget(self.btn); bar.addWidget(self.btn_wfo); bar.addWidget(self.auto); bar.addStretch()
         self.status = QtWidgets.QLabel(""); self.status.setObjectName("subtitle"); bar.addWidget(self.status)
         v.addLayout(bar)
         self.prog = QtWidgets.QProgressBar(); self.prog.setRange(0, 100); self.prog.setVisible(False); v.addWidget(self.prog)
@@ -75,6 +76,41 @@ class FastSignalsPage(QtWidgets.QWidget):
         self.w.done.connect(self._show)
         self.w.error.connect(lambda e: (self.btn.setEnabled(True), self.prog.setVisible(False), self.status.setText(e.splitlines()[0][:120])))
         self.w.start()
+
+    def run_wfo(self):
+        """Walk-forward the confluence knobs for the top symbols on the selected timeframe (background)."""
+        if self.w is not None and self.w.isRunning():
+            return
+        from core import scalp_wfo as W
+        tf, fee = self.tf.currentText(), self.fee.currentText()
+        self.btn.setEnabled(False); self.btn_wfo.setEnabled(False); self.prog.setVisible(True); self.prog.setValue(0)
+
+        def work(progress=None):
+            return W.run(tf=tf, fee_tier=fee, progress=progress)
+        self.w = Worker(work)
+        self.w.progress.connect(lambda p, m: (self.prog.setValue(p), self.status.setText(m)))
+        self.w.done.connect(self._show_wfo)
+        self.w.error.connect(lambda e: (self.btn.setEnabled(True), self.btn_wfo.setEnabled(True), self.prog.setVisible(False), self.status.setText(e.splitlines()[0][:120])))
+        self.w.start()
+
+    def _show_wfo(self, out):
+        self.btn.setEnabled(True); self.btn_wfo.setEnabled(True); self.prog.setVisible(False)
+        tf = self.tf.currentText()
+        lines = [t("fs_wfo_head")]
+        for k, r in sorted(out.items()):
+            if f"|{tf}|" not in k:
+                continue
+            if r.get("error"):
+                lines.append(f"{r['sym']}: {r['error']}"); continue
+            p = r["params"]
+            lines.append(f"{r['sym']}: {t('fs_verdict_' + r['verdict'])} · OOS PF {r['oos_pf']} (IS {r['is_pf']}, WFE {r['wfe']}) · n={r['oos_trades']} · "
+                         f"votes≥{p['min_votes']} win={p['window']} SL={p['sl_atr']}ATR RR={p['rr']}")
+        self.detail.setPlainText("\n".join(lines))
+        # adopt the consensus knobs of the best-verdict symbol as defaults
+        good = [r for k, r in out.items() if f"|{tf}|" in k and r.get("verdict") in ("edge", "weak")]
+        if good:
+            self.votes.setValue(int(good[0]["params"]["min_votes"]))
+        self.status.setText(t("fs_wfo_done"))
 
     def _show(self, res):
         self.btn.setEnabled(True); self.prog.setVisible(False)

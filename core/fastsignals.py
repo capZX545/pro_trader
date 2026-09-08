@@ -1,6 +1,6 @@
 """Fast-signal (scalp) radar — Phase 16.
 
-Scans the top-N crypto pairs on a low timeframe (1m/3m/5m/15m) with the 12 scalp strategies + the classic intraday set,
+Scans the top-N crypto pairs on a low timeframe (1m/3m/5m/15m) with the 20 scalp/order-flow strategies + the classic intraday set,
 then applies what the research and our own 50 000-bar backtests say is REQUIRED for a low-timeframe edge:
   1. confluence  – ≥ `min_votes` independent methods agree on the same bar window (single methods lose after fees:
                    PF 0.2–0.9 on BTC/ETH/SOL 5m–15m; ≥3 votes + trend filter reaches PF ≈ 1.0–1.8),
@@ -19,7 +19,8 @@ from core import indicators as ta
 
 FAST_TFS = ["1m", "3m", "5m", "15m"]
 SCALP_IDS = ["vwap_pullback_scalp", "vwap_band_fade", "cvd_divergence", "stop_run_scalp", "brooks_h2l2", "micro_squeeze_pop",
-             "session_orb", "triple_confirm_scalp", "fast_rsi_div_scalp", "volume_climax_scalp", "funding_crowd_reversal", "ib_extension"]
+             "session_orb", "triple_confirm_scalp", "fast_rsi_div_scalp", "volume_climax_scalp", "funding_crowd_reversal", "ib_extension",
+             "value_area_bounce", "triple_a_flow", "stacked_imbalance_retest", "lvn_breakout", "anchored_scalp", "flat_bb_stoch", "nfi_dip_multi", "unfinished_auction"]
 CLASSIC_INTRADAY = ["orb", "silver_bullet", "liquidity_sweep", "ict_fvg", "bb_squeeze", "vwap", "rsi_div", "engulfing", "pinbar", "supertrend"]
 ROUND_TRIP_BPS = {"spot_taker": 24.0, "fut_taker": 13.0, "fut_maker": 5.0}     # commission×2 + spread + slippage
 
@@ -152,9 +153,17 @@ def scan(tf="5m", top_n=40, min_votes=3, fee_tier="fut_taker", bars=3000, progre
             df = df.tail(bars)
             fund = derivs.positioning_summary(sym) if k < 12 else None     # rate-limit friendly: majors only
             derivs.attach(df, sym)
-            r = evaluate_symbol(sym, df, min_votes=min_votes, fee_tier=fee_tier, funding=fund)
+            mv = min_votes
+            try:                                                   # per-symbol walk-forward knobs (core/scalp_wfo), if tuned
+                from core.scalp_wfo import params_for
+                wp, verdict = params_for(sym, tf, fee_tier)
+                if wp and verdict in ("edge", "weak"):
+                    mv = max(min_votes, int(wp["min_votes"]))
+            except Exception:
+                wp, verdict = None, None
+            r = evaluate_symbol(sym, df, min_votes=mv, fee_tier=fee_tier, funding=fund)
             if r:
-                r["tf"] = tf; r["funding"] = fund or {}
+                r["tf"] = tf; r["funding"] = fund or {}; r["wfo"] = verdict
                 out.append(r)
         except Exception as e:
             out.append(dict(sym=sym, tf=tf, setup=None, stats=None, error=str(e)[:80]))

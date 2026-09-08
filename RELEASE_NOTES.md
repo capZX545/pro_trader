@@ -1,3 +1,9 @@
+## v1.3.1 — Phase 16 round 2: order-flow methods, NFI/freqtrade autopsy, walk-forward tuning
+- **9 new low-timeframe strategies** (`strategies/orderflow.py`, 121 total): value_area_bounce, triple_a_flow (Valentini absorption→accumulation→aggression), stacked_imbalance_retest, lvn_breakout, anchored_scalp (Jesse anchor-TF + VWAP + CVD), ft_scalp (freqtrade community Scalp, re-risked), flat_bb_stoch, nfi_dip_multi (NFI EWO + BB-dip + informative gate), unfinished_auction. All are OHLCV proxies of footprint concepts (no tick data) and are calibrated on crypto distributions (absorption = top-3 % volume/range percentile, EWO measured 6 bars before the dip, one attempt per poor high/low).
+- **Fast Signals** now votes with 20 scalp/order-flow methods + classic intraday set; new **🧪 Walk-forward tune** button (`core/scalp_wfo.py`): anchored WFO of the confluence knobs (votes/window/ATR stop/RR) per symbol, reports OOS PF, WFE and an edge/weak/none verdict; the scan adopts tuned knobs per symbol.
+- **Library**: +6 research entries (footprint field guides, Valentini playbook, NFI X structure, freqtrade Scalp autopsy, flat-BB quiet-hours scalp, Pardo/Davey walk-forward) and +2 bot entries (NFI X, footprint bots); Freqtrade/Jesse entries deepened.
+- Honesty (50k-bar tests, futures-taker fees): single new methods PF 0.2–1.03; best alone = triple_a_flow SOL 15m 1.03, lvn_breakout ETH 15m 0.79 (1.09 at maker). Walk-forward: SOL 15m confluence OOS PF 1.05 (weak), ETH 15m 0.68 (none). Low-TF edge remains thin — forward-test first.
+
 # ProTrader Academy v1.3.0
 
 ## v1.3.0 — Fast Signals (low-timeframe research pass) + stability round 3
