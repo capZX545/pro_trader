@@ -319,6 +319,13 @@ class DashboardPage(QtWidgets.QWidget):
             self.w2.error.connect(lambda e: None)
             self.w2.start()
 
+        for old in ("w", "w2"):
+            if getattr(self, old, None) is not None:
+                getattr(self, old).cancel()
+        try:
+            from core import maintenance; maintenance.ui_busy(60)
+        except Exception:
+            pass
         self.w = Worker(work1)
         self.w.done.connect(stage2)
         self.w.error.connect(lambda e: (self.bar.btn.setEnabled(True), self.bar.btn.setText(t("load")), QtWidgets.QMessageBox.warning(self, "Error", e)))
@@ -600,6 +607,9 @@ class ChartPage(QtWidgets.QWidget):
         """Re-run the strategy on the live frame in a worker and refresh overlays/signals without touching the view."""
         if self.df is None:
             return
+        rw = getattr(self, "_rw", None)
+        if rw is not None and rw.isRunning():
+            return                                     # previous recompute still busy → skip this bar
         sym, tf, sid = self.bar.symbol(), self.bar.timeframe(), self.bar.strategy_id()
         params = self.params()
         df = self.df.copy()
@@ -674,6 +684,12 @@ class ChartPage(QtWidgets.QWidget):
             return df, ok, res, bt
 
         self.stop_stream()
+        if getattr(self, "w", None) is not None:
+            self.w.cancel()
+        try:
+            from core import maintenance; maintenance.ui_busy(20)
+        except Exception:
+            pass
         self.w = Worker(work)
         self.w.done.connect(lambda r: (self._show(sym, tf, sid, *r), self.start_stream(sym, tf)))
         self.w.error.connect(lambda e: (self.bar.btn.setEnabled(True), self.bar.btn.setText(t("run")), QtWidgets.QMessageBox.warning(self, "Error", e)))
@@ -877,6 +893,12 @@ class ScannerPage(QtWidgets.QWidget):
             out.sort(key=lambda d: d["score"], reverse=True)
             return out
 
+        if getattr(self, "w", None) is not None:
+            self.w.cancel()
+        try:
+            from core import maintenance; maintenance.ui_busy(120)
+        except Exception:
+            pass
         self.w = Worker(work)
         self.w.progress.connect(lambda p, s: (self.prog.setValue(p), self.status.setText(s)))
         self.w.done.connect(self._show)
@@ -1020,6 +1042,12 @@ class BacktestPage(QtWidgets.QWidget):
                 oos = (ins, out)
             return df, ok, res, bt, oos
 
+        if getattr(self, "w", None) is not None:
+            self.w.cancel()
+        try:
+            from core import maintenance; maintenance.ui_busy(30)
+        except Exception:
+            pass
         self.w = Worker(work)
         self.w.done.connect(lambda r: self._show(sym, tf, sid, *r))
         self.w.error.connect(lambda e: (self.bar.btn.setEnabled(True), QtWidgets.QMessageBox.warning(self, "Error", e)))

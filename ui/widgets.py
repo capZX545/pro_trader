@@ -127,7 +127,13 @@ def ncell(value, fmt="{:.2f}", color=None):
     return it
 
 
+_LIVE_WORKERS = set()     # strong refs: a QThread garbage-collected while running aborts the whole process
+
+
 class Worker(QtCore.QThread):
+    """Background job. Safe against the classic PyQt crash "QThread: Destroyed while thread is still running":
+    the instance keeps itself referenced until finished, and `start()` lowers the OS thread priority so the UI
+    thread always wins the CPU."""
     done = QtCore.pyqtSignal(object)
     error = QtCore.pyqtSignal(str)
     progress = QtCore.pyqtSignal(int, str)
@@ -135,10 +141,26 @@ class Worker(QtCore.QThread):
     def __init__(self, fn, *args, **kw):
         super().__init__()
         self.fn, self.args, self.kw = fn, args, kw
+        self.cancelled = False
+        _LIVE_WORKERS.add(self)
+        self.finished.connect(self._release)
+
+    def _release(self):
+        _LIVE_WORKERS.discard(self)
+
+    def start(self, *a, **k):
+        super().start(QtCore.QThread.Priority.LowPriority)
+
+    def cancel(self):
+        """Mark as stale: results are dropped (used when the user re-runs before the previous job ended)."""
+        self.cancelled = True
 
     def run(self):
         try:
-            self.done.emit(self.fn(*self.args, progress=self.progress.emit, **self.kw) if "progress" in self.fn.__code__.co_varnames else self.fn(*self.args, **self.kw))
+            res = self.fn(*self.args, progress=self.progress.emit, **self.kw) if "progress" in self.fn.__code__.co_varnames else self.fn(*self.args, **self.kw)
+            if not self.cancelled:
+                self.done.emit(res)
         except Exception as e:
             import traceback
-            self.error.emit(f"{e}\n{traceback.format_exc()}")
+            if not self.cancelled:
+                self.error.emit(f"{e}\n{traceback.format_exc()}")

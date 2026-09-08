@@ -8,6 +8,12 @@ import sys
 import json
 import warnings
 
+# Keep numeric libraries from spawning one busy thread per core for every tiny pandas/numpy op.
+# With 20+ background jobs (strategies, playbook, scanner) that oversubscription is what makes the UI stutter.
+for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ.setdefault(_v, "1")
+os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
+
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -15,7 +21,37 @@ from PyQt6 import QtWidgets, QtGui, QtCore  # noqa: E402
 from ui.theme import QSS, I18N  # noqa: E402
 
 
+def _install_crash_handlers():
+    """Crash forensics: native faults → data/crash.log (faulthandler); Python exceptions in slots → same log + no abort.
+    Without this, any uncaught exception inside a Qt slot terminates the whole process on PyQt6."""
+    import faulthandler, traceback, datetime
+    from core.paths import data as _d
+    path = _d("crash.log")
+    try:
+        f = open(path, "a", buffering=1)
+        faulthandler.enable(file=f, all_threads=True)
+    except Exception:
+        f = None
+
+    def hook(exc_type, exc, tb):
+        try:
+            msg = "".join(traceback.format_exception(exc_type, exc, tb))
+            if f:
+                f.write(f"\n[{datetime.datetime.now():%Y-%m-%d %H:%M:%S}] uncaught exception\n{msg}")
+            sys.__stderr__.write(msg)
+        except Exception:
+            pass
+        # do NOT re-raise / abort: a failed slot should not kill the app
+    sys.excepthook = hook
+    try:
+        import threading
+        threading.excepthook = lambda a: hook(a.exc_type, a.exc_value, a.exc_traceback)
+    except Exception:
+        pass
+
+
 def main():
+    _install_crash_handlers()
     # language
     from core.paths import data as _data
     settings = _data("settings.json")

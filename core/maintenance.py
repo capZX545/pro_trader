@@ -18,6 +18,45 @@ from core.paths import data as _data
 LOG = _data("maintenance.log")
 STATE = {"running": False, "last": {}, "current": None, "progress": 0}
 _stop = threading.Event()
+_ui_busy_until = [0.0]     # UI sets this when the user launches something heavy → training yields
+START_DELAY = int(os.environ.get("PROTRADER_TRAIN_DELAY", "90"))   # seconds after launch before self-training starts
+THROTTLE = float(os.environ.get("PROTRADER_TRAIN_THROTTLE", "0.35"))  # fraction of time the trainer sleeps (0 = full speed)
+
+
+def ui_busy(seconds=20):
+    """Called by the UI when the user starts a backtest/scan: background training pauses for `seconds`."""
+    _ui_busy_until[0] = max(_ui_busy_until[0], time.time() + seconds)
+
+
+def _lower_priority():
+    """Make the whole process background-friendly on Windows/Unix and stop numeric libs from grabbing every core."""
+    try:
+        if os.name == "nt":
+            import ctypes
+            BELOW_NORMAL = 0x00004000
+            ctypes.windll.kernel32.SetPriorityClass(ctypes.windll.kernel32.GetCurrentProcess(), BELOW_NORMAL)
+            # and the calling (maintenance) thread itself to lowest
+            ctypes.windll.kernel32.SetThreadPriority(ctypes.windll.kernel32.GetCurrentThread(), -2)
+        else:
+            os.nice(10)
+    except Exception:
+        pass
+
+
+def yield_cpu():
+    """Cooperative throttle called between strategies/symbols by long tasks: sleeps proportionally to the work
+    just done (THROTTLE) and waits while the UI is busy. Returns False if stop requested."""
+    if _stop.is_set():
+        return False
+    now = time.time()
+    last = STATE.get("_y", now)
+    worked = max(now - last, 0.0)
+    if THROTTLE > 0 and worked > 0:
+        _stop.wait(min(worked * THROTTLE / (1 - THROTTLE), 2.0))
+    while time.time() < _ui_busy_until[0] and not _stop.is_set():
+        _stop.wait(0.5)
+    STATE["_y"] = time.time()
+    return not _stop.is_set()
 
 
 def log(msg):
@@ -77,6 +116,7 @@ def task_health_autofix():
 
 def _prog(stage):
     def f(p, m):
+        yield_cpu()
         STATE["progress"] = p; STATE["stage"] = stage; STATE["detail"] = m
     return f
 
@@ -130,8 +170,13 @@ def _playbook_age_days():
 
 def loop(forward_every=900, health_every=6 * 3600, playbook_every=7 * 86400):
     STATE["running"] = True
-    log("maintenance thread started")
+    _lower_priority()
+    log("maintenance thread started (low priority)")
     last_fw = last_h = last_pb = 0.0
+    # let the UI come up and the user look around before any heavy work
+    STATE["stage"] = "idle"; STATE["detail"] = f"starting in {START_DELAY}s"
+    if _stop.wait(START_DELAY):
+        STATE["running"] = False; return
     # ---- self-training on first run (the user never has to "teach" anything)
     _run("audit", task_audit)
     from core import playbook as PB

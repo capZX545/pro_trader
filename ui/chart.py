@@ -17,37 +17,96 @@ class CandlestickItem(pg.GraphicsObject):
         self.picture = None
         self._gen()
 
-    def _gen(self):
-        self.picture = QtGui.QPicture()
-        p = QtGui.QPainter(self.picture)
-        o, h, l, c = self.df.open.values, self.df.high.values, self.df.low.values, self.df.close.values
-        w = 0.35
-        up_pen = pg.mkPen(C["green"], width=1)
-        dn_pen = pg.mkPen(C["red"], width=1)
-        up_br = pg.mkBrush(C["green"])
-        dn_br = pg.mkBrush(C["red"])
-        for i in range(len(c)):
-            up = c[i] >= o[i]
-            p.setPen(up_pen if up else dn_pen)
-            p.setBrush(up_br if up else dn_br)
-            p.drawLine(QtCore.QPointF(i, l[i]), QtCore.QPointF(i, h[i]))
-            top, bot = (c[i], o[i]) if up else (o[i], c[i])
-            hgt = max(top - bot, (h[i] - l[i]) * 0.02 or 1e-9)
-            p.drawRect(QtCore.QRectF(i - w, bot, 2 * w, hgt))
-        p.end()
+    CHUNK = 1000
 
-    def paint(self, p, *args):
-        p.drawPicture(0, 0, self.picture)
+    def _gen(self):
+        """History is split into chunks of CHUNK bars, each its own QPicture, built LAZILY on first paint of that
+        range (so a 50k-bar load costs ~nothing up front; scrolling back builds chunks on demand, ~5 ms each).
+        paint() replays only chunks intersecting the visible x-range → repaint is O(visible), not O(n)."""
+        self.picture = QtGui.QPicture()
+        self.extra = []
+        df = self.df
+        n = len(df)
+        self._o, self._h, self._l, self._c = (df.open.values.astype(float), df.high.values.astype(float),
+                                              df.low.values.astype(float), df.close.values.astype(float))
+        self._n = n
+        self._cache = {}                            # chunk index → QPicture
+        lo = float(np.nanmin(self._l)) if n else 0.0
+        hi = float(np.nanmax(self._h)) if n else 1.0
+        self._bounds = QtCore.QRectF(-1, lo, n + 2, max(hi - lo, 1e-9))
+
+    def _chunk(self, ci):
+        pic = self._cache.get(ci)
+        if pic is not None:
+            return pic
+        s, e = ci * self.CHUNK, min((ci + 1) * self.CHUNK, self._n)
+        o, h, l, c = self._o[s:e], self._h[s:e], self._l[s:e], self._c[s:e]
+        up = c >= o
+        top = np.where(up, c, o); bot = np.where(up, o, c)
+        hgt = np.maximum(top - bot, np.maximum((h - l) * 0.02, 1e-9))
+        w = 0.35
+        pic = QtGui.QPicture(); p = QtGui.QPainter(pic)
+        for mask, col in ((up, C["green"]), (~up, C["red"])):
+            if not mask.any():
+                continue
+            xi = np.arange(s, e, dtype=float)[mask]; li = l[mask]; hi = h[mask]; bi = bot[mask]; gi = hgt[mask]
+            p.setPen(pg.mkPen(col, width=1)); p.setBrush(pg.mkBrush(col))
+            p.drawLines([QtCore.QLineF(xi[k], li[k], xi[k], hi[k]) for k in range(len(xi))])
+            p.drawRects([QtCore.QRectF(xi[k] - w, bi[k], 2 * w, gi[k]) for k in range(len(xi))])
+        p.end()
+        self._cache[ci] = pic
+        return pic
+
+    def paint(self, p, opt, *args):
+        vb = self.getViewBox()
+        if vb is not None:
+            (x0, x1), _ = vb.viewRange()
+        else:
+            x0, x1 = -1e18, 1e18
+        n = getattr(self, "_n", 0)
+        if n:
+            c0 = max(int(x0 - 1) // self.CHUNK, 0)
+            c1 = min(int(x1 + 1) // self.CHUNK, (n - 1) // self.CHUNK)
+            for ci in range(c0, c1 + 1):
+                p.drawPicture(0, 0, self._chunk(ci))
+        for pic in self.extra:
+            p.drawPicture(0, 0, pic)
 
     def boundingRect(self):
-        return QtCore.QRectF(self.picture.boundingRect())
+        r = QtCore.QRectF(self._bounds)
+        for pic in self.extra:
+            r = r.united(QtCore.QRectF(pic.boundingRect()))
+        return r
 
     def update_df(self, df):
-        """Full regeneration (used when a new bar is appended, i.e. once per timeframe period)."""
-        self.df = df
-        self.prepareGeometryChange()
-        self._gen()
+        """Called once per bar close. If exactly one bar was appended, draw only that bar on top of the existing
+        display list (O(1)); otherwise regenerate."""
+        n_old, n_new = len(self.df), len(df)
+        if n_new == n_old + 1 and getattr(self, "_cache", None) is not None:
+            self.df = df
+            self._append_bar(n_new - 1)
+        else:
+            self.df = df
+            self.prepareGeometryChange()
+            self._gen()
         self.update()
+
+    def _append_bar(self, i):
+        r = self.df.iloc[i]
+        o, h, l, cl = float(r.open), float(r.high), float(r.low), float(r.close)
+        # QPicture cannot be appended in place → keep a list of chunk pictures; a new bar is a tiny extra chunk
+        pic = QtGui.QPicture()
+        p = QtGui.QPainter(pic)
+        col = C["green"] if cl >= o else C["red"]
+        p.setPen(pg.mkPen(col, width=1)); p.setBrush(pg.mkBrush(col))
+        p.drawLine(QtCore.QPointF(i, l), QtCore.QPointF(i, h))
+        top, bot = (cl, o) if cl >= o else (o, cl)
+        p.drawRect(QtCore.QRectF(i - 0.35, bot, 0.7, max(top - bot, (h - l) * 0.02 or 1e-9)))
+        p.end()
+        self.prepareGeometryChange()
+        self.extra.append(pic)
+        if len(self.extra) > 500:                       # compact occasionally
+            self._gen()
 
 
 class LiveBarItem(pg.GraphicsObject):
@@ -93,27 +152,47 @@ class VolumeItem(pg.GraphicsObject):
         self._gen()
 
     def update_df(self, df):
+        n_old, n_new = len(self.df), len(df)
         self.df = df
-        self.prepareGeometryChange()
-        self._gen()
+        if n_new == n_old + 1 and self.picture is not None:
+            i = n_new - 1; r = df.iloc[i]
+            pic = QtGui.QPicture(); p = QtGui.QPainter(pic)
+            p.setPen(pg.mkPen(None)); p.setBrush(pg.mkBrush((C["green"] if r.close >= r.open else C["red"]) + "88"))
+            p.drawRect(QtCore.QRectF(i - 0.35, 0, 0.7, float(r.volume))); p.end()
+            self.prepareGeometryChange(); self.extra.append(pic)
+            if len(self.extra) > 500:
+                self._gen()
+        else:
+            self.prepareGeometryChange()
+            self._gen()
         self.update()
 
     def _gen(self):
         df = self.df
         self.picture = QtGui.QPicture()
+        self.extra = []
         p = QtGui.QPainter(self.picture)
-        o, c, v = df.open.values, df.close.values, df.volume.values
+        o, c, v = df.open.values.astype(float), df.close.values.astype(float), df.volume.values.astype(float)
+        x = np.arange(len(v), dtype=float)
+        up = c >= o
         p.setPen(pg.mkPen(None))
-        for i in range(len(v)):
-            p.setBrush(pg.mkBrush(C["green"] + "88" if c[i] >= o[i] else C["red"] + "88"))
-            p.drawRect(QtCore.QRectF(i - 0.35, 0, 0.7, v[i]))
+        for mask, col in ((up, C["green"] + "88"), (~up, C["red"] + "88")):
+            if mask.any():
+                p.setBrush(pg.mkBrush(col))
+                xi, vi = x[mask], v[mask]
+                p.drawRects([QtCore.QRectF(xi[k] - 0.35, 0, 0.7, vi[k]) for k in range(len(xi))])
         p.end()
 
     def paint(self, p, *args):
         p.drawPicture(0, 0, self.picture)
+        for pic in self.extra:
+            p.drawPicture(0, 0, pic)
 
     def boundingRect(self):
-        return QtCore.QRectF(self.picture.boundingRect())
+        r = QtCore.QRectF(self.picture.boundingRect())
+        for pic in self.extra:
+            r = r.united(QtCore.QRectF(pic.boundingRect()))
+        return r
 
 
 class TimeAxis(pg.AxisItem):
@@ -211,6 +290,13 @@ class PGChart(QtWidgets.QWidget):
                 self.barHovered.emit(i)
 
     def set_data(self, df: pd.DataFrame, result=None, trades=None, title=""):
+        self.glw.setUpdatesEnabled(False)          # one repaint at the end instead of one per item
+        try:
+            self._set_data(df, result, trades, title)
+        finally:
+            self.glw.setUpdatesEnabled(True)
+
+    def _set_data(self, df, result, trades, title):
         self.df = df
         self._build()
         self.taxis.set_index(df.index)
@@ -294,16 +380,21 @@ class PGChart(QtWidgets.QWidget):
                 self.panel_plots.append(pl)
         # trades (entry→exit lines)
         if trades:
+            # ONE PlotDataItem per colour with connect="pairs" (was 3 items per trade → up to 900 items, ~5-20 s UI freeze)
             idx = {ts: i for i, ts in enumerate(df.index)}
-            for tr in trades[-300:]:
+            win_x, win_y, los_x, los_y, sl_x, sl_y, tp_x, tp_y = [], [], [], [], [], [], [], []
+            for tr in trades[-400:]:
                 i0, i1 = idx.get(tr.entry_time), idx.get(tr.exit_time)
                 if i0 is None or i1 is None:
                     continue
-                col = C["green"] if tr.pnl > 0 else C["red"]
-                self.price_plot.plot([i0, i1], [tr.entry, tr.exit], pen=pg.mkPen(col, width=1.5, style=QtCore.Qt.PenStyle.DashLine))
-                # stop/target rails
-                self.price_plot.plot([i0, i1], [tr.stop, tr.stop], pen=pg.mkPen(C["red"] + "66", width=0.8))
-                self.price_plot.plot([i0, i1], [tr.target, tr.target], pen=pg.mkPen(C["green"] + "66", width=0.8))
+                (win_x if tr.pnl > 0 else los_x).extend((i0, i1)); (win_y if tr.pnl > 0 else los_y).extend((tr.entry, tr.exit))
+                sl_x.extend((i0, i1)); sl_y.extend((tr.stop, tr.stop)); tp_x.extend((i0, i1)); tp_y.extend((tr.target, tr.target))
+            for xs, ys, pen in ((sl_x, sl_y, pg.mkPen(C["red"] + "66", width=0.8)), (tp_x, tp_y, pg.mkPen(C["green"] + "66", width=0.8)),
+                                (win_x, win_y, pg.mkPen(C["green"], width=1.5, style=QtCore.Qt.PenStyle.DashLine)),
+                                (los_x, los_y, pg.mkPen(C["red"], width=1.5, style=QtCore.Qt.PenStyle.DashLine))):
+                if xs:
+                    item = pg.PlotDataItem(np.asarray(xs, float), np.asarray(ys, float), pen=pen, connect="pairs", skipFiniteCheck=True)
+                    self.price_plot.addItem(item, ignoreBounds=True)
         # default view: last 200 bars
         view_n = min(200, n)
         self.price_plot.setXRange(n - view_n, n + 3, padding=0)

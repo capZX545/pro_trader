@@ -159,6 +159,8 @@ def build_playbook(strategy_classes, progress=None, tfs=TFS, groups=GROUPS, resu
                     except Exception:
                         continue
                     trades += ts; by_symbol[sym] = ts
+                    if progress:
+                        progress(int((ti + si / tot_s) / max(len(todo), 1) * 100), f"{tf} {cls.id} {sym}")
                 st = _stats(trades, by_symbol)
                 if st:
                     pb["table"].setdefault(tf, {}).setdefault(g, {})[cls.id] = st

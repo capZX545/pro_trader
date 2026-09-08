@@ -1,4 +1,13 @@
-# ProTrader Academy v1.1.2
+# ProTrader Academy v1.2.0
+
+## v1.2.0 — smooth & stable (nothing removed)
+Measured with a 150 s UI stress test (page switching, double-runs, live 1m stream, self-training active on 2 cores): worst UI freeze **30 s → 2.8 s**, p99 **1.2 s → 0.13 s**, zero crashes, clean exit.
+- **Crash fixes**: `Worker` threads keep a strong reference until finished (PyQt aborts the process when a running QThread is garbage-collected — the classic random crash), stale jobs are cancelled instead of racing, global `sys.excepthook`/`threading.excepthook` so an exception inside a slot no longer terminates the app, `faulthandler` → `crash.log` in the data folder.
+- **Chart engine**: candle history is drawn in lazily-built 1000-bar chunks and only visible chunks are replayed (50 000 bars: build 2.5 s → 0.2 s); trade lines are 4 batched items instead of 3 per trade (up to 1 200 items → 4); a new bar appends in ~5 ms instead of regenerating the history; one repaint per load instead of one per item.
+- **Self-training no longer fights the UI**: starts 90 s after launch, runs at below-normal process/thread priority, throttles itself (~35 % idle), yields per strategy/symbol, and pauses whenever you launch a backtest, scan or chart run (`maintenance.ui_busy`).
+- Numeric libraries capped to 1 thread each (`OMP/OPENBLAS/MKL_NUM_THREADS`) — stops 20+ background jobs from oversubscribing every core.
+- Websocket close moved off the UI thread (TLS shutdown could block for seconds when switching symbols).
+
 
 ## v1.1.2 — chart appears immediately, everywhere
 - **Dashboard "Market pulse" was blank for a long time**: it waited until all 94 strategies were back-tested before drawing anything (minutes on a slow PC, and looked like "the chart never shows"). Now it draws the chart ~1 s after data arrives, starts the **live stream** on it, and fills the strategy table later in the background.

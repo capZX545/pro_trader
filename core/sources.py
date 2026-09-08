@@ -243,12 +243,23 @@ class CandleStream(threading.Thread):
         self.venue = None
 
     def stop(self):
+        """Non-blocking: closing a websocket does a TLS shutdown handshake (up to seconds on a slow link) — do it
+        off the UI thread. Late callbacks are suppressed by the `_stop` flag."""
         self._stop.set()
-        try:
-            if self._ws:
-                self._ws.close()
-        except Exception:
-            pass
+        ws, self._ws = self._ws, None
+        cb = self.on_candle
+        self.on_candle = lambda *a, **k: None
+        self.on_status = lambda *a, **k: None
+        if ws is not None:
+            def _close():
+                try:
+                    ws.close(timeout=1)
+                except Exception:
+                    try:
+                        ws.shutdown()
+                    except Exception:
+                        pass
+            threading.Thread(target=_close, daemon=True).start()
 
     def _set(self, s):
         self.status = s
