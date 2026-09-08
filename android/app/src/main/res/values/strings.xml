@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">ProTrader</string>
+    <string name="starting">Starting the trading engine… (first launch takes ~20 s)</string>
+    <string name="engine_running">ProTrader engine is running (signals, forward test, alerts)</string>
+    <string name="channel">ProTrader engine</string>
+</resources>

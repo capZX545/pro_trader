@@ -8,3 +8,10 @@ data/models/*.bin
 tests/shots/
 .venv/
 data/playbook.json.partial
+pysrc/
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/*.jks
+release/

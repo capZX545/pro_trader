@@ -68,8 +68,46 @@ jobs:
         with:
           name: ProTrader-${{ matrix.artifact }}
           path: release/*
+  android:
+    # Mobile app = the SAME engine (core/, strategies/, web/, trained seeds) packaged with Chaquopy into an APK.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.10" }          # must match chaquopy.defaultConfig.version
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: android-actions/setup-android@v3
+      - name: Stage engine
+        run: python scripts/prepare_android.py
+      - name: Version
+        shell: bash
+        run: echo "PT_VERSION=$(grep -m1 -oE '## v[0-9]+\.[0-9]+\.[0-9]+' RELEASE_NOTES.md | cut -c4-)" >> $GITHUB_ENV
+      - name: Signing key (secrets if present, else a generated key so the APK is still installable)
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.PT_KEYSTORE_B64 }}" ]; then
+            echo "${{ secrets.PT_KEYSTORE_B64 }}" | base64 -d > android/release.jks
+            echo "PT_KEYSTORE_PASS=${{ secrets.PT_KEYSTORE_PASS }}" >> $GITHUB_ENV; echo "PT_KEY_ALIAS=${{ secrets.PT_KEY_ALIAS }}" >> $GITHUB_ENV; echo "PT_KEY_PASS=${{ secrets.PT_KEY_PASS }}" >> $GITHUB_ENV
+          else
+            keytool -genkeypair -v -keystore android/release.jks -storepass protrader -keypass protrader -alias protrader -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=ProTrader, O=ProTrader, C=GB"
+            echo "PT_KEYSTORE_PASS=protrader" >> $GITHUB_ENV; echo "PT_KEY_ALIAS=protrader" >> $GITHUB_ENV; echo "PT_KEY_PASS=protrader" >> $GITHUB_ENV
+          fi
+          echo "PT_KEYSTORE=$GITHUB_WORKSPACE/android/release.jks" >> $GITHUB_ENV
+      - name: Build APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+          mkdir -p ../release
+          cp app/build/outputs/apk/release/app-release.apk "../release/ProTrader-$PT_VERSION-android.apk"
+          ls -la ../release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ProTrader-android
+          path: release/*
   release:
-    needs: build
+    needs: [build, android]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:

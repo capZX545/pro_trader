@@ -31,3 +31,8 @@ API (JSON): `/api/meta /api/symbols /api/strategies /api/ohlcv /api/run /api/sig
 | `GET /api/status` | training stage, playbook, success coverage, maintenance log |
 | `GET /api/success_precompute` | start/poll bulk success-rate computation |
 | `GET /api/search?q=` | symbol search |
+
+## Android app
+`android/` is a Gradle project (Chaquopy) that packages the whole engine as an APK — see `scripts/prepare_android.py`,
+`requirements-android.txt` and the `android` job in `.github/workflows/release.yml`. The APK is attached to every GitHub release
+as `ProTrader-<ver>-android.apk`.

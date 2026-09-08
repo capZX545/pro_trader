@@ -1,0 +1,63 @@
+plugins {
+    id("com.android.application")
+    id("com.chaquo.python")
+}
+
+def ptVersion = { ->
+    def notes = new File(rootDir, "../RELEASE_NOTES.md")
+    def m = notes.exists() ? (notes.text =~ /## v(\d+)\.(\d+)\.(\d+)/) : null
+    return (m != null && m.find()) ? [name: "${m.group(1)}.${m.group(2)}.${m.group(3)}", code: m.group(1).toInteger() * 10000 + m.group(2).toInteger() * 100 + m.group(3).toInteger()] : [name: "0.0.0", code: 1]
+}()
+
+android {
+    namespace "com.protrader.app"
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.protrader.app"
+        minSdk 24
+        targetSdk 34
+        versionCode ptVersion.code
+        versionName ptVersion.name
+        ndk { abiFilters "arm64-v8a", "x86_64" }
+    }
+    signingConfigs {
+        release {
+            // CI: keystore generated on the fly (or provided via secrets) — see .github/workflows/release.yml
+            def ks = System.getenv("PT_KEYSTORE")
+            if (ks) {
+                storeFile file(ks); storePassword System.getenv("PT_KEYSTORE_PASS"); keyAlias System.getenv("PT_KEY_ALIAS"); keyPassword System.getenv("PT_KEY_PASS")
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv("PT_KEYSTORE")) signingConfig signingConfigs.release
+        }
+    }
+    packagingOptions { jniLibs { useLegacyPackaging = true } }
+}
+
+chaquopy {
+    defaultConfig {
+        def bp = System.getenv("PT_BUILD_PYTHON"); if (bp) buildPython bp
+        version "3.10"                 // widest native-wheel coverage (scikit-learn, OpenCV, matplotlib, pandas)
+        pip {
+            install "-r", "../../requirements-android.txt"
+        }
+        // the whole desktop engine, verbatim: core/, strategies/, web/, data seeds, main.py
+        extractPackages "core", "strategies", "web", "ptdata"
+    }
+    sourceSets {
+        getByName("main") {
+            srcDir "src/main/python"
+            srcDir "../../pysrc"        // populated by scripts/prepare_android.py (symlink-free copy of core/, strategies/, web/, data/)
+        }
+    }
+}
+
+dependencies {
+    implementation "androidx.appcompat:appcompat:1.7.0"
+    implementation "androidx.webkit:webkit:1.11.0"
+    implementation "com.google.android.material:material:1.12.0"
+}
