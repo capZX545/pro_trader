@@ -1,4 +1,12 @@
-# ProTrader Academy v1.2.1
+# ProTrader Academy v1.3.0
+
+## v1.3.0 — Fast Signals (low-timeframe research pass) + stability round 3
+- **New page ⚡ Fast Signals**: scans the top-N pairs on 1m/3m/5m/15m with 12 new scalping methods + the classic intraday set, shows a setup only when ≥ N independent methods agree, the EMA50/200 trend gate passes and the expected move covers round-trip fees (spot-taker / futures-taker / futures-maker tiers). Each row carries the honest in-sample WR/PF of that confluence rule on that symbol, session (London/NY overlap bonus), perp-funding positioning and a bilingual explanation; double-click opens the chart; score ≥ 60 setups are pushed to alerts.
+- **12 new strategies (strategies/scalp.py)**: vwap_pullback_scalp, vwap_band_fade, cvd_divergence (BVC delta proxy), stop_run_scalp (intraday Turtle Soup), brooks_h2l2, micro_squeeze_pop, session_orb (Asia/London/NY), triple_confirm_scalp, fast_rsi_div_scalp, volume_climax_scalp, funding_crowd_reversal, ib_extension (Market Profile). All with ATR/floor stops + hard time stops. Registry: 100 → 112.
+- **core/derivs.py**: perpetual funding-rate history/now, open interest, long/short ratio from OKX (Binance fallback), cached; attached to charts on ≤15m and used by funding_crowd_reversal + Fast Signals.
+- **Library**: 9 new studied sources (Brooks, Volman, Raschke/Connors Street Smarts, Dalton, Crabel, Coulling, BVC/VPIN paper, perp-positioning research, 2026 1-minute backtest studies) with FA/EN lessons and where-in-app links.
+- **Honest measurement** (50 000 bars BTC/ETH/SOL 5m–15m, realistic costs): every single scalp method alone loses (PF 0.2–0.9); ≥3-vote confluence + trend gate reaches PF ≈ 1.0–1.8 on few trades. The UI says so.
+- **Stability**: chunked lazy VolumeItem + two-brush histograms (no 40k brush objects per Run), clean shutdown (engine/training stopped, workers awaited, gc.freeze after start-up, hard exit) → no more crash-on-exit.
 
 ## v1.2.1 — responsiveness round 2 (nothing removed)
 Same 150 s stress test as v1.2.0 but now WITH the Live-Market engine streaming ~300 symbols, self-training on and repeated chart runs: worst UI freeze **8.7 s → 0.77 s**, p99 **432 ms → 49 ms**, p95 **44 → 6 ms**, zero crashes, empty `crash.log`, clean exit.

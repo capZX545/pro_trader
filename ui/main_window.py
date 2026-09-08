@@ -4,6 +4,7 @@ from .pages import DashboardPage, ChartPage, ScannerPage, BacktestPage, AcademyP
 from .web_page import WebAnalyzerPage
 from .lab_page import ValidationLabPage
 from .live_page import LiveMarketPage
+from .fast_page import FastSignalsPage
 from .advisor_page import AdvisorPage
 from .ml_page import MLPage
 from .forward_page import ForwardPage
@@ -47,6 +48,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ("nav_advisor", "🎯", AdvisorPage()),
             ("nav_forward", "🔬", ForwardPage()),
             ("nav_live", "⚡", LiveMarketPage()),
+            ("nav_fast", "🎯", FastSignalsPage()),
             ("nav_bt", "🧪", BacktestPage()),
             ("nav_web", "🌐", WebAnalyzerPage()),
             ("nav_lab", "🧬", ValidationLabPage()),

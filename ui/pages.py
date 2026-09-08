@@ -678,6 +678,11 @@ class ChartPage(QtWidgets.QWidget):
 
         def work():
             df, ok = load_data(sym, tf)
+            if sid in ("funding_crowd_reversal",) or tf in ("1m", "3m", "5m", "15m"):
+                try:                                   # perp positioning (funding/OI) for scalp strategies — best effort, cached
+                    from core import derivs; derivs.attach(df, sym)
+                except Exception:
+                    pass
             strat = S.get(sid, **params)
             res = strat.run(df)
             bt = run_backtest(df, res)
