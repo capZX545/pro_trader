@@ -362,6 +362,13 @@ class ChartPage(QtWidgets.QWidget):
         self.live_lbl = QtWidgets.QLabel("")
         self.live_lbl.setStyleSheet(f"color:{C['muted']}; font-weight:600; padding:0 8px;")
         self.bar.layout().insertWidget(self.bar.layout().count() - 1, self.live_lbl)
+        # renderer toggle (visible fix for "chart area is empty" reports)
+        self.render_btn = QtWidgets.QToolButton()
+        self.render_btn.setText("🖼")
+        self.render_btn.setToolTip(t("chart_renderer_tip"))
+        self.render_btn.setCheckable(True)
+        self.render_btn.toggled.connect(self._toggle_renderer)
+        self.bar.layout().insertWidget(self.bar.layout().count() - 1, self.render_btn)
         v.addWidget(self.bar)
         split = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
         self.chart = ChartWidget()
@@ -408,9 +415,28 @@ class ChartPage(QtWidgets.QWidget):
         self._last_recompute = 0.0
         self.tick.connect(self._on_tick)
         self.stream_status.connect(self._on_stream_status)
+        self.render_btn.blockSignals(True); self.render_btn.setChecked(self.chart.mode == "compat"); self.render_btn.setText("🖼✓" if self.chart.mode == "compat" else "🖼"); self.render_btn.blockSignals(False)
+        self.chart.modeChanged.connect(lambda m: (self.render_btn.blockSignals(True), self.render_btn.setChecked(m == "compat"), self.render_btn.setText("🖼✓" if m == "compat" else "🖼"), self.render_btn.blockSignals(False)))
         self._clock = QtCore.QTimer(self)
         self._clock.timeout.connect(self._tick_clock)
         self._clock.start(1000)
+
+    def _toggle_renderer(self, on):
+        from .chart import ChartWidget
+        mode = "compat" if on else "pyqtgraph"
+        ChartWidget._forced = None
+        try:
+            cur = json.load(open(SETTINGS_PATH))
+        except Exception:
+            cur = {}
+        cur["chart_renderer"] = mode
+        try:
+            json.dump(cur, open(SETTINGS_PATH, "w"), indent=1)
+        except Exception:
+            pass
+        for w in self.window().findChildren(ChartWidget):
+            w.switch(mode)
+        self.render_btn.setText("🖼✓" if on else "🖼")
 
     # ------------------------------------------------------------------ live stream
     def hideEvent(self, e):
@@ -523,7 +549,7 @@ class ChartPage(QtWidgets.QWidget):
             if (sym, tf) != (self.bar.symbol(), self.bar.timeframe()):
                 return
             df2, res, bt = r
-            vr = self.chart.price_plot.viewRange()
+            vr = self.chart.view_range()
             self._show(sym, tf, sid, df2, True, res, bt, keep_view=vr)
         self._rw.done.connect(done)
         self._rw.error.connect(lambda e: None)
@@ -605,7 +631,7 @@ class ChartPage(QtWidgets.QWidget):
         self.chart.set_data(df, res, trades=bt.trades, title=title)
         if keep_view is not None:
             try:
-                self.chart.price_plot.setXRange(*keep_view[0], padding=0)
+                self.chart.set_x_range(*keep_view)
             except Exception:
                 pass
         if getattr(self, "_live_text", ""):
@@ -657,7 +683,7 @@ class ChartPage(QtWidgets.QWidget):
         i = self.tbl.item(item.row(), 0).data(QtCore.Qt.ItemDataRole.UserRole)
         if i is None or self.df is None:
             return
-        self.chart.price_plot.setXRange(max(i - 80, 0), min(i + 40, len(self.df)), padding=0)
+        self.chart.set_x_range(max(i - 80, 0), min(i + 40, len(self.df)))
 
 
 # ---------------------------------------------------------------- Scanner
@@ -1416,6 +1442,16 @@ class SettingsPage(QtWidgets.QWidget):
         f.addRow(t("lang"), self.lang)
         self.clear = QtWidgets.QPushButton(t("cache_clear"))
         f.addRow(t("data_src"), self.clear)
+        self.renderer = QtWidgets.QComboBox()
+        self.renderer.addItem(t("chart_auto"), "auto"); self.renderer.addItem("pyqtgraph (GPU/QGraphicsView)", "pyqtgraph"); self.renderer.addItem(t("chart_compat"), "compat")
+        try:
+            cur_r = json.load(open(SETTINGS_PATH)).get("chart_renderer", "auto")
+        except Exception:
+            cur_r = "auto"
+        self.renderer.setCurrentIndex(max(0, self.renderer.findData(cur_r)))
+        self.renderer.setToolTip(t("chart_renderer_tip"))
+        f.addRow(t("chart_renderer"), self.renderer)
+        self.renderer.currentIndexChanged.connect(self._renderer)
         c.v.addLayout(f)
         v.addWidget(c)
         try:
@@ -1438,6 +1474,24 @@ class SettingsPage(QtWidgets.QWidget):
             if f.endswith(".parquet"):
                 os.remove(os.path.join(CACHE_DIR, f)); n += 1
         QtWidgets.QMessageBox.information(self, "OK", f"{n} files removed")
+
+    def _renderer(self):
+        mode = self.renderer.currentData()
+        try:
+            cur = json.load(open(SETTINGS_PATH))
+        except Exception:
+            cur = {}
+        cur["chart_renderer"] = mode
+        json.dump(cur, open(SETTINGS_PATH, "w"), indent=1)
+        # apply live to every chart in the app
+        from .chart import ChartWidget
+        ChartWidget._forced = None
+        win = self.window()
+        for w in win.findChildren(ChartWidget):
+            try:
+                w.switch("compat" if mode == "compat" else "pyqtgraph")
+            except Exception:
+                pass
 
     def _lang(self):
         lang = self.lang.currentData()

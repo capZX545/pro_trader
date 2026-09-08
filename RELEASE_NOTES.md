@@ -1,4 +1,10 @@
-# ProTrader Academy v1.1.0
+# ProTrader Academy v1.1.1
+
+## v1.1.1 — chart guaranteed visible
+- Some Windows machines showed an **empty chart area** even though data was live (pyqtgraph's QGraphicsView canvas never painted — GPU/driver specific). New `ui/chart_compat.py`: a pure-QPainter software renderer (candles, volume, overlays, signals, zones, levels, trades, sub-panels, crosshair, wheel-zoom, drag-pan, live price tag) that draws through the same raster path as every other widget.
+- **Auto-detection**: 1.2 s after the first draw the pyqtgraph canvas is sampled; if it is blank the app switches to the compatibility renderer for the whole session automatically.
+- Manual control: 🖼 button in the Chart toolbar and *Settings → Chart renderer* (Auto / pyqtgraph / Compatibility); the choice is saved. Live streaming works identically in both renderers.
+
 
 ## v1.1.0 — the chart works everywhere + real-time streaming
 - **Fixed: empty chart.** `api.binance.com` returns HTTP 451 (geo-block) in many countries and Yahoo throttles with 429, so the Chart page silently fell back to synthetic data. New `core/sources.py` fetches crypto history with automatic failover **binance-vision → OKX → KuCoin → Gate → MEXC** (sticky healthy venue, health scoring); Yahoo gets retries with backoff.

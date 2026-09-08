@@ -139,7 +139,9 @@ class TimeAxis(pg.AxisItem):
         return out
 
 
-class ChartWidget(QtWidgets.QWidget):
+class PGChart(QtWidgets.QWidget):
+    """pyqtgraph renderer (default). ChartWidget below wraps it and falls back to CompatChart when the
+    QGraphicsView canvas does not paint on the user's machine."""
     barHovered = QtCore.pyqtSignal(int)
 
     def __init__(self, parent=None):
@@ -148,6 +150,7 @@ class ChartWidget(QtWidgets.QWidget):
         self.layout_ = QtWidgets.QVBoxLayout(self)
         self.layout_.setContentsMargins(0, 0, 0, 0)
         self.glw = pg.GraphicsLayoutWidget()
+        self.glw.setViewportUpdateMode(QtWidgets.QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
         self.glw.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
         self.layout_.addWidget(self.glw)
         self.info = QtWidgets.QLabel("")
@@ -374,6 +377,129 @@ class ChartWidget(QtWidgets.QWidget):
         vmax = seg.volume.max()
         if vmax > 0:
             self.vol_plot.setYRange(0, vmax * 1.1, padding=0)
+
+
+def _renderer_pref():
+    """'auto' | 'pyqtgraph' | 'compat' from settings.json (Settings page) or PROTRADER_CHART env."""
+    import os, json
+    v = os.environ.get("PROTRADER_CHART")
+    if v:
+        return v
+    try:
+        from core.paths import data as _data
+        return json.load(open(_data("settings.json"))).get("chart_renderer", "auto")
+    except Exception:
+        return "auto"
+
+
+class ChartWidget(QtWidgets.QWidget):
+    """Public chart widget used by all pages. Hosts PGChart (pyqtgraph) or CompatChart (pure QPainter).
+
+    Blank-canvas guard: after the first set_data() the pyqtgraph viewport is grabbed and, if it is uniformly the
+    background colour (nothing painted — seen on some Windows GPUs/drivers with QGraphicsView), the widget swaps
+    itself to CompatChart transparently and remembers the choice for the session."""
+    barHovered = QtCore.pyqtSignal(int)
+    modeChanged = QtCore.pyqtSignal(str)
+    _forced = None      # session-wide decision after a detected blank canvas
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
+        self._lay = QtWidgets.QVBoxLayout(self); self._lay.setContentsMargins(0, 0, 0, 0); self._lay.setSpacing(0)
+        self.info = QtWidgets.QLabel("")
+        self.info.setStyleSheet(f"color:{C['muted']}; padding:4px 8px; font-family: Consolas, monospace; font-size:12px;")
+        self._lay.addWidget(self.info)
+        pref = ChartWidget._forced or _renderer_pref()
+        self.mode = "compat" if pref == "compat" else "pyqtgraph"
+        self.impl = None
+        self._checked = False
+        self._make_impl()
+
+    # -- plumbing
+    def _make_impl(self):
+        if self.impl is not None:
+            self._lay.removeWidget(self.impl); self.impl.setParent(None); self.impl.deleteLater()
+        if self.mode == "compat":
+            from .chart_compat import CompatChart
+            self.impl = CompatChart()
+            self.impl.barHovered.connect(lambda i: (self.info.setText(self.impl.info_text), self.barHovered.emit(i)))
+        else:
+            self.impl = PGChart()
+            self.impl.info.hide()
+            self.impl.barHovered.connect(self._pg_hover)
+        self._lay.addWidget(self.impl, 1)
+
+    def _pg_hover(self, i):
+        self.info.setText(self.impl.info.text()); self.barHovered.emit(i)
+
+    @property
+    def price_plot(self):
+        return getattr(self.impl, "price_plot", None)
+
+    @property
+    def df(self):
+        return self.impl.df
+
+    def switch(self, mode):
+        """Runtime switch ('pyqtgraph' | 'compat'); re-renders current data."""
+        if mode == self.mode:
+            return
+        df, res, tr, title = self.impl.df, getattr(self.impl, "result", None) or getattr(self.impl, "_result", None), getattr(self.impl, "trades", None) or getattr(self.impl, "_trades", None), getattr(self.impl, "title", "") or getattr(self.impl, "_title", "")
+        self.mode = mode
+        self._make_impl()
+        if df is not None:
+            self.impl.set_data(df, res, trades=tr, title=title)
+        self.modeChanged.emit(mode)
+
+    # -- API
+    def set_data(self, df, result=None, trades=None, title=""):
+        self.impl.set_data(df, result, trades=trades, title=title)
+        if self.mode == "pyqtgraph":
+            self.impl._result, self.impl._trades, self.impl._title = result, trades, title
+            if not self._checked and ChartWidget._forced is None and _renderer_pref() == "auto":
+                self._checked = True
+                QtCore.QTimer.singleShot(1200, self._blank_guard)
+
+    def _blank_guard(self):
+        """If the pyqtgraph viewport painted nothing, switch to the compat renderer for the whole session."""
+        try:
+            if self.mode != "pyqtgraph" or not self.isVisible() or self.impl.df is None:
+                return
+            vp = self.impl.glw.viewport()
+            if vp.width() < 50 or vp.height() < 50:
+                return
+            img = vp.grab().toImage()
+            w, h = img.width(), img.height()
+            bg = QtGui.QColor(C["panel"]).rgb() & 0xFFFFFF
+            # sample a coarse grid; count pixels that differ from the panel background
+            diff = 0; total = 0
+            for yy in range(4, h - 4, max(4, h // 40)):
+                for xx in range(4, w - 4, max(4, w // 60)):
+                    total += 1
+                    if (img.pixel(xx, yy) & 0xFFFFFF) != bg:
+                        diff += 1
+            if total and diff / total < 0.01:          # < 1 % non-background → canvas is blank
+                ChartWidget._forced = "compat"
+                self.switch("compat")
+        except Exception:
+            pass
+
+    def update_last_bar(self, ts, o, h, l, c, v, closed=False):
+        return self.impl.update_last_bar(ts, o, h, l, c, v, closed)
+
+    def set_live_status(self, text, ok=True):
+        self.impl.set_live_status(text, ok)
+
+    def view_range(self):
+        if self.mode == "compat":
+            return self.impl.view_range()
+        (x0, x1), _ = self.impl.price_plot.viewRange(); return (x0, x1)
+
+    def set_x_range(self, x0, x1):
+        if self.mode == "compat":
+            self.impl.set_x_range(x0, x1)
+        else:
+            self.impl.price_plot.setXRange(x0, x1, padding=0)
 
 
 class EquityChart(pg.PlotWidget):
