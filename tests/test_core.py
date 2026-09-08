@@ -188,3 +188,19 @@ def test_phase14_live_bar_update_logic():
     ts = last + (df.index[-1] - df.index[-2])
     df.loc[ts, ["open", "high", "low", "close", "volume"]] = [1.5, 1.6, 1.4, 1.55, 1]
     assert len(df) == 51 and df.index[-1] == ts
+
+
+def test_phase18_indicator_strategies_and_success():
+    import strategies as S
+    from strategies.indicator_signals import INDICATOR_STRATEGIES
+    assert len(INDICATOR_STRATEGIES) == 31 and all(c.id in S.REGISTRY for c in INDICATOR_STRATEGIES)
+    from core import indicators2 as t2, success as SR, clock
+    df = generate_synthetic(3000)
+    assert t2.zigzag(df, 2.0).notna().sum() >= 4
+    for cls in INDICATOR_STRATEGIES:
+        r = cls().run(df)
+        assert len(r.signal) == len(df), cls.id
+    d = SR.compute("halftrend_flip", "TEST", "1h", df)
+    assert d is not None and SR.get("halftrend_flip", "TEST", "1h")["n"] == d["n"]
+    assert SR.label("halftrend_flip", "TEST", "1h", short=True).endswith("%")
+    assert "UTC" in clock.world_line()

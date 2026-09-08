@@ -50,3 +50,25 @@ def now_strings():
     """(local 'HH:MM:SS  YYYY-MM-DD', 'UTC HH:MM:SS')"""
     loc = _dt.datetime.now(system_tz()); utc = _dt.datetime.now(_dt.timezone.utc)
     return loc.strftime("%H:%M:%S"), loc.strftime("%Y-%m-%d"), utc.strftime("%H:%M:%S")
+
+
+WORLD = [("NY", "America/New_York"), ("LDN", "Europe/London"), ("FRA", "Europe/Berlin"), ("THR", "Asia/Tehran"), ("DXB", "Asia/Dubai"),
+         ("TYO", "Asia/Tokyo"), ("SYD", "Australia/Sydney")]
+
+
+def world_line(items=None):
+    """'UTC 12:00 · NY 08:00 · LDN 13:00 · …' for the top-corner world clock (session opens are marked with •)."""
+    try:
+        from zoneinfo import ZoneInfo
+    except Exception:
+        return "UTC " + _dt.datetime.now(_dt.timezone.utc).strftime("%H:%M")
+    now = _dt.datetime.now(_dt.timezone.utc)
+    parts = ["UTC " + now.strftime("%H:%M")]
+    for name, tz in (items or WORLD):
+        try:
+            lt = now.astimezone(ZoneInfo(tz))
+            open_ = 8 <= lt.hour < 17 and lt.weekday() < 5
+            parts.append(f"{name} {lt.strftime('%H:%M')}{'•' if open_ else ''}")
+        except Exception:
+            pass
+    return " · ".join(parts)

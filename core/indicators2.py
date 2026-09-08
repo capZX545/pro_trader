@@ -403,23 +403,37 @@ def heikin_ashi(df):
 
 
 def zigzag(df, pct=5.0):
-    """Returns Series with pivot prices at pivot bars (NaN elsewhere) using % reversal."""
+    """Returns Series with pivot prices at pivot bars (NaN elsewhere) using % reversal (last leg is provisional)."""
     hi, lo = df.high.values, df.low.values
-    out = np.full(len(df), np.nan)
-    if len(df) < 2:
+    n = len(df)
+    out = np.full(n, np.nan)
+    if n < 2:
         return pd.Series(out, index=df.index)
-    trend = 0; last_i = 0; last_p = hi[0]
-    for i in range(1, len(df)):
-        if trend >= 0:
+    th = pct / 100.0
+    trend = 0                       # 0 unknown, +1 seeking a high (uptrend), −1 seeking a low
+    last_i, last_p = 0, hi[0]
+    lo_i, lo_p = 0, lo[0]
+    for i in range(1, n):
+        if trend == 0:
             if hi[i] > last_p:
-                last_p, last_i = hi[i], i
-            elif lo[i] < last_p * (1 - pct / 100):
-                out[last_i] = last_p; trend = -1; last_p, last_i = lo[i], i
-        if trend <= 0:
+                last_i, last_p = i, hi[i]
+            if lo[i] < lo_p:
+                lo_i, lo_p = i, lo[i]
+            if hi[i] >= lo_p * (1 + th):
+                trend = 1; out[lo_i] = lo_p; last_i, last_p = i, hi[i]
+            elif lo[i] <= last_p * (1 - th):
+                trend = -1; out[last_i] = last_p; last_i, last_p = i, lo[i]
+        elif trend == 1:
+            if hi[i] > last_p:
+                last_i, last_p = i, hi[i]
+            elif lo[i] <= last_p * (1 - th):
+                out[last_i] = last_p; trend = -1; last_i, last_p = i, lo[i]
+        else:
             if lo[i] < last_p:
-                last_p, last_i = lo[i], i
-            elif hi[i] > last_p * (1 + pct / 100):
-                out[last_i] = last_p; trend = 1; last_p, last_i = hi[i], i
+                last_i, last_p = i, lo[i]
+            elif hi[i] >= last_p * (1 + th):
+                out[last_i] = last_p; trend = 1; last_i, last_p = i, hi[i]
+    out[last_i] = last_p            # provisional last pivot
     return pd.Series(out, index=df.index)
 
 

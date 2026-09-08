@@ -141,7 +141,15 @@ class FastSignalsPage(QtWidgets.QWidget):
                 self.tbl.setItem(row, 7, ncell(s["tp"], "{:,.6g}", C["green"]))
                 self.tbl.setItem(row, 8, ncell(s["move_bps"], "{:.0f} bps")); self.tbl.setItem(row, 9, ncell(s["cost_bps"], "{:.0f} bps", C["green"] if s["cost_ok"] else C["red"]))
                 self.tbl.setItem(row, 10, cell(s["session"]))
-                self.tbl.setItem(row, 14, cell(", ".join(s["agree"][:5])))
+                try:
+                    from core import success as SR
+                    ag = []
+                    for sid_ in s["agree"][:5]:
+                        d_ = SR.get(sid_, r["sym"], r.get("tf", ""))
+                        ag.append(f"{sid_} {d_['wr']:.0f}%" if d_ and d_.get("n") else sid_)
+                    self.tbl.setItem(row, 14, cell(", ".join(ag)))
+                except Exception:
+                    self.tbl.setItem(row, 14, cell(", ".join(s["agree"][:5])))
             else:
                 self.tbl.setItem(row, 2, cell("—", C["muted"])); self.tbl.setItem(row, 3, ncell(0, "{:.0f}", C["muted"]))
                 if r.get("error"):

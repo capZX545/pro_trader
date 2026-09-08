@@ -1,5 +1,5 @@
 from .base import Strategy, StrategyResult
-from . import trend, meanrev, priceaction, masters, bots, ensemble, highwr, masters2, bots2, bots3, scalp, orderflow, ichimoku
+from . import trend, meanrev, priceaction, masters, bots, ensemble, highwr, masters2, bots2, bots3, scalp, orderflow, ichimoku, indicator_signals
 
 ALL_STRATEGIES = [
     # Trend
@@ -40,6 +40,7 @@ ALL_STRATEGIES = [
     *scalp.SCALP_STRATEGIES,
     *orderflow.ORDERFLOW_STRATEGIES,
     *ichimoku.ICHIMOKU_STRATEGIES,
+    *indicator_signals.INDICATOR_STRATEGIES,
 ]
 
 REGISTRY = {s.id: s for s in ALL_STRATEGIES}

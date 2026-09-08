@@ -278,6 +278,10 @@ class LiveEngine:
             sl = float(res.stop.values[i]) if res.stop is not None and res.stop.values[i] == res.stop.values[i] else float("nan")
             tp = float(res.target.values[i]) if res.target is not None and res.target.values[i] == res.target.values[i] else float("nan")
             rr = abs(tp - px) / abs(px - sl) if sl == sl and tp == tp and px != sl else 0.0
+            try:
+                from core import success as SR; SR.put(cls.id, pretty(s), self.tf, st)
+            except Exception:
+                pass
             d = dict(sym=pretty(s), bsym=s, tf=self.tf, sid=cls.id, side=side, ago=n - 1 - i, px=px, sl=sl, tp=tp, rr=rr,
                      wr=st["win_rate"], pf=st["profit_factor"], trades=st["trades"], ts=time.time(), last=float(df.close.values[-1]),
                      p_ml=float("nan"))

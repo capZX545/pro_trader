@@ -81,13 +81,32 @@ class MainWindow(QtWidgets.QMainWindow):
         disc.setStyleSheet(f"color:{C['muted']}; font-size:10px;")
         sv.addWidget(disc)
         h.addWidget(side)
-        h.addWidget(self.stack, 1)
+        # ---- global clock strip (Phase 18): computer clock = master clock of every section + world clock in the top corner
+        right = QtWidgets.QWidget(); rv = QtWidgets.QVBoxLayout(right); rv.setContentsMargins(0, 0, 0, 0); rv.setSpacing(0)
+        self.clock_bar = QtWidgets.QFrame(); self.clock_bar.setObjectName("clockbar"); self.clock_bar.setFixedHeight(26)
+        cb = QtWidgets.QHBoxLayout(self.clock_bar); cb.setContentsMargins(14, 0, 14, 0); cb.setSpacing(18)
+        self.lbl_local = QtWidgets.QLabel(); self.lbl_local.setStyleSheet(f"color:{C['accent2']};font-weight:600;font-family:monospace;")
+        self.lbl_world = QtWidgets.QLabel(); self.lbl_world.setStyleSheet(f"color:{C['muted']};font-family:monospace;font-size:11px;")
+        cb.addWidget(self.lbl_local); cb.addStretch(); cb.addWidget(self.lbl_world)
+        rv.addWidget(self.clock_bar); rv.addWidget(self.stack, 1)
+        h.addWidget(right, 1)
+        self._clock_timer = QtCore.QTimer(self); self._clock_timer.timeout.connect(self._tick_clock); self._clock_timer.start(1000)
+        self._tick_clock()
         self.nav_group.idClicked.connect(self.stack.setCurrentIndex)
         self.nav_group.button(0).setChecked(True)
         self.pages[0][2].goto.connect(self.goto)
         self.setStatusBar(QtWidgets.QStatusBar())
         self.statusBar().showMessage(t("ready"))
         self._init_tray()
+
+    def _tick_clock(self):
+        try:
+            from core import clock
+            loc, day, utc = clock.now_strings()
+            self.lbl_local.setText(f"🖥 {day}  {loc}  ({clock.tz_name()})")
+            self.lbl_world.setText(clock.world_line())
+        except Exception:
+            pass
 
     # ---- desktop notifications (Phase 12 alerts)
     def _init_tray(self):

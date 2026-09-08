@@ -85,6 +85,7 @@ class SymbolBar(QtWidgets.QWidget):
             self._fill_strats()
             self.cat.currentIndexChanged.connect(self._fill_strats)
             self.tf.currentTextChanged.connect(lambda *_: self._fill_strats())
+            self.sym.currentIndexChanged.connect(lambda *_: self._fill_strats())
             h.addWidget(self.proven_only)
             h.addWidget(QtWidgets.QLabel(t("category")))
             h.addWidget(self.cat)
@@ -115,9 +116,10 @@ class SymbolBar(QtWidgets.QWidget):
                 tag = " ✓" if cls.id in proven else ""
                 wr = ""
                 try:
-                    st = PB.stats_for(cls.id, self.tf.currentText(), self.symbol()) if proven else None
-                    if st:
-                        wr = f"  [{st['wr']:.0f}% · PF {st['pf']:.2f}]"
+                    from core import success as SR
+                    lab = SR.label(cls.id, self.symbol(), self.tf.currentText(), short=True)
+                    if lab:
+                        wr = f"  [{lab}]"
                 except Exception:
                     pass
                 self.strat.addItem(f"{strat_name(cls)}{tag}{wr}  ·  {cls.category}", cls.id)
@@ -928,6 +930,12 @@ class ChartPage(QtWidgets.QWidget):
         elif df.attrs.get("stale"):
             title += f"  [{t('stale_cache')}]"
         self._bt = bt
+        try:
+            from core import success as SR
+            SR.put(sid, sym, tf, bt.stats); SR.flush()
+            self.bar._fill_strats()
+        except Exception:
+            pass
         new_key = (sym, tf)
         if getattr(self, "_shown_key", None) != new_key:
             self._load_layout(sym, tf)
@@ -1069,6 +1077,10 @@ class ScannerPage(QtWidgets.QWidget):
                         continue
                     i = n - recent + idx[-1]
                     st = run_backtest(df, res).stats
+                    try:
+                        from core import success as SR; SR.put(cls.id, sym, tf, st)
+                    except Exception:
+                        pass
                     per.append((cls, res, i, st))
                 longs = sum(1 for _, _, i, _ in per if _ is not None and per and True and _ is not None and True and per and True and True and (lambda r, ii: r.signal.values[ii] == 1)(_, i)) if False else sum(1 for _, r, i, _ in per if r.signal.values[i] == 1)
                 shorts = sum(1 for _, r, i, _ in per if r.signal.values[i] == -1)
@@ -1306,8 +1318,8 @@ class BacktestPage(QtWidgets.QWidget):
         for tr in bt.trades[::-1]:
             r = self.tbl.rowCount()
             self.tbl.insertRow(r)
-            self.tbl.setItem(r, 0, cell(pd.Timestamp(tr.entry_time).strftime("%Y-%m-%d %H:%M")))
-            self.tbl.setItem(r, 1, cell(pd.Timestamp(tr.exit_time).strftime("%Y-%m-%d %H:%M")))
+            self.tbl.setItem(r, 0, cell(__import__("core.clock", fromlist=["fmt"]).fmt(tr.entry_time)))
+            self.tbl.setItem(r, 1, cell(__import__("core.clock", fromlist=["fmt"]).fmt(tr.exit_time)))
             self.tbl.setItem(r, 2, cell(t("long") if tr.side == 1 else t("short"), C["green"] if tr.side == 1 else C["red"]))
             self.tbl.setItem(r, 3, ncell(tr.entry, "{:,.6g}"))
             self.tbl.setItem(r, 4, ncell(tr.exit, "{:,.6g}"))
@@ -1478,6 +1490,22 @@ class AcademyPage(QtWidgets.QWidget):
                     f"<br><span style='color:{C['muted']}'>{t('lab_best')}: {best or '—'}</span></div>")
         else:
             vbox = ""
+        try:
+            from core import success as SR
+            sm = SR.summary().get(cls.id)
+            rows_ = [(k.split("|")[1], k.split("|")[2], d) for k, d in SR._load().items() if k.startswith(cls.id + "|") and d.get("n", 0) >= 10]
+            rows_.sort(key=lambda x: -x[2]["pf"])
+            cells = "".join(f"<tr><td style='padding:2px 10px 2px 0'>{a}</td><td style='padding:2px 10px 2px 0'>{b}</td>"
+                            f"<td style='color:{C['green'] if d['pf'] >= 1 else C['red']}'><b>{d['wr']:.0f}%</b></td><td>PF {d['pf']:.2f}</td><td style='color:{C['muted']}'>n={d['n']}</td></tr>" for a, b, d in rows_[:12])
+            if sm:
+                sc_ = C["green"] if sm["pos_share"] >= 0.5 else (C["yellow"] if sm["pos_share"] >= 0.3 else C["red"])
+                vbox += (f"<div style='background:{sc_}22;border:1px solid {sc_};border-radius:8px;padding:8px 12px;margin:6px 0'>"
+                         f"<b style='color:{sc_}'>📊 {t('success_rate_all')}: {sm['wr']:.0f}%</b> · {t('median_pf')} {sm['pf']:.2f} · "
+                         f"{t('pos_share')} {sm['pos_share'] * 100:.0f}% ({sm['cells']} {t('markets')}, n={sm['n']})<table style='margin-top:6px'>{cells}</table></div>")
+            else:
+                vbox += f"<div style='color:{C['muted']};margin:6px 0'>📊 {t('success_unknown')}</div>"
+        except Exception:
+            pass
         html = f"""
         <div dir='{direction}'>
         <h1 style='margin:0;color:white'>{strat_name(cls)}</h1>
@@ -1758,6 +1786,18 @@ class SettingsPage(QtWidgets.QWidget):
         self.renderer.setToolTip(t("chart_renderer_tip"))
         f.addRow(t("chart_renderer"), self.renderer)
         self.renderer.currentIndexChanged.connect(self._renderer)
+        self.tz = QtWidgets.QComboBox(); self.tz.addItem(t("tz_local"), "local"); self.tz.addItem("UTC", "utc")
+        try:
+            self.tz.setCurrentIndex(max(0, self.tz.findData(json.load(open(SETTINGS_PATH)).get("chart_tz", "local"))))
+        except Exception:
+            pass
+        self.tz.currentIndexChanged.connect(self._tz)
+        f.addRow(t("time_display"), self.tz)
+        self.succ_btn = QtWidgets.QPushButton("📊 " + t("succ_compute")); self.succ_btn.setToolTip(t("succ_compute_tip"))
+        self.succ_btn.clicked.connect(self._precompute_success)
+        self.succ_prog = QtWidgets.QProgressBar(); self.succ_prog.setRange(0, 100); self.succ_prog.setVisible(False)
+        sb_ = QtWidgets.QHBoxLayout(); sb_.addWidget(self.succ_btn); sb_.addWidget(self.succ_prog, 1)
+        f.addRow(t("success_rate"), sb_)
         c.v.addLayout(f)
         v.addWidget(c)
         try:
@@ -1780,6 +1820,26 @@ class SettingsPage(QtWidgets.QWidget):
             if f.endswith(".parquet"):
                 os.remove(os.path.join(CACHE_DIR, f)); n += 1
         QtWidgets.QMessageBox.information(self, "OK", f"{n} files removed")
+
+    def _tz(self):
+        try:
+            cur = json.load(open(SETTINGS_PATH))
+        except Exception:
+            cur = {}
+        cur["chart_tz"] = self.tz.currentData()
+        try:
+            json.dump(cur, open(SETTINGS_PATH, "w"), indent=1)
+        except Exception:
+            pass
+
+    def _precompute_success(self):
+        from core import success as SR
+        self.succ_btn.setEnabled(False); self.succ_prog.setVisible(True); self.succ_prog.setValue(0)
+        self._sw = Worker(lambda progress=None: SR.precompute(progress=progress))
+        self._sw.progress.connect(lambda p, m: (self.succ_prog.setValue(p), self.succ_btn.setText(f"📊 {m}")))
+        self._sw.done.connect(lambda *_: (self.succ_btn.setEnabled(True), self.succ_prog.setVisible(False), self.succ_btn.setText("📊 " + t("succ_compute") + " ✓")))
+        self._sw.error.connect(lambda e: (self.succ_btn.setEnabled(True), self.succ_prog.setVisible(False), self.succ_btn.setText(e[:60])))
+        self._sw.start()
 
     def _renderer(self):
         mode = self.renderer.currentData()

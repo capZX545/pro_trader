@@ -176,7 +176,7 @@ class LiveMarketPage(QtWidgets.QWidget):
         for d in rows:
             r = self.tbl.rowCount()
             self.tbl.insertRow(r)
-            it = cell(time.strftime("%H:%M", time.localtime(d["ts"])))
+            it = cell(time.strftime("%H:%M", time.localtime(d["ts"])))  # system-local clock
             it.setData(QtCore.Qt.ItemDataRole.UserRole, (d["sym"], d["tf"], d["sid"], d["bsym"]))
             self.tbl.setItem(r, 0, it)
             self.tbl.setItem(r, 1, cell(d["sym"]))
