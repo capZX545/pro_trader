@@ -234,3 +234,23 @@ def test_phase20_web_and_qr():
         assert d["strategies"] >= 179 and "fa" in d["langs"]
     finally:
         webapp.stop()
+
+
+def test_phase21_web_parity():
+    import json, urllib.request
+    from core import webapp
+    url, port = webapp.start(port=18766, host="127.0.0.1")
+    B = f"http://127.0.0.1:{port}"
+    try:
+        for ep in ("/api/indicators?lang=fa", "/api/indicator?sym=BTC/USDT&tf=1h&key=rsi&n=50", "/api/risk?wr=45&rr=2&risk_pct=1",
+                   "/api/journal", "/api/health?quick=1&lang=fa", "/api/forward", "/api/status", "/api/search?q=btc", "/api/alerts"):
+            d = json.loads(urllib.request.urlopen(B + ep, timeout=120).read()); assert "error" not in d if isinstance(d, dict) else True, (ep, d)
+        r = json.loads(urllib.request.urlopen(B + "/api/risk?wr=45&rr=2&risk_pct=1", timeout=30).read())
+        assert 0.1 < r["kelly"] < 0.3 and r["expectancy"] > 0 and r["ruin"] < 0.01
+        ind = json.loads(urllib.request.urlopen(B + "/api/indicators", timeout=30).read()); assert len(ind) >= 40 and any(x["place"] == "panel" for x in ind)
+        req = urllib.request.Request(B + "/api/journal", data=json.dumps({"op": "add", "row": {"date": "2026-01-01", "symbol": "T", "r": 1}}).encode(), headers={"Content-Type": "application/json"}, method="POST")
+        j = json.loads(urllib.request.urlopen(req, timeout=30).read()); assert j["rows"] and j["rows"][-1]["symbol"] == "T"
+        req = urllib.request.Request(B + "/api/journal", data=json.dumps({"op": "delete", "idx": len(j["rows"]) - 1}).encode(), headers={"Content-Type": "application/json"}, method="POST")
+        urllib.request.urlopen(req, timeout=30).read()
+    finally:
+        webapp.stop()

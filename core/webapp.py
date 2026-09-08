@@ -272,8 +272,8 @@ def api_risk(q):
     eq, rp, en, st = float(q.get("equity", 10000)), float(q.get("risk_pct", 1)), float(q.get("entry", 100)), float(q.get("stop", 98))
     wr, rr = float(q.get("wr", 45)), float(q.get("rr", 2))
     ps = R.position_size(eq, rp, en, st)
-    return dict(position=_clean(ps), targets=_clean(R.rr_targets(en, st)), kelly=_clean(R.kelly_fraction(wr / 100, rr, 1.0)),
-                ruin=_clean(R.risk_of_ruin(wr / 100, rr, rp)), expectancy=_clean(R.expectancy(wr / 100, rr, 1.0)), max_trades_to_ruin=_clean(R.max_trades_to_ruin(rp)))
+    return dict(position=_clean(ps), targets=_clean(R.rr_targets(en, st)), kelly=_clean(R.kelly_fraction(wr, rr, 1.0)),
+                ruin=_clean(R.risk_of_ruin(wr, rr, rp)), expectancy=_clean(R.expectancy(wr, rr, 1.0)), max_trades_to_ruin=_clean(R.max_trades_to_ruin(rp)))
 
 
 def _journal_path():
