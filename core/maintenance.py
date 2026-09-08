@@ -79,7 +79,7 @@ def _run(name, fn):
     t0 = time.time()
     try:
         r = fn()
-        STATE["last"][name] = time.time()
+        STATE["last"][name] = time.time(); STATE["_files_changed"] = True
         log(f"{name}: ok ({time.time() - t0:.0f}s) {r if r is not None else ''}")
     except Exception as e:
         log(f"{name}: FAILED {e}")
@@ -151,10 +151,16 @@ def task_playbook():
     return "rebuilt"
 
 
+_ts_cache = {"t": 0.0, "pb": None, "a": None}
+
+
 def training_status():
-    """for the Dashboard: what the bot is doing to itself right now"""
+    """for the Dashboard: what the bot is doing to itself right now (playbook/audit files re-read at most every 60 s)"""
     from core import playbook as PB, audit as A
-    pb = PB.load(); a = A.load()
+    now = time.time()
+    if now - _ts_cache["t"] > 60 or STATE.get("_files_changed"):
+        _ts_cache.update(t=now, pb=PB.load(), a=A.load()); STATE["_files_changed"] = False
+    pb, a = _ts_cache["pb"], _ts_cache["a"]
     n_proven = sum(len(r) for gd in (pb or {}).get("best", {}).values() for r in gd.values())
     return dict(stage=STATE.get("stage"), progress=STATE.get("progress", 0), detail=STATE.get("detail", ""),
                 audited=bool(a), audit_summary=(a or {}).get("summary"), playbook=bool(pb),

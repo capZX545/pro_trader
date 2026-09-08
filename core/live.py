@@ -183,12 +183,12 @@ class LiveEngine:
                         # update the live (unclosed) bar so charts/levels are current
                         df = self.bars.get(s)
                         if df is not None and len(df):
-                            last = df.index[-1]
-                            df.iat[-1, 3] = px
-                            if px > df.iat[-1, 1]:
-                                df.iat[-1, 1] = px
-                            if px < df.iat[-1, 2]:
-                                df.iat[-1, 2] = px
+                            with self._lock:
+                                df.iat[-1, 3] = px
+                                if px > df.iat[-1, 1]:
+                                    df.iat[-1, 1] = px
+                                if px < df.iat[-1, 2]:
+                                    df.iat[-1, 2] = px
                     self.stats["ticks"] += len(batch)
                     if batch:
                         self.on_tick(batch)
@@ -220,14 +220,15 @@ class LiveEngine:
                         s = k["s"]
                         t = pd.to_datetime(k["t"], unit="ms")
                         row = [float(k["o"]), float(k["h"]), float(k["l"]), float(k["c"]), float(k["v"])]
-                        df = self.bars.get(s)
-                        if df is None:
-                            continue
-                        if t in df.index:
-                            df.loc[t, ["open", "high", "low", "close", "volume"]] = row
-                        else:
-                            df.loc[t] = row
-                            self.bars[s] = df.iloc[-1500:]
+                        with self._lock:
+                            df = self.bars.get(s)
+                            if df is None:
+                                continue
+                            if t in df.index:
+                                df.loc[t, ["open", "high", "low", "close", "volume"]] = row
+                            else:
+                                df.loc[t] = row
+                                self.bars[s] = df.iloc[-1500:]
                         if k["x"]:  # bar closed → analyze
                             self.stats["bars_closed"] += 1
                             self._q.put(s)
@@ -238,10 +239,11 @@ class LiveEngine:
 
     # ---------------- analysis
     def analyze_symbol(self, s):
-        df = self.bars.get(s)
-        if df is None or len(df) < 300:
-            return []
-        df = df.copy()
+        with self._lock:
+            df = self.bars.get(s)
+            if df is None or len(df) < 300:
+                return []
+            df = df.copy()
         df.attrs.update(symbol=pretty(s), tf=self.tf)
         out = []
         n = len(df)
@@ -328,6 +330,11 @@ class LiveEngine:
                     self.on_signal(out)
             except Exception:
                 self.stats["errors"] += 1
+            try:  # cooperative: give the GUI thread / a user-launched backtest breathing room
+                from core import maintenance
+                maintenance.yield_cpu()
+            except Exception:
+                time.sleep(0.02)
 
     # ---------------- snapshots for UI
     def snapshot_signals(self):
@@ -346,18 +353,25 @@ class LiveEngine:
         return rows
 
     def breadth(self):
-        """Market breadth: % of watched symbols above EMA50/200, advancers, average 24h change."""
-        from core.indicators import ema
-        above50 = above200 = n = 0
-        for s in self.symbols:
-            df = self.bars.get(s)
-            if df is None or len(df) < 210:
-                continue
-            c = df.close
-            n += 1
-            above50 += c.iloc[-1] > ema(c, 50).iloc[-1]
-            above200 += c.iloc[-1] > ema(c, 200).iloc[-1]
-        chg = [d["chg24"] for d in self.prices.values()]
+        """Market breadth: % of watched symbols above EMA50/200, advancers, average 24h change.
+        EMA part is O(symbols × bars) → computed at most every 20 s and cached; called from the UI thread cheaply."""
+        now = time.time()
+        cache = getattr(self, "_breadth_cache", None)
+        if cache is None or now - cache["t"] > 20:
+            above50 = above200 = n = 0
+            with self._lock:
+                closes = [self.bars[s].close.values[-260:].copy() for s in self.symbols if s in self.bars and len(self.bars[s]) >= 210]
+            for c in closes:
+                n += 1
+                # EMA via numpy (no pandas overhead): alpha-weighted recursion on the last 260 closes
+                e50 = e200 = c[0]
+                a50, a200 = 2 / 51, 2 / 201
+                for v in c[1:]:
+                    e50 += a50 * (v - e50); e200 += a200 * (v - e200)
+                above50 += c[-1] > e50; above200 += c[-1] > e200
+            cache = self._breadth_cache = dict(t=now, n=n, a50=above50, a200=above200)
+        n, above50, above200 = cache["n"], cache["a50"], cache["a200"]
+        chg = [d["chg24"] for d in list(self.prices.values())]
         adv = sum(1 for x in chg if x > 0)
         return dict(n=n, pct_above50=100 * above50 / n if n else 0, pct_above200=100 * above200 / n if n else 0,
                     advancers=adv, decliners=len(chg) - adv, avg_chg=float(np.mean(chg)) if chg else 0,

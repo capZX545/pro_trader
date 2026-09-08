@@ -98,6 +98,11 @@ class LiveMarketPage(QtWidgets.QWidget):
         self.mtbl = make_table([t("symbol"), t("price"), "24h %", t("live_vol24")])
         self.mtbl.setSortingEnabled(False)
         self.mtbl.horizontalHeader().setSortIndicatorShown(False)
+        # ResizeToContents re-measures every row on each setText (300 rows × 4 cols every refresh) → use
+        # Stretch instead; also uniform row heights let Qt skip per-row layout work.
+        self.mtbl.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        self.mtbl.verticalHeader().setDefaultSectionSize(24)
+        self.mtbl.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
         self.mtbl.itemDoubleClicked.connect(self._open_market)
         mk_card.v.addWidget(self.mtbl, 1)
         split.addWidget(mk_card)
@@ -105,7 +110,7 @@ class LiveMarketPage(QtWidgets.QWidget):
         v.addWidget(split, 1)
 
         self.timer = QtCore.QTimer(self)
-        self.timer.setInterval(1500)
+        self.timer.setInterval(3000)
         self.timer.timeout.connect(self._periodic)
 
     # ------------------------------------------------------------ control
@@ -156,8 +161,10 @@ class LiveMarketPage(QtWidgets.QWidget):
         self.t_sig.set(str(e.stats["signals"]))
         if self._dirty:
             self._dirty = False
-            self._refresh_market()
-            self._update_now_prices()
+            # only touch the market table when this page is actually visible – hidden work is wasted UI time
+            if self.isVisible():
+                self._refresh_market()
+                self._update_now_prices()
 
     # ------------------------------------------------------------ tables
     def _refresh_signals(self):
@@ -202,23 +209,45 @@ class LiveMarketPage(QtWidgets.QWidget):
                 self.tbl.setItem(r, 6, ncell(p["price"], "{:,.6g}", color_for((p["price"] - entry) * side)))
 
     def _refresh_market(self):
+        """Update the market table IN PLACE: only cells whose text changed are touched (was: 1 200 new
+        QTableWidgetItems every 1.5 s → the UI got slower the longer Live Market ran)."""
         if not self.engine:
             return
         q = self.filter.text().upper().strip()
         rows = self.engine.snapshot_market()
         if q:
             rows = [r for r in rows if q in r[0]]
-        rows = rows[:300]
-        keep = self.mtbl.rowCount() == len(rows)
-        if not keep:
-            self.mtbl.setRowCount(len(rows))
-        for i, (s, px, chg, vol) in enumerate(rows):
-            it = cell(s[:-4] + "/USDT")
-            it.setData(QtCore.Qt.ItemDataRole.UserRole, s)
-            self.mtbl.setItem(i, 0, it)
-            self.mtbl.setItem(i, 1, ncell(px, "{:,.6g}"))
-            self.mtbl.setItem(i, 2, ncell(chg, "{:+.2f}%", color_for(chg)))
-            self.mtbl.setItem(i, 3, ncell(vol / 1e6, "{:,.1f}M"))
+        # Keep row ORDER stable between refreshes (re-rank by volume only every 30 s): sorting by live
+        # volume on every tick reshuffled ~all rows → every cell was recreated each refresh.
+        now = time.time()
+        order = getattr(self, "_mkt_order", None)
+        if order is None or now - getattr(self, "_mkt_order_t", 0) > 30 or q != getattr(self, "_mkt_q", None) \
+                or len(order) != min(300, len(rows)):
+            order = self._mkt_order = [r[0] for r in rows[:300]]
+            self._mkt_order_t, self._mkt_q = now, q
+        pos = {s: i for i, s in enumerate(order)}
+        rows = sorted((r for r in rows if r[0] in pos), key=lambda r: pos[r[0]])
+        tbl = self.mtbl
+        tbl.setUpdatesEnabled(False)
+        try:
+            if tbl.rowCount() != len(rows):
+                tbl.setRowCount(len(rows))
+            for i, (s, px, chg, vol) in enumerate(rows):
+                it0 = tbl.item(i, 0)
+                if it0 is None or it0.data(QtCore.Qt.ItemDataRole.UserRole) != s:
+                    it = cell(s[:-4] + "/USDT"); it.setData(QtCore.Qt.ItemDataRole.UserRole, s); tbl.setItem(i, 0, it)
+                    tbl.setItem(i, 1, ncell(px, "{:,.6g}")); tbl.setItem(i, 2, ncell(chg, "{:+.2f}%", color_for(chg))); tbl.setItem(i, 3, ncell(vol / 1e6, "{:,.1f}M"))
+                    continue
+                for col, txt, colr in ((1, f"{px:,.6g}", None), (2, f"{chg:+.2f}%", color_for(chg)), (3, f"{vol / 1e6:,.1f}M", None)):
+                    it = tbl.item(i, col)
+                    if it is None:
+                        tbl.setItem(i, col, ncell(px if col == 1 else (chg if col == 2 else vol / 1e6), "{}", colr)); it = tbl.item(i, col); it.setText(txt)
+                    elif it.text() != txt:
+                        it.setText(txt)
+                        if colr:
+                            it.setForeground(QtGui.QColor(colr))
+        finally:
+            tbl.setUpdatesEnabled(True)
 
     # ------------------------------------------------------------ nav
     def _open(self, item):

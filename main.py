@@ -52,6 +52,9 @@ def _install_crash_handlers():
 
 def main():
     _install_crash_handlers()
+    # Background threads (self-training, live analysis) hold the GIL in long numpy/pandas stretches; a shorter
+    # switch interval (default 5 ms) lets the GUI thread get the interpreter back quickly → smoother UI.
+    sys.setswitchinterval(0.001)
     # language
     from core.paths import data as _data
     settings = _data("settings.json")

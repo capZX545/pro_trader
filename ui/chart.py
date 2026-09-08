@@ -1,4 +1,5 @@
 """Interactive candlestick chart widget with overlays, signals, zones, sub-panels & crosshair."""
+import time
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
@@ -243,6 +244,17 @@ class PGChart(QtWidgets.QWidget):
         self._build()
 
     def _build(self):
+        # disconnect handlers bound to the previous plot BEFORE clearing (else they pile up on every Run and
+        # fire against deleted C++ objects → "wrapped C/C++ object has been deleted" crash)
+        try:
+            if self.price_plot is not None:
+                self.price_plot.sigXRangeChanged.disconnect(self._autoscale_y)
+        except Exception:
+            pass
+        try:
+            self.glw.scene().sigMouseMoved.disconnect(self._mouse)
+        except Exception:
+            pass
         self.glw.clear()
         self.taxis = TimeAxis(orientation="bottom")
         self.price_plot = self.glw.addPlot(row=0, col=0, axisItems={"bottom": TimeAxis(orientation="bottom")})
@@ -271,9 +283,16 @@ class PGChart(QtWidgets.QWidget):
         self.price_plot.scene().sigMouseMoved.connect(self._mouse)
 
     def _mouse(self, pos):
-        if self.df is None:
+        if self.df is None or self.price_plot is None:
             return
-        vb = self.price_plot.vb
+        now = time.monotonic()
+        if now - getattr(self, "_mouse_t", 0.0) < 0.033:
+            return
+        self._mouse_t = now
+        try:
+            vb = self.price_plot.vb
+        except RuntimeError:
+            return
         if self.price_plot.sceneBoundingRect().contains(pos):
             mp = vb.mapSceneToView(pos)
             self.vline.setPos(mp.x())
@@ -453,9 +472,12 @@ class PGChart(QtWidgets.QWidget):
             pass
 
     def _autoscale_y(self):
-        if self.df is None:
+        if self.df is None or self.price_plot is None:
             return
-        (x0, x1), _ = self.price_plot.viewRange()
+        try:
+            (x0, x1), _ = self.price_plot.viewRange()
+        except RuntimeError:
+            return
         i0, i1 = max(int(x0), 0), min(int(x1) + 1, len(self.df))
         if i1 - i0 < 2:
             return

@@ -1,4 +1,13 @@
-# ProTrader Academy v1.2.0
+# ProTrader Academy v1.2.1
+
+## v1.2.1 — responsiveness round 2 (nothing removed)
+Same 150 s stress test as v1.2.0 but now WITH the Live-Market engine streaming ~300 symbols, self-training on and repeated chart runs: worst UI freeze **8.7 s → 0.77 s**, p99 **432 ms → 49 ms**, p95 **44 → 6 ms**, zero crashes, empty `crash.log`, clean exit.
+- **GIL switch interval 5 ms → 1 ms** (`main.py`): background numpy/pandas work (self-training, live analysis) no longer starves the GUI thread — the single biggest win.
+- **Chart**: on every Run the old mouse/range handlers are disconnected before the plot is rebuilt (they were piling up → progressively slower mouse-move and "wrapped C/C++ object deleted" crashes); mouse crosshair throttled to 30 fps; guards against deleted plot items.
+- **Live Market**: breadth (EMA50/200 over all symbols) cached 20 s and computed with a light numpy loop instead of pandas per symbol; market table updated **in place** (only changed cells, stable ordering re-ranked every 30 s, `Stretch` columns instead of `ResizeToContents`, fixed row height) and skipped while the page is hidden; timer 1.5 s → 3 s; live analysis loop yields CPU between symbols.
+- **Thread safety**: bar-dict mutations in the live engine and the analysis copy are under the engine lock (avoids "dictionary changed size during iteration"/torn DataFrames crashes).
+- **Self-training status** read by the UI every 5 s is now cached 60 s (was re-parsing a 1 MB `playbook.json`).
+- New dev tool `tests/stress/ui_stress.py` (UI-lag percentiles + main-thread stall sampler) used to verify all of the above.
 
 ## v1.2.0 — smooth & stable (nothing removed)
 Measured with a 150 s UI stress test (page switching, double-runs, live 1m stream, self-training active on 2 cores): worst UI freeze **30 s → 2.8 s**, p99 **1.2 s → 0.13 s**, zero crashes, clean exit.
