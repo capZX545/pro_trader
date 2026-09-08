@@ -105,7 +105,7 @@ class FastSignalsPage(QtWidgets.QWidget):
             p = r["params"]
             lines.append(f"{r['sym']}: {t('fs_verdict_' + r['verdict'])} · OOS PF {r['oos_pf']} (IS {r['is_pf']}, WFE {r['wfe']}) · n={r['oos_trades']} · "
                          f"votes≥{p['min_votes']} win={p['window']} SL={p['sl_atr']}ATR RR={p['rr']}")
-        self.detail.setPlainText("\n".join(lines))
+        self.txt.setPlainText("\n".join(lines))
         # adopt the consensus knobs of the best-verdict symbol as defaults
         good = [r for k, r in out.items() if f"|{tf}|" in k and r.get("verdict") in ("edge", "weak")]
         if good:
