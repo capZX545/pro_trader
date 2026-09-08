@@ -35,6 +35,17 @@ def _clean(x):
         return None if (x != x or x in (float("inf"), float("-inf"))) else float(x)
     if isinstance(x, np.ndarray):
         return _clean(x.tolist())
+    if isinstance(x, (bytes, bytearray)):
+        return None
+    if hasattr(x, "to_dict") and hasattr(x, "index"):          # pandas Series / DataFrame
+        try:
+            if hasattr(x, "columns"):
+                return _clean(x.reset_index().to_dict("records")[-500:])
+            return _clean({str(k): v for k, v in x.tail(500).items()}) if not str(x.index.dtype).startswith("int") else _clean(x.tail(500).tolist())
+        except Exception:
+            return None
+    if isinstance(x, (bool, int, str)) or x is None:
+        return x
     if hasattr(x, "isoformat"):
         return x.isoformat()
     if hasattr(x, "item"):
@@ -206,9 +217,239 @@ def api_success(q):
     return SR.summary()
 
 
+# ------------------------------------------------------------------------------------------ Phase 21: full desktop parity
+def api_indicators(q):
+    """catalog of all chart indicators (key, placement, default params) — same SPECS the desktop chart uses"""
+    from core.chart_indicators import SPECS
+    try:
+        from core.indicator_uses import U
+    except Exception:
+        U = {}
+    lang = q.get("lang", "en")
+    out = []
+    for k, (place, dflt) in SPECS.items():
+        u = U.get(k) or {}
+        out.append(dict(key=k, place=place, params=dflt, uses=_clean(u.get("uses_" + lang, u.get("uses_en", []))), signals=_clean(u.get("signals_" + lang, u.get("signals_en", []))), pitfalls=_clean(u.get("pitfalls_" + lang, []))))
+    return out
+
+
+def api_indicator(q):
+    """compute one indicator on sym/tf with params → overlays / panels / levels aligned to the last n candles"""
+    from core.chart_indicators import compute
+    sym, tf, key, n = q.get("sym", "BTC/USDT"), q.get("tf", "1h"), q.get("key", "ema"), int(q.get("n", 600))
+    params = json.loads(q.get("params", "{}") or "{}")
+    full = _df(sym, tf, 0); off = max(0, len(full) - n)
+    r = compute(full, key, **params)
+    ov = {k: _clean(v.values[off:].tolist()) for k, v in (r.get("overlays") or {}).items() if hasattr(v, "values")}
+    pn = {p: {k: _clean(v.values[off:].tolist()) for k, v in d.items() if hasattr(v, "values")} for p, d in (r.get("panels") or {}).items()}
+    lv = [dict(px=float(l[0]), label=str(l[1]), color=(l[2] if len(l) > 2 else "#888")) for l in (r.get("levels") or []) if l and l[0] == l[0]]
+    return dict(key=key, overlays=ov, panels=pn, levels=lv, bands=_clean(r.get("bands") or []))
+
+
+def api_drawings(q, body=None):
+    """GET: drawings for sym|tf (shared with desktop data/drawings.json). POST: replace list."""
+    from core import drawings as D
+    sym, tf = q.get("sym", "BTC/USDT"), q.get("tf", "1h")
+    if body is not None:
+        D.save(sym, tf, body if isinstance(body, list) else body.get("items", []))
+    return dict(sym=sym, tf=tf, items=D.load(sym, tf))
+
+
+def api_forward(q):
+    from core import forward as FW
+    if q.get("update") == "1":
+        FW.update()
+    return dict(report=_clean(FW.report()), open=_clean(FW.records("open"))[-100:], closed=_clean(FW.records("closed"))[-200:])
+
+
+def api_portfolio(q):
+    from core import portfolio as P
+    return _clean(P.build_proven_portfolio(tf=q.get("tf", "4h"), max_n=int(q.get("n", 6)), equity=float(q.get("equity", 10000))))
+
+
+def api_risk(q):
+    from core import risk as R
+    eq, rp, en, st = float(q.get("equity", 10000)), float(q.get("risk_pct", 1)), float(q.get("entry", 100)), float(q.get("stop", 98))
+    wr, rr = float(q.get("wr", 45)), float(q.get("rr", 2))
+    ps = R.position_size(eq, rp, en, st)
+    return dict(position=_clean(ps), targets=_clean(R.rr_targets(en, st)), kelly=_clean(R.kelly_fraction(wr / 100, rr, 1.0)),
+                ruin=_clean(R.risk_of_ruin(wr / 100, rr, rp)), expectancy=_clean(R.expectancy(wr / 100, rr, 1.0)), max_trades_to_ruin=_clean(R.max_trades_to_ruin(rp)))
+
+
+def _journal_path():
+    from core.paths import data as _d
+    return _d("journal.json")
+
+
+def api_journal(q, body=None):
+    """GET list; POST {op:add,row}|{op:delete,idx}|{op:replace,rows}. Same journal.json as the desktop page + Steenbarger audit."""
+    import os
+    path = _journal_path()
+    rows = []
+    if os.path.exists(path):
+        try:
+            rows = json.load(open(path, encoding="utf-8"))
+        except Exception:
+            rows = []
+    if body:
+        op = body.get("op")
+        if op == "add":
+            rows.append(body["row"])
+        elif op == "delete":
+            i = int(body["idx"])
+            if 0 <= i < len(rows):
+                rows.pop(i)
+        elif op == "replace":
+            rows = list(body.get("rows", []))
+        json.dump(rows, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    audit = None
+    try:
+        from core import psychology as PSY
+        audit = _clean(PSY.audit_journal(rows))
+    except Exception:
+        pass
+    return dict(rows=rows, audit=audit)
+
+
+def api_health(q):
+    from core import health as H
+    f = H.run_checks(quick=q.get("quick", "1") == "1")
+    lang = q.get("lang", "en")
+    return dict(summary=_clean(H.summary(f)), findings=[dict(area=x.area, level=x.severity, text=(x.fa if lang == "fa" else x.en), fix=bool(x.fix)) for x in f])
+
+
+def api_patterns(q):
+    from core import patterns as PT
+    df = _df(q.get("sym", "BTC/USDT"), q.get("tf", "1h"), 2000)
+    return _clean(PT.summarize(df, recent=int(q.get("recent", 5))))
+
+
+def api_analyst(q):
+    """offline grounded analyst report (+ Ask box) for sym/tf, same as the desktop AI page"""
+    from core import analyst as AN
+    sym, tf, lang = q.get("sym", "BTC/USDT"), q.get("tf", "1h"), q.get("lang", "en")
+    df = _df(sym, tf, 3000)
+    ctx = dict(df=df, symbol=sym, tf=tf)
+    try:
+        from core import playbook as PB
+        ctx["playbook"] = PB.best_for(tf, sym) if hasattr(PB, "best_for") else None
+    except Exception:
+        pass
+    out = dict(report=AN.report(ctx, lang=lang))
+    if q.get("q"):
+        out["answer"] = AN.ask(q["q"], ctx, lang=lang)
+    return _clean(out)
+
+
+def api_vision(q, body=None):
+    """POST raw image bytes (or JSON {b64}) → chart-image understanding (candles, patterns, MAs, drawn lines) like the Vision page"""
+    import base64, tempfile
+    if body is None:
+        return dict(error="POST an image")
+    data = body if isinstance(body, (bytes, bytearray)) else base64.b64decode(body.get("b64", ""))
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+        f.write(data); path = f.name
+    try:
+        from core import vision2 as V2
+        u = V2.understand(path, lang=q.get("lang", "en"))
+        u.pop("image", None)
+        for k in list(u.keys()):
+            if hasattr(u[k], "shape"):
+                u.pop(k)
+        return _clean(u)
+    finally:
+        try:
+            os.unlink(path)
+        except Exception:
+            pass
+
+
+def api_ml(q):
+    from core import ml as ML
+    sym, tf = q.get("sym", "BTC/USDT"), q.get("tf", "1h")
+    if q.get("train") == "1":
+        df = _df(sym, tf, 20000)
+        b = ML.train_market_model(df); ML.save_bundle(sym, tf, b)
+    b = ML.load_bundle(sym, tf)
+    out = dict(models=_clean(ML.list_models()), has_model=bool(b))
+    if b:
+        out["meta"] = _clean({k: v for k, v in b.items() if k not in ("model", "scaler", "clf")})
+        try:
+            df = _df(sym, tf, 3000); p = ML.predict(b, df)
+            out["p_last"] = _clean(float(p[-1])) if hasattr(p, "__len__") else _clean(p)
+        except Exception:
+            pass
+    return out
+
+
+def api_quant(q):
+    """ADF / Hurst / half-life on the close of sym/tf (+ pair cointegration if sym2 given)"""
+    from core import quant as Q
+    import numpy as np
+    sym, tf = q.get("sym", "BTC/USDT"), q.get("tf", "1d")
+    df = _df(sym, tf, 2000); x = np.log(df.close.values)
+    out = dict(adf=_clean(Q.adf_test(x)), hurst=_clean(Q.hurst(x)), half_life=_clean(Q.half_life(x)))
+    if q.get("sym2"):
+        df2 = _df(q["sym2"], tf, 2000); j = df.close.to_frame("a").join(df2.close.rename("b"), how="inner").dropna()
+        out["coint"] = _clean(Q.cointegration(np.log(j.a.values), np.log(j.b.values))); out["hedge"] = _clean(Q.hedge_ratio(np.log(j.a.values), np.log(j.b.values)))
+    return out
+
+
+def api_alerts(q, body=None):
+    from core import alerts as AL
+    if body:
+        AL.save_settings(body)
+    st = dict(AL.settings()); st.pop("token", None)
+    return dict(settings=st, history=_clean(AL.history(50)))
+
+
+def api_status(q):
+    """training/maintenance status, playbook age, success-rate coverage, venue status — the Dashboard 'bot status' tile"""
+    out = {}
+    try:
+        from core import maintenance as M; out["training"] = _clean(M.training_status())
+    except Exception:
+        pass
+    try:
+        from core import maintenance as M2; out["log"] = M2.tail(15)
+    except Exception:
+        pass
+    try:
+        from core import success as SR; out["success"] = _clean(SR.summary())
+    except Exception:
+        pass
+    return out
+
+
+def api_success_precompute(q):
+    """start bulk success-rate computation in a background thread (same as Settings ▸ compute success rates)"""
+    from core import success as SR
+    st = _cache.setdefault("succ_job", {"running": False, "p": 0, "m": ""})
+    if not st["running"]:
+        st.update(running=True, p=0, m="start")
+        def run():
+            try:
+                SR.precompute(progress=lambda p, m: st.update(p=p, m=m))
+            finally:
+                st["running"] = False
+        threading.Thread(target=run, daemon=True).start()
+    return st
+
+
+def api_symbol_search(q):
+    from core.data import UNIVERSE
+    s = q.get("q", "").lower()
+    return [x for cat, d in UNIVERSE.items() for x in d if s in x.lower()][:50]
+
+
 ROUTES = {"/api/meta": api_meta, "/api/symbols": api_symbols, "/api/strategies": api_strategies, "/api/ohlcv": api_ohlcv, "/api/run": api_run,
           "/api/signals": api_signals, "/api/advise": api_advise, "/api/fast": api_fast, "/api/library": api_library, "/api/clock": api_clock,
-          "/api/success": api_success}
+          "/api/success": api_success,
+          "/api/indicators": api_indicators, "/api/indicator": api_indicator, "/api/drawings": api_drawings, "/api/forward": api_forward,
+          "/api/portfolio": api_portfolio, "/api/risk": api_risk, "/api/journal": api_journal, "/api/health": api_health, "/api/patterns": api_patterns,
+          "/api/analyst": api_analyst, "/api/vision": api_vision, "/api/ml": api_ml, "/api/quant": api_quant, "/api/alerts": api_alerts,
+          "/api/status": api_status, "/api/success_precompute": api_success_precompute, "/api/search": api_symbol_search}
+POST_ROUTES = {"/api/drawings", "/api/journal", "/api/vision", "/api/alerts"}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -229,6 +470,28 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype); self.send_header("Content-Length", str(len(data)))
         self.send_header("Access-Control-Allow-Origin", "*"); self.send_header("Cache-Control", "no-store")
         self.end_headers(); self.wfile.write(data)
+
+    def do_OPTIONS(self):
+        self.send_response(204); self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS"); self.send_header("Access-Control-Allow-Headers", "Content-Type"); self.end_headers()
+
+    def do_POST(self):
+        u = urlparse(self.path); q = {k: v[0] for k, v in parse_qs(u.query).items()}
+        n = int(self.headers.get("Content-Length") or 0); raw = self.rfile.read(n) if n else b""
+        ctype = self.headers.get("Content-Type", "")
+        body = raw if ctype.startswith("image/") or ctype.startswith("application/octet-stream") else (json.loads(raw or b"{}") if raw else {})
+        if u.path in POST_ROUTES:
+            try:
+                self._send(200, json.dumps(_clean(ROUTES[u.path](q, body)), ensure_ascii=False))
+            except (BrokenPipeError, ConnectionResetError):
+                return
+            except Exception as e:
+                try:
+                    self._send(500, json.dumps(dict(error=str(e)[:300], trace=traceback.format_exc()[-800:])))
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+            return
+        self._send(404, json.dumps(dict(error="not found")))
 
     def do_GET(self):
         u = urlparse(self.path); q = {k: v[0] for k, v in parse_qs(u.query).items()}
