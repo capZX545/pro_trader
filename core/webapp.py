@@ -217,6 +217,12 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):        # quiet
         pass
 
+    def handle(self):
+        try:
+            super().handle()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
     def _send(self, code, body, ctype="application/json; charset=utf-8"):
         data = body if isinstance(body, bytes) else body.encode("utf-8")
         self.send_response(code)
@@ -229,8 +235,13 @@ class Handler(BaseHTTPRequestHandler):
         if u.path in ROUTES:
             try:
                 self._send(200, json.dumps(_clean(ROUTES[u.path](q)), ensure_ascii=False))
+            except (BrokenPipeError, ConnectionResetError):
+                return                                   # client went away (phone locked / navigated) — not an error
             except Exception as e:
-                self._send(500, json.dumps(dict(error=str(e)[:300], trace=traceback.format_exc()[-800:])))
+                try:
+                    self._send(500, json.dumps(dict(error=str(e)[:300], trace=traceback.format_exc()[-800:])))
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
             return
         path = "index.html" if u.path in ("/", "") else u.path.lstrip("/")
         fp = os.path.normpath(os.path.join(WEB_DIR, path))
