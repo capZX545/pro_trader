@@ -5,7 +5,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 import strategies as S
 from core.live import LiveEngine
 from .theme import C, t, I18N
-from .widgets import Card, StatTile, make_table, cell, ncell, color_for
+from .widgets import Card, StatTile, make_table, cell, ncell, color_for, success_tip, row_tooltip
 
 
 def _name(sid):
@@ -193,6 +193,7 @@ class LiveMarketPage(QtWidgets.QWidget):
             p = d.get("p_ml")
             self.tbl.setItem(r, 12, ncell(p * 100 if p == p else 0, "{:.0f}%" if p == p else "—",
                                           C["green"] if p == p and p > 0.4 else (C["red"] if p == p and p < 0.25 else C["muted"])))
+            row_tooltip(self.tbl, r, success_tip(d["sid"], d["sym"], d["tf"], _name(d["sid"])))
         self.tbl.setSortingEnabled(True)
         self.tbl.sortItems(4, QtCore.Qt.SortOrder.AscendingOrder)
 

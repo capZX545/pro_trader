@@ -164,3 +164,24 @@ class Worker(QtCore.QThread):
             import traceback
             if not self.cancelled:
                 self.error.emit(f"{e}\n{traceback.format_exc()}")
+
+
+def success_tip(sid, sym, tf, name=None):
+    """Tooltip text for a signal row: measured success % of this signal type on this symbol/timeframe (+ OOS)."""
+    try:
+        from core import success as SR
+        from .theme import t
+        lab = SR.label(sid, sym, tf)
+        head = f"{name or sid}\n" if name else ""
+        return head + (f"📊 {t('success_rate')}: {lab}" if lab else f"📊 {t('success_unknown')}")
+    except Exception:
+        return ""
+
+
+def row_tooltip(tbl, r, text):
+    if not text:
+        return
+    for c in range(tbl.columnCount()):
+        it = tbl.item(r, c)
+        if it is not None:
+            it.setToolTip(text)

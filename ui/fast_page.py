@@ -3,7 +3,7 @@ import time
 from PyQt6 import QtCore, QtWidgets
 
 from .theme import C, t, I18N
-from .widgets import Card, StatTile, make_table, cell, ncell, color_for, Worker
+from .widgets import Card, StatTile, make_table, cell, ncell, color_for, Worker, success_tip, row_tooltip
 
 
 class FastSignalsPage(QtWidgets.QWidget):
@@ -148,6 +148,7 @@ class FastSignalsPage(QtWidgets.QWidget):
                         d_ = SR.get(sid_, r["sym"], r.get("tf", ""))
                         ag.append(f"{sid_} {d_['wr']:.0f}%" if d_ and d_.get("n") else sid_)
                     self.tbl.setItem(row, 14, cell(", ".join(ag)))
+                    row_tooltip(self.tbl, row, "\n".join(x for x in (success_tip(sid_, r["sym"], r.get("tf", "")) for sid_ in s["agree"][:6]) if x))
                 except Exception:
                     self.tbl.setItem(row, 14, cell(", ".join(s["agree"][:5])))
             else:

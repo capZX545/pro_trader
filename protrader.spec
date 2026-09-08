@@ -7,7 +7,7 @@ block_cipher = None
 hidden = (collect_submodules("strategies") + collect_submodules("core") + collect_submodules("ui")
           + collect_submodules("sklearn") + collect_submodules("pyqtgraph", filter=lambda n: not n.startswith(("pyqtgraph.examples", "pyqtgraph.jupyter", "pyqtgraph.opengl")))
           + ["yfinance", "websocket", "cv2", "matplotlib.backends.backend_agg"])
-datas = [("assets", "assets"), ("tests/real_charts", "tests/real_charts")]
+datas = [("assets", "assets"), ("tests/real_charts", "tests/real_charts"), ("web", "web"), ("RELEASE_NOTES.md", ".")]
 for f in ("data/playbook.json", "data/audit.json", "data/library.json", "data/vision_robustness.json", "data/vision_real.json"):
     if os.path.exists(f):
         datas.append((f, "data"))

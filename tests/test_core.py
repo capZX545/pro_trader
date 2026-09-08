@@ -216,3 +216,21 @@ def test_phase19_world_masters():
         assert cls.description_fa and cls.rules_fa and cls.description_en and cls.rules_en, cls.id
     from core import library as L
     assert any("Chan Lun" in b[0] for b in L.BOOKS)
+
+
+def test_phase20_web_and_qr():
+    import json, urllib.request, threading, time
+    from core import webapp, qr
+    M = qr.matrix("http://192.168.1.10:8765"); assert len(M) in (25, 29) and M[0][0] == 1
+    url, port = webapp.start(port=18765, host="127.0.0.1")
+    try:
+        for ep in ("/api/meta", "/api/clock", "/api/symbols", "/api/strategies?sym=BTC/USDT&tf=1h&lang=fa", "/", "/manifest.webmanifest"):
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}{ep}", timeout=30) as r:
+                assert r.status == 200, ep
+                body = r.read()
+                if ep.startswith("/api"):
+                    d = json.loads(body); assert "error" not in d, (ep, d)
+        d = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/api/meta").read())
+        assert d["strategies"] >= 179 and "fa" in d["langs"]
+    finally:
+        webapp.stop()

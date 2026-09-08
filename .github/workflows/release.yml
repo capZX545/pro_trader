@@ -30,7 +30,7 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libegl1 libgl1
       - name: Quick tests (no network)
-        run: python -m pytest tests/test_core.py -q -k "audit_quick or costs_and_catalog or alerts_offline or vision_real" || true
+        run: python -m pytest tests/test_core.py -q -k "audit_quick or costs_and_catalog or alerts_offline or vision_real or phase18 or phase19 or phase20" || true
       - name: Icons
         run: python packaging/make_icons.py
       - name: PyInstaller
@@ -52,6 +52,13 @@ jobs:
           mkdir -p release
           cp packaging/protrader.desktop dist/ProTrader/ || true
           tar -C dist -czf "release/ProTrader-$PT_VERSION-linux-x64.tar.gz" ProTrader
+      - name: Web & mobile bundle (same engine, no Qt — phone/VPS/Docker)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p release webbundle/ProTrader-web
+          rsync -a --exclude '.git' --exclude 'tests/shots' --exclude 'dist' --exclude 'build' --exclude '__pycache__' ./ webbundle/ProTrader-web/
+          cd webbundle && zip -qr "../release/ProTrader-$PT_VERSION-web-mobile.zip" ProTrader-web && cd ..
+          ls -la release
       - name: macOS dmg
         if: runner.os == 'macOS'
         run: |

@@ -17,6 +17,11 @@ os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# --web : headless web/mobile server (same engine, no Qt needed — runs on a VPS too).  ProTrader --web [--port 8765]
+if "--web" in sys.argv:
+    from core import webapp  # noqa: E402
+    webapp.main([a for a in sys.argv[1:] if a != "--web"]); sys.exit(0)
+
 from PyQt6 import QtWidgets, QtGui, QtCore  # noqa: E402
 from ui.theme import QSS, I18N  # noqa: E402
 

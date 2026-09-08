@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 from PyQt6 import QtCore, QtGui, QtWidgets
-from .theme import C
+from .theme import t, C
 
 pg.setConfigOptions(antialias=True, background=C["panel"], foreground=C["text"])
 
@@ -423,6 +423,50 @@ class PGChart(QtWidgets.QWidget):
                     f"&nbsp;&nbsp;O <b>{r.open:,.6g}</b>&nbsp; H <b>{r.high:,.6g}</b>&nbsp; L <b>{r.low:,.6g}</b>&nbsp; C <b>{r.close:,.6g}</b>"
                     f"&nbsp; <span style='color:{col}'>{chg:+.2f}%</span>&nbsp; Vol <b>{r.volume:,.0f}</b>")
                 self.barHovered.emit(i)
+                self._signal_tooltip(i, pos)
+
+    # ---- hover on a signal marker → tooltip: side, local time, entry/SL/TP and the measured success % of this signal type
+    success_meta = None            # (strategy_id, symbol, tf, strategy_name) set by the page
+
+    def _signal_tooltip(self, i, pos):
+        res = getattr(self, "_result", None)
+        if res is None:
+            QtWidgets.QToolTip.hideText(); return
+        sig = res.signal.values
+        cand = [j for j in range(max(0, i - 1), min(len(sig), i + 2)) if sig[j] != 0]
+        if not cand:
+            if getattr(self, "_tip_i", None) is not None:
+                QtWidgets.QToolTip.hideText(); self._tip_i = None
+            return
+        j = min(cand, key=lambda j: abs(j - i))
+        if getattr(self, "_tip_i", None) == j:
+            return
+        self._tip_i = j
+        side = "LONG ▲" if sig[j] == 1 else "SHORT ▼"
+        col = C["green"] if sig[j] == 1 else C["red"]
+        px = float(self.df.close.values[j])
+        sl = res.stop.values[j] if res.stop is not None else float("nan")
+        tp = res.target.values[j] if res.target is not None else float("nan")
+        rr = abs(tp - px) / abs(px - sl) if sl == sl and tp == tp and px != sl else float("nan")
+        html = (f"<div style='font-size:12px'><b style='color:{col}'>{side}</b> &nbsp;<span style='color:#aaa'>{_fmt_ts(self.df.index[j])}</span><br>"
+                f"{t('entry')} <b>{px:,.6g}</b> · SL <span style='color:{C['red']}'>{sl:,.6g}</span> · TP <span style='color:{C['green']}'>{tp:,.6g}</span>"
+                + (f" · R:R 1:{rr:.1f}" if rr == rr else "") + f" · {len(self.df) - 1 - j} {t('bars_ago')}")
+        meta = self.success_meta
+        if meta:
+            try:
+                from core import success as SR
+                d = SR.get(meta[0], meta[1], meta[2]); o = SR.oos(meta[0], meta[1], meta[2])
+                html += f"<br><span style='color:#aaa'>{meta[3]}</span>"
+                if d and d.get("n"):
+                    gc = {"green": C["green"], "yellow": C["yellow"], "red": C["red"], "muted": "#aaa"}[SR.grade_color(d)]
+                    html += f"<br>📊 <b style='color:{gc}'>{t('success_rate')}: {d['wr']:.0f}%</b> · PF {d['pf']:.2f} · n={d['n']} ({t('in_sample')})"
+                if o:
+                    html += f"<br>🔬 {t('oos_rate')}: {o['wr']:.0f}% [{o['wr_lo']:.0f}–{o['wr_hi']:.0f}] · PF {o['pf']:.2f} · {o.get('grade', '')}"
+            except Exception:
+                pass
+        html += "</div>"
+        gp = self.glw.mapToGlobal(self.glw.mapFromScene(pos)) if hasattr(self, "glw") else QtGui.QCursor.pos()
+        QtWidgets.QToolTip.showText(gp, html, self.glw if hasattr(self, "glw") else None)
 
     def set_data(self, df: pd.DataFrame, result=None, trades=None, title=""):
         self.glw.setUpdatesEnabled(False)          # one repaint at the end instead of one per item

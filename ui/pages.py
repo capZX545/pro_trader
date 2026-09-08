@@ -14,7 +14,7 @@ from core import risk as rk
 from core import validation as V
 import strategies as S
 from .theme import C, t, I18N
-from .widgets import Card, StatTile, Badge, side_badge, hline, stars, make_table, cell, ncell, Worker, color_for
+from .widgets import Card, StatTile, Badge, side_badge, hline, stars, make_table, cell, ncell, Worker, color_for, success_tip, row_tooltip
 from .chart import ChartWidget, EquityChart
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -123,6 +123,12 @@ class SymbolBar(QtWidgets.QWidget):
                 except Exception:
                     pass
                 self.strat.addItem(f"{strat_name(cls)}{tag}{wr}  ·  {cls.category}", cls.id)
+                try:
+                    full = SR.label(cls.id, self.symbol(), self.tf.currentText())
+                    tip = (cls.description_fa if I18N.lang == "fa" else cls.description_en) or ""
+                    self.strat.setItemData(self.strat.count() - 1, (f"📊 {t('success_rate')}: {full}\n" if full else f"📊 {t('success_unknown')}\n") + tip, QtCore.Qt.ItemDataRole.ToolTipRole)
+                except Exception:
+                    pass
         if self.strat.count() == 0:   # nothing proven in this category → show all so the user is never stuck
             for cls in S.ALL_STRATEGIES:
                 if cat is None or cls.category == cat:
@@ -934,6 +940,7 @@ class ChartPage(QtWidgets.QWidget):
             from core import success as SR
             SR.put(sid, sym, tf, bt.stats); SR.flush()
             self.bar._fill_strats()
+            self.chart.impl.success_meta = (sid, sym, tf, strat_name(cls))
         except Exception:
             pass
         new_key = (sym, tf)
@@ -1162,6 +1169,7 @@ class ScannerPage(QtWidgets.QWidget):
             self.tbl.setItem(r, 13, cell(f"● {g} · n={d.get('pb_n', 0)}", {"A": C["green"], "B": C["accent2"], "C": C["yellow"]}.get(g, C["red"])))
             sc = d["score"]
             self.tbl.setItem(r, 14, ncell(sc, "{:.0f}", C["green"] if sc >= 60 else (C["yellow"] if sc >= 45 else C["muted"])))
+            row_tooltip(self.tbl, r, success_tip(d["cls"].id, d["sym"], d["tf"], strat_name(d["cls"])))
         self.tbl.setSortingEnabled(True)
         self.tbl.sortItems(14, QtCore.Qt.SortOrder.DescendingOrder)
         fp = getattr(self.window(), "page", lambda k: None)("nav_forward")
@@ -1798,6 +1806,20 @@ class SettingsPage(QtWidgets.QWidget):
         self.succ_prog = QtWidgets.QProgressBar(); self.succ_prog.setRange(0, 100); self.succ_prog.setVisible(False)
         sb_ = QtWidgets.QHBoxLayout(); sb_.addWidget(self.succ_btn); sb_.addWidget(self.succ_prog, 1)
         f.addRow(t("success_rate"), sb_)
+        # ---- Web & mobile (Phase 20): same engine served to phones/browsers on the LAN (or internet via tunnel)
+        self.web_btn = QtWidgets.QPushButton("📱 " + t("web_start")); self.web_btn.setToolTip(t("web_tip"))
+        self.web_btn.clicked.connect(self._toggle_web)
+        self.web_url = QtWidgets.QLabel("—"); self.web_url.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.web_url.setOpenExternalLinks(True)
+        self.web_qr = QtWidgets.QLabel(); self.web_qr.setFixedSize(132, 132); self.web_qr.setVisible(False)
+        wb_ = QtWidgets.QHBoxLayout(); wb_.addWidget(self.web_btn); wb_.addWidget(self.web_url, 1); wb_.addWidget(self.web_qr)
+        f.addRow(t("web_mobile"), wb_)
+        try:
+            from core import webapp as _W
+            if _W.running():
+                self._web_ui(_W.start()[0])
+        except Exception:
+            pass
         c.v.addLayout(f)
         v.addWidget(c)
         try:
@@ -1806,7 +1828,7 @@ class SettingsPage(QtWidgets.QWidget):
         except Exception:
             pass
         about = Card(t("about"))
-        lbl = QtWidgets.QLabel(f"<b>{t('app')}</b> v1.0<br><br>{t('disclaimer')}")
+        lbl = QtWidgets.QLabel(f"<b>{t('app')}</b> {__import__('core.webapp', fromlist=['_version'])._version()}<br><br>{t('disclaimer')}")
         lbl.setWordWrap(True)
         about.add(lbl)
         v.addWidget(about)
@@ -1831,6 +1853,26 @@ class SettingsPage(QtWidgets.QWidget):
             json.dump(cur, open(SETTINGS_PATH, "w"), indent=1)
         except Exception:
             pass
+
+    def _toggle_web(self):
+        from core import webapp as W
+        try:
+            if W.running():
+                W.stop(); self.web_btn.setText("📱 " + t("web_start")); self.web_url.setText("—"); self.web_qr.setVisible(False)
+            else:
+                url, port = W.start()
+                self._web_ui(url)
+        except Exception as e:
+            self.web_url.setText(str(e)[:80])
+
+    def _web_ui(self, url):
+        self.web_btn.setText("⏹ " + t("web_stop"))
+        self.web_url.setText(f"<a style='color:{C['accent2']}' href='{url}'>{url}</a><br><span style='color:{C['muted']}'>{t('web_hint')}</span>")
+        try:
+            from core.qr import qr_pixmap
+            self.web_qr.setPixmap(qr_pixmap(url, 132)); self.web_qr.setVisible(True)
+        except Exception:
+            self.web_qr.setVisible(False)
 
     def _precompute_success(self):
         from core import success as SR

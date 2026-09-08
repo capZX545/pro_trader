@@ -28,6 +28,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "..\dist\ProTrader\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\ProTrader.exe"
+Name: "{group}\{#AppName} Web && Mobile server"; Filename: "{app}\ProTrader.exe"; Parameters: "--web"; Comment: "Serve ProTrader to your phone (same Wi-Fi) on port 8765"
 Name: "{group}\Uninstall {#AppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\ProTrader.exe"; Tasks: desktopicon
 [Run]

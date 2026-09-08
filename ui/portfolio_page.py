@@ -119,7 +119,7 @@ class AlertsPanel(QtWidgets.QWidget):
         self.cb_dt = QtWidgets.QCheckBox(t("al_desktop")); self.cb_dt.setChecked(a.get("desktop", True))
         self.minc = QtWidgets.QSpinBox(); self.minc.setRange(0, 100); self.minc.setValue(int(a.get("min_conf", 55)))
         self.tfs = QtWidgets.QLineEdit(",".join(a.get("tfs", ["1h", "4h", "1d"])))
-        f.addRow("Telegram bot token", self.tok); f.addRow("Telegram chat id", self.chat)
+        f.addRow(t("tg_token"), self.tok); f.addRow(t("tg_chat"), self.chat)
         f.addRow(t("al_channels"), self._row(self.cb_tg, self.cb_dt)); f.addRow(t("al_min_conf"), self.minc); f.addRow(t("al_tfs"), self.tfs)
         v.addLayout(f)
         h = QtWidgets.QHBoxLayout()

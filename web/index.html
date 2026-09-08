@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<link rel="manifest" href="manifest.webmanifest">
+<title>ProTrader — Web & Mobile</title>
+<style>
+:root{--bg:#0b0e14;--panel:#131722;--panel2:#1c2230;--border:#2a2e39;--text:#d1d4dc;--muted:#787b86;--accent:#2962ff;--accent2:#5c9bff;--green:#26a69a;--red:#ef5350;--yellow:#ffb74d}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 -apple-system,Segoe UI,Roboto,Vazirmatn,Tahoma,sans-serif;padding-bottom:64px}
+body[dir=rtl]{font-family:Vazirmatn,Tahoma,-apple-system,Segoe UI,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--border);padding:6px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+header .brand{font-weight:700;color:#fff}
+header .clock{margin-inline-start:auto;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--accent2);text-align:end}
+header .world{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100vw}
+.bar{display:flex;gap:6px;padding:8px 10px;flex-wrap:wrap;align-items:center}
+select,button,input{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:14px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button:active{transform:scale(.98)}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin:8px 10px;padding:10px}
+.card h3{margin:0 0 8px;font-size:14px;color:var(--accent2)}
+#chart{width:100%;height:46vh;min-height:260px;display:block;border-radius:8px;background:#0e1219;touch-action:none}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px}
+.tile{background:var(--panel2);border-radius:8px;padding:6px 8px}
+.tile .k{font-size:11px;color:var(--muted)}.tile .v{font-weight:700;font-size:15px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:6px 5px;border-bottom:1px solid var(--border);text-align:start;white-space:nowrap}
+th{color:var(--muted);font-weight:500;position:sticky;top:0;background:var(--panel)}
+tr.row{cursor:pointer}tr.row:active{background:var(--panel2)}
+.g{color:var(--green)}.r{color:var(--red)}.y{color:var(--yellow)}.m{color:var(--muted)}
+.wrap{overflow:auto;max-height:60vh}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--border);display:flex;z-index:6;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;border-radius:0;background:transparent;color:var(--muted);padding:9px 2px;font-size:11px}
+nav button.on{color:var(--accent2)}nav button span{display:block;font-size:18px}
+.page{display:none}.page.on{display:block}
+#tip{position:fixed;z-index:9;background:#000c;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;max-width:86vw;pointer-events:none;display:none;backdrop-filter:blur(6px)}
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;background:var(--panel2)}
+.spin{color:var(--muted);padding:12px;text-align:center}
+.succ{font-weight:700}
+details summary{cursor:pointer;color:var(--accent2)}
+.legend{font-size:11px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">◆ ProTrader</span>
+  <button id="lang" style="padding:3px 8px;font-size:12px">FA</button>
+  <div class="clock"><div id="clk">--:--:--</div><div class="world" id="world"></div></div>
+</header>
+
+<div id="p-chart" class="page on">
+  <div class="bar">
+    <select id="sym"></select>
+    <select id="tf"></select>
+    <select id="sid" style="max-width:52vw"></select>
+    <button class="primary" id="run" data-i="run">Run</button>
+    <span class="m" id="status"></span>
+  </div>
+  <div class="card">
+    <canvas id="chart"></canvas>
+    <div class="legend" id="legend"></div>
+    <div class="m" id="hint" data-i="hint" style="font-size:11px;margin-top:4px">Tap a ▲/▼ marker: where, when, entry/SL/TP and the measured success % of this signal type. Pinch/drag to zoom & pan — refresh keeps your place.</div>
+  </div>
+  <div class="card"><h3 data-i="stats">Backtest on this symbol & timeframe (fees included)</h3><div class="tiles" id="tiles"></div><div id="succ" style="margin-top:8px"></div></div>
+  <div class="card"><h3 data-i="trades">Last trades</h3><div class="wrap"><table id="trades"></table></div></div>
+</div>
+
+<div id="p-signals" class="page">
+  <div class="bar"><select id="sym2"></select><select id="tf2"></select><button class="primary" id="scan" data-i="scan">Scan all strategies</button><span class="m" id="status2"></span></div>
+  <div class="card"><h3 data-i="sig_title">Fresh signals — every strategy, with its success % here</h3><div class="wrap"><table id="sigs"></table></div></div>
+</div>
+
+<div id="p-advisor" class="page">
+  <div class="bar"><select id="sym3"></select><button class="primary" id="advise" data-i="advise">Advise (all timeframes)</button><span class="m" id="status3"></span></div>
+  <div class="card" id="advout"><div class="m" data-i="adv_hint">Regime, best proven strategy and fresh signal per timeframe, plus a verdict.</div></div>
+</div>
+
+<div id="p-fast" class="page">
+  <div class="bar"><select id="tf4"><option>1m</option><option>3m</option><option selected>5m</option><option>15m</option></select><button class="primary" id="fast" data-i="fast">Fast signals (confluence)</button><span class="m" id="status4"></span></div>
+  <div class="card"><div class="wrap"><table id="fasttbl"></table></div></div>
+</div>
+
+<div id="p-academy" class="page">
+  <div class="bar"><input id="q" data-i-ph="search" placeholder="Search strategies / books…" style="flex:1"></div>
+  <div class="card"><h3 data-i="strats">Strategies</h3><div id="strats"></div></div>
+  <div class="card"><h3 data-i="books">Library — lessons embedded</h3><div id="books"></div></div>
+</div>
+
+<nav>
+  <button class="on" data-p="chart"><span>📈</span><b data-i="n_chart">Chart</b></button>
+  <button data-p="signals"><span>📡</span><b data-i="n_signals">Signals</b></button>
+  <button data-p="advisor"><span>🎯</span><b data-i="n_advisor">Advisor</b></button>
+  <button data-p="fast"><span>⚡</span><b data-i="n_fast">Fast</b></button>
+  <button data-p="academy"><span>🎓</span><b data-i="n_academy">Academy</b></button>
+</nav>
+<div id="tip"></div>
+
+<script>
+const I18N={en:{run:"Run",scan:"Scan all strategies",advise:"Advise (all timeframes)",fast:"Fast signals (confluence)",stats:"Backtest on this symbol & timeframe (fees included)",trades:"Last trades",sig_title:"Fresh signals — every strategy, with its success % here",strats:"Strategies",books:"Library — lessons embedded",n_chart:"Chart",n_signals:"Signals",n_advisor:"Advisor",n_fast:"Fast",n_academy:"Academy",search:"Search strategies / books…",hint:"Tap a ▲/▼ marker: where, when, entry/SL/TP and the measured success % of this signal type. Pinch/drag to zoom & pan — refresh keeps your place.",adv_hint:"Regime, best proven strategy and fresh signal per timeframe, plus a verdict.",wr:"Win rate",pf:"Profit factor",n:"Trades",ret:"Return",dd:"Max DD",exp:"Expectancy R",succ:"Success rate of this signal type",oos:"Out-of-sample",unknown:"not measured yet",long:"LONG",short:"SHORT",entry:"Entry",bars_ago:"bars ago",strategy:"Strategy",side:"Side",when:"When",price:"Price",sl:"SL",tp:"TP",rr:"R:R",grade:"Grade",loading:"working…",verdict:"Verdict",regime:"Regime",best:"Best strategy",signal:"Signal",votes:"votes",none:"none",insample:"in-sample"},
+fa:{run:"اجرا",scan:"اسکن همهٔ استراتژی‌ها",advise:"مشاوره (همهٔ تایم‌فریم‌ها)",fast:"سیگنال سریع (تلاقی)",stats:"بک‌تست روی این نماد و تایم‌فریم (با کارمزد)",trades:"آخرین معاملات",sig_title:"سیگنال‌های تازه — همهٔ استراتژی‌ها با درصد موفقیت همین‌جا",strats:"استراتژی‌ها",books:"کتابخانه — درس‌های جاسازی‌شده",n_chart:"چارت",n_signals:"سیگنال‌ها",n_advisor:"مشاور",n_fast:"سریع",n_academy:"آکادمی",search:"جستجوی استراتژی / کتاب…",hint:"روی نشانگر ▲/▼ بزنید: کجا، کی، ورود/استاپ/هدف و درصد موفقیت اندازه‌گیری‌شدهٔ این نوع سیگنال. با دو انگشت زوم/جابه‌جا کنید — رفرش جای شما را حفظ می‌کند.",adv_hint:"رژیم، بهترین استراتژی اثبات‌شده و سیگنال تازه در هر تایم‌فریم، به‌علاوهٔ حکم نهایی.",wr:"وین‌ریت",pf:"پرافیت فکتور",n:"معاملات",ret:"بازده",dd:"حداکثر افت",exp:"امید ریاضی R",succ:"درصد موفقیت این نوع سیگنال",oos:"برون‌نمونه",unknown:"هنوز اندازه‌گیری نشده",long:"خرید",short:"فروش",entry:"ورود",bars_ago:"کندل قبل",strategy:"استراتژی",side:"جهت",when:"زمان",price:"قیمت",sl:"استاپ",tp:"هدف",rr:"R:R",grade:"درجه",loading:"در حال کار…",verdict:"حکم",regime:"رژیم",best:"بهترین استراتژی",signal:"سیگنال",votes:"رأی",none:"هیچ",insample:"درون‌نمونه"}};
+let lang=localStorage.lang||"en"; const t=k=>(I18N[lang][k]||I18N.en[k]||k);
+function applyLang(){document.documentElement.lang=lang;document.body.dir=lang==="fa"?"rtl":"ltr";document.getElementById("lang").textContent=lang==="fa"?"EN":"FA";
+ document.querySelectorAll("[data-i]").forEach(e=>e.textContent=t(e.dataset.i));document.querySelectorAll("[data-i-ph]").forEach(e=>e.placeholder=t(e.dataset.iPh));}
+document.getElementById("lang").onclick=()=>{lang=lang==="fa"?"en":"fa";localStorage.lang=lang;applyLang();fillStrats();if(state.run)render();};
+const api=(p,q={})=>fetch(p+"?"+new URLSearchParams(q)).then(r=>r.json());
+const $=id=>document.getElementById(id);
+const esc=x=>String(x??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=(x,d=6)=>x==null?"—":Number(x).toLocaleString(undefined,{maximumSignificantDigits:d});
+const pct=x=>x==null?"—":Number(x).toFixed(0)+"%";
+const succCls=d=>!d||!d.n?"m":(d.pf>=1.2&&d.n>=30?"g":(d.pf>=1?"y":"r"));
+function succHtml(d,o){let h="";if(d&&d.n)h+=`<span class="succ ${succCls(d)}">📊 ${t("succ")}: ${pct(d.wr)}</span> · PF ${d.pf.toFixed(2)} · n=${d.n} <span class="m">(${t("insample")})</span>`;else h+=`<span class="m">📊 ${t("succ")}: ${t("unknown")}</span>`;
+ if(o)h+=`<br><span class="m">🔬 ${t("oos")}: ${pct(o.wr)} [${o.wr_lo?.toFixed(0)}–${o.wr_hi?.toFixed(0)}] · PF ${o.pf?.toFixed(2)} · ${o.grade||""}</span>`;return h;}
+
+// ---------- nav
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x===b));document.querySelectorAll(".page").forEach(p=>p.classList.toggle("on",p.id==="p-"+b.dataset.p));});
+
+// ---------- clock (computer clock of the SERVER host = same as desktop; phone shows its own local too)
+async function clock(){try{const c=await api("/api/clock");$("clk").textContent=c.local+"  ("+c.tz+")";$("world").textContent=c.world;}catch(e){$("clk").textContent=new Date().toLocaleTimeString();}}
+setInterval(clock,1000);clock();
+
+// ---------- state & persistence (refresh keeps symbol/tf/strategy AND view window)
+const state=JSON.parse(localStorage.pt_state||"{}");state.view=state.view||null;
+function save(){localStorage.pt_state=JSON.stringify({sym:$("sym").value,tf:$("tf").value,sid:$("sid").value,view:state.view});}
+let META,STRATS=[];
+async function init(){META=await api("/api/meta");const syms=await api("/api/symbols");
+ for(const id of["sym","sym2","sym3"]){const s=$(id);s.innerHTML="";for(const[cat,arr]of Object.entries(syms)){const g=document.createElement("optgroup");g.label=cat;arr.forEach(x=>{const o=document.createElement("option");o.textContent=x;g.appendChild(o)});s.appendChild(g);}s.value=state.sym||"BTC/USDT";}
+ for(const id of["tf","tf2"]){const s=$(id);s.innerHTML=META.tfs.map(x=>`<option>${x}</option>`).join("");s.value=state.tf||"1h";}
+ await fillStrats();applyLang();if(state.sid)$("sid").value=state.sid;run();}
+async function fillStrats(){STRATS=await api("/api/strategies",{sym:$("sym").value,tf:$("tf").value,lang});const cur=$("sid").value;const sel=$("sid");sel.innerHTML="";
+ for(const s of STRATS){const o=document.createElement("option");o.value=s.id;o.textContent=`${s.name}${s.label?"  ["+s.label+"]":""} · ${s.category}`;o.title=(s.description||"")+(s.label?`\n📊 ${t("succ")}: ${s.label}`:"");sel.appendChild(o);}
+ if(cur)sel.value=cur;renderAcademy();}
+$("sym").onchange=$("tf").onchange=()=>{state.view=null;fillStrats();save();};
+
+// ---------- chart
+const cv=$("chart"),ctx=cv.getContext("2d");let R=null;const dpr=()=>window.devicePixelRatio||1;
+function sizeCanvas(){const r=cv.getBoundingClientRect();cv.width=r.width*dpr();cv.height=r.height*dpr();}
+window.addEventListener("resize",()=>{sizeCanvas();render();});
+async function run(){$("status").textContent=t("loading");$("run").disabled=true;try{R=await api("/api/run",{sym:$("sym").value,tf:$("tf").value,sid:$("sid").value,n:800});state.run=true;sizeCanvas();
+ if(!state.view||state.view.sym!==R.sym||state.view.tf!==R.tf){const n=R.candles.t.length;state.view={sym:R.sym,tf:R.tf,t0:R.candles.t[Math.max(0,n-120)],t1:R.candles.t[n-1]};}
+ render();renderStats();$("status").textContent=R.candles.venue||"";}catch(e){$("status").textContent="⚠ "+e;}finally{$("run").disabled=false;save();}}
+$("run").onclick=run;
+function idxOfTime(ts){const T=R.candles.t;let lo=0,hi=T.length-1;while(lo<hi){const m=(lo+hi)>>1;if(T[m]<ts)lo=m+1;else hi=m;}return lo;}
+let markers=[];
+function render(){if(!R)return;const C=R.candles,n=C.t.length,W=cv.width,H=cv.height,d=dpr();ctx.clearRect(0,0,W,H);
+ const i0=Math.max(0,idxOfTime(state.view.t0)),i1=Math.min(n-1,idxOfTime(state.view.t1));const cnt=Math.max(5,i1-i0+1);
+ const padR=62*d,padB=18*d,volH=H*0.14,priceH=H-padB-volH;const bw=(W-padR)/cnt;
+ let lo=Infinity,hi=-Infinity,vmax=0;for(let i=i0;i<=i1;i++){lo=Math.min(lo,C.l[i]);hi=Math.max(hi,C.h[i]);vmax=Math.max(vmax,C.v[i]);}
+ for(const k in R.overlays)for(let i=i0;i<=i1;i++){const y=R.overlays[k][i];if(y!=null){lo=Math.min(lo,y);hi=Math.max(hi,y);}}
+ const pad=(hi-lo)*0.08;lo-=pad;hi+=pad;const Y=p=>priceH-(p-lo)/(hi-lo)*priceH,X=i=>(i-i0+0.5)*bw;
+ // grid + price axis
+ ctx.strokeStyle="#1f2633";ctx.lineWidth=1;ctx.fillStyle="#787b86";ctx.font=`${10*d}px monospace`;ctx.textAlign="left";
+ for(let g=0;g<=6;g++){const p=lo+(hi-lo)*g/6,y=Y(p);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W-padR,y);ctx.stroke();ctx.fillText(fmt(p,5),W-padR+4*d,y+3*d);}
+ // time axis
+ ctx.textAlign="center";const lblW=(cnt>200?70:92)*d;const step=Math.max(1,Math.ceil(lblW/bw));for(let i=i0+Math.floor(step/2);i<=i1;i+=step){const dt=new Date(C.t[i]*1000);ctx.fillText(cnt>200?dt.toLocaleDateString([],{month:"short",day:"numeric"}):dt.toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}),X(i),H-4*d);}
+ // volume
+ for(let i=i0;i<=i1;i++){ctx.fillStyle=C.c[i]>=C.o[i]?"#26a69a55":"#ef535055";const vh=C.v[i]/vmax*volH;ctx.fillRect(X(i)-bw*0.35,priceH+volH-vh,bw*0.7,vh);}
+ // levels
+ for(const L of R.levels||[]){if(L.px<lo||L.px>hi)continue;ctx.setLineDash([4*d,4*d]);ctx.strokeStyle=L.color;ctx.beginPath();ctx.moveTo(0,Y(L.px));ctx.lineTo(W-padR,Y(L.px));ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=L.color;ctx.textAlign="left";ctx.fillText(L.label,4*d,Y(L.px)-3*d);}
+ // candles
+ for(let i=i0;i<=i1;i++){const up=C.c[i]>=C.o[i];ctx.strokeStyle=ctx.fillStyle=up?"#26a69a":"#ef5350";const x=X(i);ctx.beginPath();ctx.moveTo(x,Y(C.h[i]));ctx.lineTo(x,Y(C.l[i]));ctx.stroke();
+  const y1=Y(Math.max(C.o[i],C.c[i])),y2=Y(Math.min(C.o[i],C.c[i]));ctx.fillRect(x-bw*0.35,y1,Math.max(1,bw*0.7),Math.max(1*d,y2-y1));}
+ // Ichimoku Kumo fill (Senkou A/B) and band fills (upper/lower pairs)
+ const SA=R.overlays["Senkou A"],SB=R.overlays["Senkou B"];
+ if(SA&&SB){for(let i=i0;i<i1;i++){if(SA[i]==null||SB[i]==null||SA[i+1]==null||SB[i+1]==null)continue;ctx.fillStyle=SA[i]>=SB[i]?"#26a69a33":"#ef535033";ctx.beginPath();ctx.moveTo(X(i),Y(SA[i]));ctx.lineTo(X(i+1),Y(SA[i+1]));ctx.lineTo(X(i+1),Y(SB[i+1]));ctx.lineTo(X(i),Y(SB[i]));ctx.closePath();ctx.fill();}}
+ // overlays
+ const cols=["#5c9bff","#ffb74d","#ba68c8","#4dd0e1","#aed581","#ff8a65"];let ci=0;const leg=[];
+ for(const k in R.overlays){const arr=R.overlays[k],col=cols[ci++%cols.length];leg.push(`<span style="color:${col}">— ${k}</span>`);ctx.strokeStyle=col;ctx.lineWidth=1.3*d;ctx.beginPath();let pen=false;
+  for(let i=i0;i<=i1;i++){const y=arr[i];if(y==null){pen=false;continue;}if(!pen){ctx.moveTo(X(i),Y(y));pen=true;}else ctx.lineTo(X(i),Y(y));}ctx.stroke();}
+ $("legend").innerHTML=leg.join(" ");
+ // signals
+ markers=[];for(const s of R.signals){if(s.i<i0||s.i>i1)continue;const x=X(s.i),up=s.side===1,y=up?Y(C.l[s.i])+10*d:Y(C.h[s.i])-10*d;ctx.fillStyle=up?"#26a69a":"#ef5350";ctx.beginPath();
+  if(up){ctx.moveTo(x,y-6*d);ctx.lineTo(x-5*d,y+4*d);ctx.lineTo(x+5*d,y+4*d);}else{ctx.moveTo(x,y+6*d);ctx.lineTo(x-5*d,y-4*d);ctx.lineTo(x+5*d,y-4*d);}ctx.closePath();ctx.fill();markers.push({x,y,s});
+  if(state.sel===s.i){ctx.strokeStyle="#fff";ctx.lineWidth=1.5*d;ctx.beginPath();ctx.arc(x,y,9*d,0,7);ctx.stroke();ctx.setLineDash([3*d,3*d]);ctx.strokeStyle="#ffffff88";ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,priceH);ctx.stroke();ctx.setLineDash([]);
+   if(s.sl){ctx.strokeStyle="#ef5350";ctx.beginPath();ctx.moveTo(x,Y(s.sl));ctx.lineTo(Math.min(W-padR,x+40*d),Y(s.sl));ctx.stroke();}if(s.tp){ctx.strokeStyle="#26a69a";ctx.beginPath();ctx.moveTo(x,Y(s.tp));ctx.lineTo(Math.min(W-padR,x+40*d),Y(s.tp));ctx.stroke();}}}
+ // last price
+ const last=C.c[n-1];if(last>=lo&&last<=hi){ctx.fillStyle="#2962ff";ctx.fillRect(W-padR,Y(last)-8*d,padR,16*d);ctx.fillStyle="#fff";ctx.textAlign="left";ctx.fillText(fmt(last,6),W-padR+4*d,Y(last)+3*d);}
+}
+// interaction: tap marker → tooltip; drag pan; wheel/pinch zoom — view persisted by timestamp
+const tip=$("tip");function showTip(m,px,py){const s=m.s,d=R.success,o=R.oos;tip.innerHTML=`<b class="${s.side===1?"g":"r"}">${s.side===1?"▲ "+t("long"):"▼ "+t("short")}</b> <span class="m">${s.time}</span><br>${t("entry")} <b>${fmt(s.px)}</b> · ${t("sl")} <span class="r">${fmt(s.sl)}</span> · ${t("tp")} <span class="g">${fmt(s.tp)}</span> · ${R.candles.t.length-1-s.i} ${t("bars_ago")}<br><span class="m">${esc(lang==="fa"?R.name_fa:R.name)}</span><br>${succHtml(d,o)}`;
+ tip.style.display="block";const r=tip.getBoundingClientRect();tip.style.left=Math.max(4,Math.min(window.innerWidth-r.width-4,px-r.width/2))+"px";tip.style.top=Math.max(4,py-r.height-16)+"px";clearTimeout(tip._t);tip._t=setTimeout(()=>tip.style.display="none",6000);}
+function hit(ev){const r=cv.getBoundingClientRect(),x=(ev.clientX-r.left)*dpr(),y=(ev.clientY-r.top)*dpr();let best=null,bd=18*dpr();for(const m of markers){const dd=Math.hypot(m.x-x,m.y-y);if(dd<bd){bd=dd;best=m;}}return best;}
+let drag=null,pinch=null;
+cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);drag={x:e.clientX,t0:state.view.t0,t1:state.view.t1,moved:false};});
+cv.addEventListener("pointermove",e=>{if(!drag||!R)return;const dx=e.clientX-drag.x;if(Math.abs(dx)>3)drag.moved=true;const span=drag.t1-drag.t0,per=span/cv.getBoundingClientRect().width;let t0=drag.t0-dx*per,t1=drag.t1-dx*per;const T=R.candles.t;const lim0=T[0],lim1=T[T.length-1]+(T[1]-T[0])*20;if(t0<lim0){t1+=lim0-t0;t0=lim0;}if(t1>lim1){t0-=t1-lim1;t1=lim1;}state.view.t0=t0;state.view.t1=t1;render();});
+cv.addEventListener("pointerup",e=>{if(drag&&!drag.moved){const m=hit(e);if(m){state.sel=m.s.i;render();showTip(m,e.clientX,e.clientY);}else{tip.style.display="none";}}drag=null;save();});
+cv.addEventListener("wheel",e=>{e.preventDefault();zoom(e.deltaY>0?1.15:0.87,(e.clientX-cv.getBoundingClientRect().left)/cv.getBoundingClientRect().width);},{passive:false});
+cv.addEventListener("touchstart",e=>{if(e.touches.length===2){pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);drag=null;}},{passive:true});
+cv.addEventListener("touchmove",e=>{if(e.touches.length===2&&pinch){const d2=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);zoom(pinch/d2,0.5);pinch=d2;}},{passive:true});
+cv.addEventListener("touchend",()=>{pinch=null;});
+function zoom(f,anchor){if(!R)return;const v=state.view,span=v.t1-v.t0,a=v.t0+span*anchor;const ns=Math.max((R.candles.t[1]-R.candles.t[0])*8,Math.min(span*f,(R.candles.t[R.candles.t.length-1]-R.candles.t[0])*1.1));v.t0=a-(a-v.t0)*ns/span;v.t1=v.t0+ns;render();save();}
+function renderStats(){const s=R.stats;const tile=(k,v,c="")=>`<div class="tile"><div class="k">${t(k)}</div><div class="v ${c}">${v}</div></div>`;
+ $("tiles").innerHTML=tile("wr",pct(s.win_rate),s.win_rate>=50?"g":"")+tile("pf",(s.profit_factor||0).toFixed(2),s.profit_factor>=1?"g":"r")+tile("n",s.trades)+tile("ret",(s.return_pct||0).toFixed(1)+"%",s.return_pct>=0?"g":"r")+tile("dd",(s.max_dd_pct||0).toFixed(1)+"%","r")+tile("exp",(s.avg_r||s.expectancy_r||0).toFixed(2));
+ $("succ").innerHTML=succHtml(R.success,R.oos);
+ $("trades").innerHTML=`<tr><th>${t("entry")}</th><th>${t("side")}</th><th>R</th><th>PnL</th><th></th></tr>`+R.trades.slice().reverse().map(x=>`<tr><td>${x.entry}</td><td class="${x.side>0?"g":"r"}">${x.side>0?t("long"):t("short")}</td><td class="${x.r>=0?"g":"r"}">${(x.r||0).toFixed(2)}</td><td class="${x.pnl>=0?"g":"r"}">${fmt(x.pnl,4)}</td><td class="m">${x.reason||""}</td></tr>`).join("");}
+
+// ---------- signals page
+$("scan").onclick=async()=>{$("status2").textContent=t("loading");$("sigs").innerHTML="";try{const r=await api("/api/signals",{sym:$("sym2").value,tf:$("tf2").value,recent:5});
+ $("sigs").innerHTML=`<tr><th>${t("strategy")}</th><th>${t("side")}</th><th>${t("when")}</th><th>${t("price")}</th><th>${t("sl")}</th><th>${t("tp")}</th><th>${t("rr")}</th><th>${t("wr")}</th><th>PF</th><th>n</th><th>${t("grade")}</th></tr>`+
+ r.rows.map(x=>`<tr class="row" title="${t("succ")}: ${pct(x.wr)} · PF ${x.pf.toFixed(2)} · n=${x.n}" onclick="openSig('${x.sid}')"><td>${esc(lang==="fa"?x.name_fa:x.name)}</td><td class="${x.side===1?"g":"r"}">${x.side===1?"▲":"▼"}</td><td>${x.time}<br><span class="m">${x.ago} ${t("bars_ago")}</span></td><td>${fmt(x.px)}</td><td class="r">${fmt(x.sl)}</td><td class="g">${fmt(x.tp)}</td><td>${x.rr?("1:"+x.rr.toFixed(1)):"—"}</td><td class="succ ${succCls(x)}">${pct(x.wr)}</td><td class="${x.pf>=1?"g":"r"}">${x.pf.toFixed(2)}</td><td class="m">${x.n}</td><td>${x.grade||"—"}${x.oos_wr?"<br><span class=m>OOS "+pct(x.oos_wr)+"</span>":""}</td></tr>`).join("");
+ $("status2").textContent=r.rows.length+" · "+r.time;}catch(e){$("status2").textContent="⚠ "+e;}};
+window.openSig=sid=>{$("sym").value=$("sym2").value;$("tf").value=$("tf2").value;state.view=null;fillStrats().then(()=>{$("sid").value=sid;run();document.querySelector('nav button[data-p="chart"]').click();});};
+
+// ---------- advisor
+$("advise").onclick=async()=>{$("status3").textContent=t("loading");try{const a=await api("/api/advise",{sym:$("sym3").value});let h=`<h3>${a.symbol} — ${t("verdict")}: <span class="${(a.verdict||{}).side===1?"g":((a.verdict||{}).side===-1?"r":"y")}">${JSON.stringify(a.verdict&&(a.verdict.text||a.verdict.side)||"—")}</span></h3><div class="wrap"><table><tr><th>TF</th><th>${t("regime")}</th><th>${t("best")}</th><th>${t("wr")}</th><th>PF</th><th>${t("signal")}</th></tr>`;
+ for(const[tf,d]of Object.entries(a.tfs||{})){const b=d.best||{},s=d.signal||{};h+=`<tr><td>${tf}</td><td>${d.regime||"—"}</td><td>${b.sid||b.id||"—"}</td><td class="succ ${succCls({wr:b.wr,pf:b.pf,n:b.n||40})}">${pct(b.wr)}</td><td>${b.pf!=null?Number(b.pf).toFixed(2):"—"}</td><td class="${s.side===1?"g":(s.side===-1?"r":"m")}">${s.side===1?"▲":(s.side===-1?"▼":"—")} ${s.time||""}</td></tr>`;}
+ $("advout").innerHTML=h+"</table></div>";$("status3").textContent="";}catch(e){$("status3").textContent="⚠ "+e;}};
+
+// ---------- fast
+$("fast").onclick=async()=>{$("status4").textContent=t("loading");try{const rows=await api("/api/fast",{tf:$("tf4").value,n:20});const st=rows.filter(r=>r.setup);
+ $("fasttbl").innerHTML=`<tr><th>Sym</th><th>${t("side")}</th><th>${t("votes")}</th><th>${t("entry")}</th><th>${t("sl")}</th><th>${t("tp")}</th><th>${t("wr")}</th><th>PF</th></tr>`+st.map(r=>{const s=r.setup,q=r.stats||{};return`<tr><td>${r.sym}</td><td class="${s.side===1?"g":"r"}">${s.side===1?"▲":"▼"}</td><td>${s.votes} <span class="m">${(s.agree||[]).slice(0,4).join(", ")}</span></td><td>${fmt(s.px)}</td><td class="r">${fmt(s.sl)}</td><td class="g">${fmt(s.tp)}</td><td class="succ ${succCls({wr:q.win_rate,pf:q.profit_factor,n:q.trades})}">${pct(q.win_rate)}</td><td>${q.profit_factor!=null?q.profit_factor.toFixed(2):"—"}</td></tr>`}).join("");
+ $("status4").textContent=st.length+" / "+rows.length;}catch(e){$("status4").textContent="⚠ "+e;}};
+
+// ---------- academy
+let BOOKS=null;
+async function renderAcademy(){const q=($("q").value||"").toLowerCase();$("strats").innerHTML=STRATS.filter(s=>!q||(s.name+s.id+s.category+s.author+(s.description||"")).toLowerCase().includes(q)).map(s=>`<details><summary>${esc(s.name)} <span class="pill">${esc(s.category)}</span> ${s.label?`<span class="succ ${succCls(s.success)}">${esc(s.label)}</span>`:""}</summary><div style="padding:6px 0 10px"><div class="m">${esc(s.author)} · ${"★".repeat(s.difficulty)} · ${esc(s.timeframes)}</div><p>${esc(s.description)}</p><ol>${(s.rules||[]).map(r=>`<li>${esc(r)}</li>`).join("")}</ol>${succHtml(s.success,s.oos)}</div></details>`).join("");
+ if(!BOOKS)BOOKS=await api("/api/library",{lang});$("books").innerHTML=BOOKS.books.filter(b=>!q||(b.title+b.author+b.lesson+b.where).toLowerCase().includes(q)).map(b=>`<details><summary>${esc(b.title)} <span class="pill">${esc(b.category)}</span></summary><div style="padding:6px 0 10px"><div class="m">${esc(b.author)}</div><p>${esc(b.lesson)}</p><div class="m">↳ ${esc(b.where)}</div></div></details>`).join("");}
+$("q").oninput=()=>renderAcademy();
+init();
+</script>
+</body>
+</html>
