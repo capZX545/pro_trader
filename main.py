@@ -118,13 +118,23 @@ def main():
             maintenance.start()
         except Exception:
             pass
+    def _freeze():   # move ~200k start-up objects out of the cyclic GC → no more ~100 ms gen-2 pauses in the UI
+        import gc
+        gc.collect(); gc.freeze()
+    QtCore.QTimer.singleShot(4000, _freeze)
     rc = app.exec()
     try:
         from core import maintenance
         maintenance.stop()
     except Exception:
         pass
-    sys.exit(rc)
+    try:
+        for fh in (sys.stdout, sys.stderr):
+            if fh:
+                fh.flush()
+    except Exception:
+        pass
+    os._exit(rc)   # daemon threads still winding down during interpreter teardown = crash-on-exit on Windows
 
 
 if __name__ == "__main__":

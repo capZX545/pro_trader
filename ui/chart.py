@@ -147,6 +147,9 @@ class LiveBarItem(pg.GraphicsObject):
 
 
 class VolumeItem(pg.GraphicsObject):
+    """Volume bars in lazily-built 1000-bar QPicture chunks; only chunks intersecting the view are painted."""
+    CHUNK = 1000
+
     def __init__(self, df):
         super().__init__()
         self.df = df
@@ -155,12 +158,14 @@ class VolumeItem(pg.GraphicsObject):
     def update_df(self, df):
         n_old, n_new = len(self.df), len(df)
         self.df = df
-        if n_new == n_old + 1 and self.picture is not None:
+        if n_new == n_old + 1 and self._cache is not None:
             i = n_new - 1; r = df.iloc[i]
             pic = QtGui.QPicture(); p = QtGui.QPainter(pic)
             p.setPen(pg.mkPen(None)); p.setBrush(pg.mkBrush((C["green"] if r.close >= r.open else C["red"]) + "88"))
             p.drawRect(QtCore.QRectF(i - 0.35, 0, 0.7, float(r.volume))); p.end()
             self.prepareGeometryChange(); self.extra.append(pic)
+            self._vmax = max(self._vmax, float(r.volume))
+            self._rect = QtCore.QRectF(-0.5, 0, n_new + 1, self._vmax * 1.02 or 1)
             if len(self.extra) > 500:
                 self._gen()
         else:
@@ -170,30 +175,47 @@ class VolumeItem(pg.GraphicsObject):
 
     def _gen(self):
         df = self.df
-        self.picture = QtGui.QPicture()
+        self.o, self.c = df.open.values.astype(float), df.close.values.astype(float)
+        self.v = np.nan_to_num(df.volume.values.astype(float))
+        self._vmax = float(self.v.max()) if len(self.v) else 1.0
+        self._cache = {}
         self.extra = []
-        p = QtGui.QPainter(self.picture)
-        o, c, v = df.open.values.astype(float), df.close.values.astype(float), df.volume.values.astype(float)
-        x = np.arange(len(v), dtype=float)
-        up = c >= o
-        p.setPen(pg.mkPen(None))
-        for mask, col in ((up, C["green"] + "88"), (~up, C["red"] + "88")):
-            if mask.any():
-                p.setBrush(pg.mkBrush(col))
-                xi, vi = x[mask], v[mask]
-                p.drawRects([QtCore.QRectF(xi[k] - 0.35, 0, 0.7, vi[k]) for k in range(len(xi))])
-        p.end()
+        self._rect = QtCore.QRectF(-0.5, 0, len(self.v) + 1, self._vmax * 1.02 or 1)
 
-    def paint(self, p, *args):
-        p.drawPicture(0, 0, self.picture)
+    def _chunk(self, k):
+        pic = self._cache.get(k)
+        if pic is None:
+            a, b = k * self.CHUNK, min((k + 1) * self.CHUNK, len(self.v))
+            pic = QtGui.QPicture(); p = QtGui.QPainter(pic)
+            x = np.arange(a, b, dtype=float); o, c, v = self.o[a:b], self.c[a:b], self.v[a:b]
+            up = c >= o
+            p.setPen(pg.mkPen(None))
+            for mask, col in ((up, C["green"] + "88"), (~up, C["red"] + "88")):
+                if mask.any():
+                    p.setBrush(pg.mkBrush(col))
+                    xi, vi = x[mask], v[mask]
+                    p.drawRects([QtCore.QRectF(xi[j] - 0.35, 0, 0.7, vi[j]) for j in range(len(xi))])
+            p.end()
+            self._cache[k] = pic
+        return pic
+
+    def paint(self, p, opt, *args):
+        n = len(self.v)
+        if n == 0:
+            return
+        try:
+            vr = self.getViewBox().viewRect(); x0, x1 = int(max(0, vr.left() - 1)), int(min(n - 1, vr.right() + 1))
+        except Exception:
+            x0, x1 = 0, n - 1
+        if x1 < x0:
+            return
+        for k in range(x0 // self.CHUNK, x1 // self.CHUNK + 1):
+            p.drawPicture(0, 0, self._chunk(k))
         for pic in self.extra:
             p.drawPicture(0, 0, pic)
 
     def boundingRect(self):
-        r = QtCore.QRectF(self.picture.boundingRect())
-        for pic in self.extra:
-            r = r.united(QtCore.QRectF(pic.boundingRect()))
-        return r
+        return self._rect
 
 
 class TimeAxis(pg.AxisItem):
@@ -386,9 +408,10 @@ class PGChart(QtWidgets.QWidget):
                     col = OVERLAY_COLORS[(j + 1) % len(OVERLAY_COLORS)]
                     y = np.asarray(s.values, dtype=float)
                     if sname.lower() in ("hist", "momentum", "squeeze"):
-                        brushes = [pg.mkBrush(C["green"] + "99" if v >= 0 else C["red"] + "99") for v in np.nan_to_num(y)]
-                        bg = pg.BarGraphItem(x=x, height=np.nan_to_num(y), width=0.7, brushes=brushes, pen=pg.mkPen(None))
-                        pl.addItem(bg)
+                        yy = np.nan_to_num(y); pos = yy >= 0   # two items instead of one brush per bar (40k mkBrush ≈ 0.3 s)
+                        for mask, colr in ((pos, C["green"] + "99"), (~pos, C["red"] + "99")):
+                            if mask.any():
+                                pl.addItem(pg.BarGraphItem(x=x[mask], height=yy[mask], width=0.7, brush=pg.mkBrush(colr), pen=pg.mkPen(None)))
                     else:
                         pl.plot(x, y, pen=pg.mkPen(col, width=1.2), name=sname, connect="finite")
                 if pname.upper().startswith("RSI") or pname in ("MFI", "StochRSI"):

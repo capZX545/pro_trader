@@ -137,6 +137,29 @@ class MainWindow(QtWidgets.QMainWindow):
                         fn()
                     except Exception:
                         pass
+        for _, _, pg_ in self.pages:                      # Live-Market engine
+            eng = getattr(pg_, "engine", None)
+            if eng is not None and hasattr(eng, "stop"):
+                try:
+                    eng.stop()
+                except Exception:
+                    pass
+        try:
+            from core import maintenance; maintenance.stop()
+        except Exception:
+            pass
+        # Destroying a running QThread aborts the process ("QThread: Destroyed while thread is still running")
+        try:
+            import time as _t
+            from ui.widgets import _LIVE_WORKERS
+            deadline = _t.time() + 4
+            for w in list(_LIVE_WORKERS):
+                try:
+                    w.cancel(); w.wait(max(1, int((deadline - _t.time()) * 1000)))
+                except Exception:
+                    pass
+        except Exception:
+            pass
         super().closeEvent(e)
 
     def open_chart(self, sym, tf, sid):
