@@ -142,6 +142,12 @@ class SymbolBar(QtWidgets.QWidget):
 
 
 # ---------------------------------------------------------------- Dashboard
+class _TickBridge(QtCore.QObject):
+    """Thread → UI-thread bridge for stream callbacks."""
+    tick = QtCore.pyqtSignal(object, float, float, float, float, float, bool)
+    status = QtCore.pyqtSignal(str)
+
+
 class DashboardPage(QtWidgets.QWidget):
     goto = QtCore.pyqtSignal(object)
 
@@ -283,32 +289,100 @@ class DashboardPage(QtWidgets.QWidget):
         self.lesson_lbl.setText(f"<b>{strat_name(cls)}</b><br><span style='color:{C['muted']}'>{cls.author}</span><br><br>{d}")
 
     def refresh(self):
+        """Two stages so the chart is on screen within ~1 s: (1) load data → draw chart + tiles + start live stream,
+        (2) rank all strategies in the background and fill the table when done."""
         sym, tf = self.bar.symbol(), self.bar.timeframe()
         self.bar.btn.setEnabled(False)
         self.bar.btn.setText(t("loading"))
 
-        def work():
-            df, ok = load_data(sym, tf)
-            rows = []
-            for cls in S.ALL_STRATEGIES:
-                try:
-                    r = cls().run(df)
-                    st = run_backtest(df, r).stats
-                    rows.append((cls, st))
-                except Exception:
-                    pass
-            rows.sort(key=lambda x: x[1]["return_pct"], reverse=True)
-            return df, ok, rows
+        def work1():
+            return load_data(sym, tf)
 
-        self.w = Worker(work)
-        self.w.done.connect(lambda res: self._show(sym, tf, *res))
+        def stage2(res):
+            df, ok = res
+            self._show(sym, tf, df, ok, None)
+            self._start_stream(sym, tf)
+
+            def work2():
+                rows = []
+                for cls in S.ALL_STRATEGIES:
+                    try:
+                        r = cls().run(df)
+                        st = run_backtest(df, r).stats
+                        rows.append((cls, st))
+                    except Exception:
+                        pass
+                rows.sort(key=lambda x: x[1]["return_pct"], reverse=True)
+                return rows
+            self.w2 = Worker(work2)
+            self.w2.done.connect(lambda rows: self._fill_top(rows) if (sym, tf) == (self.bar.symbol(), self.bar.timeframe()) else None)
+            self.w2.error.connect(lambda e: None)
+            self.w2.start()
+
+        self.w = Worker(work1)
+        self.w.done.connect(stage2)
         self.w.error.connect(lambda e: (self.bar.btn.setEnabled(True), self.bar.btn.setText(t("load")), QtWidgets.QMessageBox.warning(self, "Error", e)))
         self.w.start()
+
+    # -- live stream for the Market-pulse chart (same engine as the Chart page)
+    def _start_stream(self, sym, tf):
+        self._stop_stream()
+        try:
+            from core.data import resolve
+            from core.sources import CandleStream
+            cat, (yt, bs) = resolve(sym)
+        except Exception:
+            bs = None
+        if not bs:
+            return
+        if not hasattr(self, "_tick_sig"):
+            self._tick_sig = _TickBridge(self)
+            self._tick_sig.tick.connect(self._on_tick)
+            self._tick_sig.status.connect(lambda st: self.chart.set_live_status(("● " if st.startswith("live") else "○ ") + st, st.startswith("live")))
+        self._stream = CandleStream(bs[:-4], tf, on_candle=lambda *a: self._tick_sig.tick.emit(*a), on_status=lambda st: self._tick_sig.status.emit(st))
+        self._stream.start()
+
+    def _stop_stream(self):
+        st = getattr(self, "_stream", None)
+        if st is not None:
+            try:
+                st.stop()
+            except Exception:
+                pass
+            self._stream = None
+
+    def stop_stream(self):
+        self._stop_stream()
+
+    def _on_tick(self, ts, o, h, l, c, v, closed):
+        try:
+            if self.chart.df is None:
+                return
+            self.chart.update_last_bar(pd.Timestamp(int(ts), unit="ms"), o, h, l, c, v, closed)
+            self.t_price.set(f"{c:,.6g}")
+        except Exception:
+            pass
+
+    def _fill_top(self, rows):
+        self.top_tbl.setSortingEnabled(False)
+        self.top_tbl.setRowCount(0)
+        for cls, st in rows[:10]:
+            r = self.top_tbl.rowCount()
+            self.top_tbl.insertRow(r)
+            it = cell(strat_name(cls))
+            it.setData(QtCore.Qt.ItemDataRole.UserRole + 1, cls.id)
+            self.top_tbl.setItem(r, 0, it)
+            self.top_tbl.setItem(r, 1, ncell(st["trades"], "{:.0f}"))
+            self.top_tbl.setItem(r, 2, ncell(st["win_rate"], "{:.1f}%"))
+            self.top_tbl.setItem(r, 3, ncell(st["profit_factor"], "{:.2f}", color_for(st["profit_factor"] - 1)))
+            self.top_tbl.setItem(r, 4, ncell(st["return_pct"], "{:+.1f}%", color_for(st["return_pct"])))
+            self.top_tbl.setItem(r, 5, ncell(st["max_dd_pct"], "{:.1f}%", C["red"]))
+        self.top_tbl.setSortingEnabled(True)
 
     def _show(self, sym, tf, df, ok, rows):
         self.bar.btn.setEnabled(True)
         self.bar.btn.setText(t("load"))
-        self.chart.set_data(df.tail(400), title=f"{sym} · {tf}" + ("" if ok else f"  [{t('offline')}]"))
+        self.chart.set_data(df.tail(400).copy(), title=f"{sym} · {tf}" + ("" if ok else f"  [{t('offline')}]"))
         c = df.close
         px = c.iloc[-1]
         bars_24h = {"1m": 1440, "3m": 480, "5m": 288, "15m": 96, "30m": 48, "1h": 24, "2h": 12, "4h": 6, "6h": 4, "12h": 2, "1d": 1, "3d": 1, "1wk": 1, "1mo": 1}.get(tf, 24)
@@ -327,20 +401,10 @@ class DashboardPage(QtWidgets.QWidget):
         vol_lbl = t("high") if atrp > atr_med * 1.3 else (t("low") if atrp < atr_med * 0.7 else t("normal"))
         self.t_vol.set(f"{atrp:.2f}% · {vol_lbl}")
         self.t_rsi.set(f"{rsi:.1f}", C["red"] if rsi > 70 else (C["green"] if rsi < 30 else None))
-        self.top_tbl.setSortingEnabled(False)
-        self.top_tbl.setRowCount(0)
-        for cls, st in rows[:10]:
-            r = self.top_tbl.rowCount()
-            self.top_tbl.insertRow(r)
-            it = cell(strat_name(cls))
-            it.setData(QtCore.Qt.ItemDataRole.UserRole + 1, cls.id)
-            self.top_tbl.setItem(r, 0, it)
-            self.top_tbl.setItem(r, 1, ncell(st["trades"], "{:.0f}"))
-            self.top_tbl.setItem(r, 2, ncell(st["win_rate"], "{:.1f}%"))
-            self.top_tbl.setItem(r, 3, ncell(st["profit_factor"], "{:.2f}", color_for(st["profit_factor"] - 1)))
-            self.top_tbl.setItem(r, 4, ncell(st["return_pct"], "{:+.1f}%", color_for(st["return_pct"])))
-            self.top_tbl.setItem(r, 5, ncell(st["max_dd_pct"], "{:.1f}%", C["red"]))
-        self.top_tbl.setSortingEnabled(True)
+        if rows is not None:
+            self._fill_top(rows)
+        else:
+            self.top_tbl.setRowCount(0)
 
     def _open_strat(self, item):
         sid = self.top_tbl.item(item.row(), 0).data(QtCore.Qt.ItemDataRole.UserRole + 1)

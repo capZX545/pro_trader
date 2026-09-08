@@ -45,6 +45,33 @@ def main():
     from ui.main_window import MainWindow
     w = MainWindow()
     w.show()
+    # --diag: open Chart page, load default symbol, wait 20 s, save a screenshot + environment report into the data dir,
+    # then exit. Lets a user with a blank chart send exactly what their machine renders:  ProTrader.exe --diag
+    if "--diag" in sys.argv:
+        from core.paths import data as _d
+
+        def _diag():
+            try:
+                w.goto(1); page = w.pages[1][2]; page.run()
+            except Exception as e:
+                print("diag run error", e)
+
+            def _snap():
+                try:
+                    out = _d("diag_chart.png"); w.grab().save(out)
+                    import platform
+                    rep = {"platform": platform.platform(), "python": sys.version, "qt": QtCore.qVersion(),
+                           "renderer": getattr(getattr(page, "chart", None), "mode", None),
+                           "df_rows": None if getattr(page, "df", None) is None else int(len(page.df)),
+                           "live": page.live_lbl.text() if hasattr(page, "live_lbl") else None,
+                           "qt_opengl": os.environ.get("QT_OPENGL"), "qpa": os.environ.get("QT_QPA_PLATFORM")}
+                    json.dump(rep, open(_d("diag_report.json"), "w"), indent=1, ensure_ascii=False)
+                    print("diag saved:", out)
+                except Exception as e:
+                    print("diag error", e)
+                app.quit()
+            QtCore.QTimer.singleShot(20000, _snap)
+        QtCore.QTimer.singleShot(1500, _diag)
     # self-maintenance: forward-test outcomes, safe auto-fixes, playbook refresh when stale (daemon thread)
     if os.environ.get("PROTRADER_NO_MAINT") != "1":
         try:

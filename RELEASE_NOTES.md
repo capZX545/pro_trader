@@ -1,4 +1,10 @@
-# ProTrader Academy v1.1.1
+# ProTrader Academy v1.1.2
+
+## v1.1.2 — chart appears immediately, everywhere
+- **Dashboard "Market pulse" was blank for a long time**: it waited until all 94 strategies were back-tested before drawing anything (minutes on a slow PC, and looked like "the chart never shows"). Now it draws the chart ~1 s after data arrives, starts the **live stream** on it, and fills the strategy table later in the background.
+- `ProTrader.exe --diag` : opens the chart page, waits 20 s, saves `diag_chart.png` + `diag_report.json` to the data folder (`%APPDATA%\ProTrader`) — send these if anything still looks wrong.
+- Verified on the actual frozen (PyInstaller) build, not just source.
+
 
 ## v1.1.1 — chart guaranteed visible
 - Some Windows machines showed an **empty chart area** even though data was live (pyqtgraph's QGraphicsView canvas never painted — GPU/driver specific). New `ui/chart_compat.py`: a pure-QPainter software renderer (candles, volume, overlays, signals, zones, levels, trades, sub-panels, crosshair, wheel-zoom, drag-pan, live price tag) that draws through the same raster path as every other widget.
