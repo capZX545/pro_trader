@@ -175,6 +175,10 @@ BOOKS = [
      "Optimise on rolling in-sample, test on the next out-of-sample; Walk-Forward Efficiency = OOS/IS performance; only trade what survives OOS.",
      "روی پنجرهٔ درون‌نمونه بهینه کن، روی پنجرهٔ بعدی برون‌نمونه بیازما؛ کارایی WF = عملکرد OOS/IS؛ فقط چیزی را معامله کن که از OOS جان سالم به در برد.",
      "core/scalp_wfo (confluence-knob walk-forward per symbol) · Fast Signals ▸ WFO button"),
+    ("Ichimoku Kinko Hyo — the complete Hosoda system (five lines, three theories: time / wave / price)", "G. Hosoda · N. Elliott 'Ichimoku Charts' · M. Patel 'Trading with Ichimoku Clouds' · K. Péloille", "Trend",
+     "Grade every TK cross by location (strong/neutral/weak vs Kumo); Chikou must be free; the twist is a warning not an entry; Kijun = automatic 50 % retracement; flat Span B/Kijun = magnet; N/V/E/NT targets from the last A-B-C wave; kihon-suchi 9/17/26/33/42/51/65/76 count change days; crypto scales 9/26/52 → 10/30/60 or 20/60/120.",
+     "هر کراس TK را با مکان درجه‌بندی کن (قوی/خنثی/ضعیف نسبت به ابر)؛ چیکو باید آزاد باشد؛ چرخش ابر هشدار است نه ورود؛ کیجون = اصلاح ۵۰٪ خودکار؛ اسپن B/کیجون صاف = آهن‌ربا؛ اهداف N/V/E/NT از آخرین موج A-B-C؛ اعداد پایه ۹/۱۷/۲۶/۳۳/۴۲/۵۱/۶۵/۷۶ روزهای تغییر؛ در کریپتو ۹/۲۶/۵۲ → ۱۰/۳۰/۶۰ یا ۲۰/۶۰/۱۲۰.",
+     "strategies ichimoku_perfect · ichimoku_tk_strong · ichimoku_kumo_breakout · ichimoku_kijun_bounce · ichimoku_kumo_twist · ichimoku_chikou_break · ichimoku_edge_to_edge · ichimoku_flat_kumo · ichimoku_crypto_20_60_120 · ichimoku_mtf · ichimoku_wave_targets · chart Kumo fill + Ichimoku template"),
 ]
 BOTS = [
     ("NostalgiaForInfinity X (freqtrade)", "all-round", "5m; 65 buy combos; EWO regime split; informative 1h/4h gates; exits by signal only", "nfi_dip_multi · nfi_lite · Bot desk protections"),

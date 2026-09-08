@@ -8,6 +8,14 @@ from .theme import C
 
 pg.setConfigOptions(antialias=True, background=C["panel"], foreground=C["text"])
 
+def _fmt_ts(ts):
+    try:
+        from core import clock
+        return clock.fmt(ts)
+    except Exception:
+        return pd.Timestamp(ts).strftime("%Y-%m-%d %H:%M")
+
+
 OVERLAY_COLORS = ["#ffb74d", "#4fc3f7", "#ba68c8", "#aed581", "#ff8a65", "#90a4ae", "#f06292", "#fff176"]
 
 
@@ -224,7 +232,11 @@ class TimeAxis(pg.AxisItem):
         self.index = None
 
     def set_index(self, idx):
-        self.index = idx
+        try:
+            from core import clock
+            self.index = clock.to_local(idx)
+        except Exception:
+            self.index = idx
 
     def tickStrings(self, values, scale, spacing):
         if self.index is None or len(self.index) == 0:
@@ -263,6 +275,9 @@ class PGChart(QtWidgets.QWidget):
         self.panel_plots = []
         self.vline = None
         self.hline = None
+        self.drawings = None
+        self._hl = []                       # highlight graphics for a clicked signal
+        self.signal_clicked = None          # callback(i)
         self._build()
 
     def _build(self):
@@ -277,6 +292,16 @@ class PGChart(QtWidgets.QWidget):
             self.glw.scene().sigMouseMoved.disconnect(self._mouse)
         except Exception:
             pass
+        # clipToView curves raise a harmless-but-noisy AttributeError inside pyqtgraph when the layout is cleared
+        # while they are still parented (viewRangeChanged → parent is the GraphicsLayoutWidget). Detach them first.
+        for pl in ([self.price_plot, self.vol_plot] + list(self.panel_plots)):
+            if pl is None:
+                continue
+            try:
+                for it in list(pl.listDataItems()):
+                    pl.removeItem(it)
+            except Exception:
+                pass
         self.glw.clear()
         self.taxis = TimeAxis(orientation="bottom")
         self.price_plot = self.glw.addPlot(row=0, col=0, axisItems={"bottom": TimeAxis(orientation="bottom")})
@@ -303,6 +328,75 @@ class PGChart(QtWidgets.QWidget):
         self.price_plot.addItem(self.vline, ignoreBounds=True)
         self.price_plot.addItem(self.hline, ignoreBounds=True)
         self.price_plot.scene().sigMouseMoved.connect(self._mouse)
+        try:
+            self.glw.scene().sigMouseClicked.disconnect(self._click)
+        except Exception:
+            pass
+        self.glw.scene().sigMouseClicked.connect(self._click)
+        from .chart_tools import DrawingLayer
+        old = self.drawings
+        self.drawings = DrawingLayer(self.price_plot, self)
+        if old is not None:
+            self.drawings.tool = old.tool
+            self.drawings._json_cache = getattr(old, "_json_cache", None)
+        self._hl = []
+
+    def _click(self, ev):
+        """Cursor tool: click on/near a signal marker → highlight it and report to the page."""
+        if self.df is None or self.drawings is None or self.drawings.tool != "cursor" or ev.button() != QtCore.Qt.MouseButton.LeftButton:
+            return
+        if not self.price_plot.sceneBoundingRect().contains(ev.scenePos()):
+            return
+        mp = self.price_plot.vb.mapSceneToView(ev.scenePos())
+        i = int(round(mp.x()))
+        res = getattr(self, "_result", None)
+        if res is None or not (0 <= i < len(self.df)):
+            return
+        sig = res.signal.values
+        cand = [j for j in range(max(0, i - 2), min(len(sig), i + 3)) if sig[j] != 0]
+        if cand:
+            j = min(cand, key=lambda j: abs(j - i))
+            self.highlight(j, pan=False)
+            if callable(self.signal_clicked):
+                self.signal_clicked(j)
+
+    def highlight(self, i, pan=True):
+        """Mark signal bar i: vertical line + ring + label with local time, entry/stop/target. Pans the view if asked."""
+        for g in self._hl:
+            try:
+                self.price_plot.removeItem(g)
+            except Exception:
+                pass
+        self._hl = []
+        if self.df is None or not (0 <= i < len(self.df)):
+            return
+        res = getattr(self, "_result", None)
+        r = self.df.iloc[i]
+        side = int(res.signal.iloc[i]) if res is not None else 0
+        col = C["green"] if side == 1 else (C["red"] if side == -1 else C["yellow"])
+        vl = pg.InfiniteLine(angle=90, pos=i, pen=pg.mkPen(col, width=1.2, style=QtCore.Qt.PenStyle.DashLine))
+        self.price_plot.addItem(vl, ignoreBounds=True)
+        ring = pg.ScatterPlotItem(x=[i], y=[float(r.close)], symbol="o", size=22, brush=pg.mkBrush(None), pen=pg.mkPen(col, width=2))
+        self.price_plot.addItem(ring, ignoreBounds=True)
+        txt = f"{_fmt_ts(self.df.index[i])}\n{'LONG' if side == 1 else ('SHORT' if side == -1 else '')} @ {r.close:,.6g}"
+        try:
+            sl = float(res.stop.iloc[i]); tp = float(res.target.iloc[i])
+            if sl == sl and tp == tp:
+                txt += f"\nSL {sl:,.6g}  TP {tp:,.6g}"
+                for y, cc in ((sl, C["red"]), (tp, C["green"])):
+                    ln = pg.PlotDataItem([i, i + 30], [y, y], pen=pg.mkPen(cc, width=1, style=QtCore.Qt.PenStyle.DotLine))
+                    self.price_plot.addItem(ln, ignoreBounds=True); self._hl.append(ln)
+        except Exception:
+            pass
+        lab = pg.TextItem(txt, color="#ffffff", anchor=(0, 1) if side == 1 else (0, 0), fill=pg.mkBrush(col + "cc"))
+        lab.setPos(i + 1, float(r.low if side == 1 else r.high)); lab.setZValue(60)
+        self.price_plot.addItem(lab, ignoreBounds=True)
+        self._hl += [vl, ring, lab]
+        if pan:
+            (x0, x1), _ = self.price_plot.viewRange()
+            w = max(x1 - x0, 40)
+            if not (x0 + w * 0.1 <= i <= x1 - w * 0.1):
+                self.price_plot.setXRange(i - w * 0.6, i + w * 0.4, padding=0)
 
     def _mouse(self, pos):
         if self.df is None or self.price_plot is None:
@@ -325,7 +419,7 @@ class PGChart(QtWidgets.QWidget):
                 chg = (r.close / r.open - 1) * 100
                 col = C["green"] if chg >= 0 else C["red"]
                 self.info.setText(
-                    f"<span style='color:{C['text']}'>{pd.Timestamp(self.df.index[i]).strftime('%Y-%m-%d %H:%M')}</span>"
+                    f"<span style='color:{C['text']}'>{_fmt_ts(self.df.index[i])}</span>"
                     f"&nbsp;&nbsp;O <b>{r.open:,.6g}</b>&nbsp; H <b>{r.high:,.6g}</b>&nbsp; L <b>{r.low:,.6g}</b>&nbsp; C <b>{r.close:,.6g}</b>"
                     f"&nbsp; <span style='color:{col}'>{chg:+.2f}%</span>&nbsp; Vol <b>{r.volume:,.0f}</b>")
                 self.barHovered.emit(i)
@@ -376,10 +470,25 @@ class PGChart(QtWidgets.QWidget):
             for (px, lbl, col) in result.levels or []:
                 self.price_plot.addItem(pg.InfiniteLine(angle=0, pos=px, pen=pg.mkPen(col, width=1, style=QtCore.Qt.PenStyle.DotLine)))
             # overlays
+            curves = {}
             for k, (name, s) in enumerate(result.overlays.items()):
                 col = OVERLAY_COLORS[k % len(OVERLAY_COLORS)]
                 y = np.asarray(s.values, dtype=float)
-                self.price_plot.plot(x, y, pen=pg.mkPen(col, width=1.3), name=name, connect="finite")
+                style = QtCore.Qt.PenStyle.DotLine if name.startswith("Chikou") else QtCore.Qt.PenStyle.SolidLine
+                curves[name] = self.price_plot.plot(x, y, pen=pg.mkPen(col, width=1.3, style=style), name=name, connect="finite", skipFiniteCheck=True)
+                curves[name].setClipToView(True); curves[name].setDownsampling(auto=True, method="peak")
+            # Ichimoku Kumo fill (green when Span A ≥ Span B, red otherwise) + generic band fills
+            if "Senkou A" in result.overlays and "Senkou B" in result.overlays:
+                a = np.asarray(result.overlays["Senkou A"].values, float); b = np.asarray(result.overlays["Senkou B"].values, float)
+                for mask, col in ((a >= b, C["green"]), (a < b, C["red"])):
+                    ya = np.where(mask, a, np.nan); yb = np.where(mask, b, np.nan)
+                    c1 = pg.PlotDataItem(x, ya, pen=None, connect="finite"); c2 = pg.PlotDataItem(x, yb, pen=None, connect="finite")
+                    fill = pg.FillBetweenItem(c1, c2, brush=pg.mkBrush(col + "2e")); fill.setZValue(-5)
+                    self.price_plot.addItem(fill)
+            for (up, lo, col) in getattr(result, "bands", None) or []:
+                if up in curves and lo in curves and col != "kumo":
+                    fill = pg.FillBetweenItem(curves[up], curves[lo], brush=pg.mkBrush(col + "22")); fill.setZValue(-5)
+                    self.price_plot.addItem(fill)
             # signals
             sig = result.signal.values
             li = np.where(sig == 1)[0]
@@ -413,10 +522,13 @@ class PGChart(QtWidgets.QWidget):
                             if mask.any():
                                 pl.addItem(pg.BarGraphItem(x=x[mask], height=yy[mask], width=0.7, brush=pg.mkBrush(colr), pen=pg.mkPen(None)))
                     else:
-                        pl.plot(x, y, pen=pg.mkPen(col, width=1.2), name=sname, connect="finite")
+                        ci = pl.plot(x, y, pen=pg.mkPen(col, width=1.2), name=sname, connect="finite", skipFiniteCheck=True)
+                        ci.setClipToView(True); ci.setDownsampling(auto=True, method="peak")
                 if pname.upper().startswith("RSI") or pname in ("MFI", "StochRSI"):
                     for lvl in (30, 70) if pname != "StochRSI" else (20, 80):
                         pl.addItem(pg.InfiniteLine(angle=0, pos=lvl, pen=pg.mkPen(C["muted"], style=QtCore.Qt.PenStyle.DotLine)))
+                for lvl in (getattr(result, "hlines", None) or {}).get(pname, []):
+                    pl.addItem(pg.InfiniteLine(angle=0, pos=lvl, pen=pg.mkPen(C["muted"], style=QtCore.Qt.PenStyle.DotLine)))
                 if pname == "MACD":
                     pl.addItem(pg.InfiniteLine(angle=0, pos=0, pen=pg.mkPen(C["muted"])))
                 self.panel_plots.append(pl)
@@ -437,6 +549,7 @@ class PGChart(QtWidgets.QWidget):
                 if xs:
                     item = pg.PlotDataItem(np.asarray(xs, float), np.asarray(ys, float), pen=pen, connect="pairs", skipFiniteCheck=True)
                     self.price_plot.addItem(item, ignoreBounds=True)
+        self._result = result
         # default view: last 200 bars
         view_n = min(200, n)
         self.price_plot.setXRange(n - view_n, n + 3, padding=0)
@@ -444,6 +557,12 @@ class PGChart(QtWidgets.QWidget):
         self.price_plot.setYRange(seg.low.min() * 0.995, seg.high.max() * 1.005, padding=0)
         self.price_plot.vb.setLimits(xMin=-5, xMax=n + 50)
         self.price_plot.sigXRangeChanged.connect(self._autoscale_y)
+        # user drawings: rebuild from stored timestamps on the new frame
+        if self.drawings is not None:
+            self.drawings.df = df
+            js = getattr(self.drawings, "_json_cache", None)
+            if js:
+                self.drawings.load_json(js)
 
     # ------------------------------------------------------------ live streaming
     def update_last_bar(self, ts, o, h, l, c, v, closed=False):
@@ -473,19 +592,41 @@ class PGChart(QtWidgets.QWidget):
         if appended:                                       # previous live bar becomes history (once per period)
             self.candles.update_df(df.iloc[:-1])
             self.volumes.update_df(df.iloc[:-1])
-        self.live_candle.set_bar(len(df) - 1, o, h, l, c, v)
-        self.live_vol.set_bar(len(df) - 1, o, h, l, c, v)
-        up = c >= o
-        col = C["green"] if up else C["red"]
-        self.price_line.setPos(c)
-        self.price_line.setPen(pg.mkPen(col, width=1, style=QtCore.Qt.PenStyle.DashLine))
-        try:
-            self.price_line.label.fill = pg.mkBrush(col)
-            self.price_line.label.setText(f"{c:,.6g}")
-        except Exception:
-            pass
-        self._autoscale_y()
+        self._pending_tick = (len(df) - 1, o, h, l, c, v, appended)
+        now = time.monotonic()
+        if appended or now - getattr(self, "_last_paint", 0.0) >= 0.1:
+            self._flush_tick()
+        elif not getattr(self, "_flush_armed", False):
+            self._flush_armed = True
+            QtCore.QTimer.singleShot(100, self._flush_tick)
         return appended
+
+    def _flush_tick(self):
+        """Apply the latest tick to the graphics — coalesced to ≤10 repaints/s so a busy socket cannot stall the UI."""
+        self._flush_armed = False
+        pt = getattr(self, "_pending_tick", None)
+        if pt is None or getattr(self, "candles", None) is None:
+            return
+        i, o, h, l, c, v, appended = pt
+        self._pending_tick = None
+        self._last_paint = time.monotonic()
+        try:
+            self.live_candle.set_bar(i, o, h, l, c, v)
+            self.live_vol.set_bar(i, o, h, l, c, v)
+            up = c >= o
+            col = C["green"] if up else C["red"]
+            self.price_line.setPos(c)
+            self.price_line.setPen(pg.mkPen(col, width=1, style=QtCore.Qt.PenStyle.DashLine))
+            try:
+                self.price_line.label.fill = pg.mkBrush(col)
+                self.price_line.label.setText(f"{c:,.6g}")
+            except Exception:
+                pass
+            (x0, x1), (y0, y1) = self.price_plot.viewRange()
+            if appended or not (y0 <= l and h <= y1):         # rescale only when the live bar leaves the visible price range
+                self._autoscale_y()
+        except RuntimeError:
+            pass
 
     def set_live_status(self, text, ok=True):
         try:
@@ -536,6 +677,8 @@ class ChartWidget(QtWidgets.QWidget):
     itself to CompatChart transparently and remembers the choice for the session."""
     barHovered = QtCore.pyqtSignal(int)
     modeChanged = QtCore.pyqtSignal(str)
+    signalClicked = QtCore.pyqtSignal(int)
+    drawingsChanged = QtCore.pyqtSignal()
     _forced = None      # session-wide decision after a detected blank canvas
 
     def __init__(self, parent=None):
@@ -549,6 +692,9 @@ class ChartWidget(QtWidgets.QWidget):
         self.mode = "compat" if pref == "compat" else "pyqtgraph"
         self.impl = None
         self._checked = False
+        self.indicators = []            # [(key, params)] user-added chart indicators (core.chart_indicators)
+        self._tool = "cursor"
+        self._drawings_json = []
         self._make_impl()
 
     # -- plumbing
@@ -563,6 +709,7 @@ class ChartWidget(QtWidgets.QWidget):
             self.impl = PGChart()
             self.impl.info.hide()
             self.impl.barHovered.connect(self._pg_hover)
+            self.impl.signal_clicked = self.signalClicked.emit
         self._lay.addWidget(self.impl, 1)
 
     def _pg_hover(self, i):
@@ -588,10 +735,46 @@ class ChartWidget(QtWidgets.QWidget):
         self.modeChanged.emit(mode)
 
     # -- API
-    def set_data(self, df, result=None, trades=None, title=""):
+    def set_data(self, df, result=None, trades=None, title="", keep_view=False):
+        """keep_view=True: keep the user's zoom/scroll position across a refresh (anchored to TIMESTAMPS, so newly
+        appended bars do not shift what he is looking at). Falls back to the default view when nothing was shown yet."""
+        anchor = None
+        try:
+            old = self.impl.df
+            if keep_view and old is not None and len(old) > 2:
+                x0, x1 = self.view_range()
+                n = len(old)
+                at_right = x1 >= n - 1
+                i0 = int(np.clip(round(x0), 0, n - 1)); i1 = int(np.clip(round(x1), 0, n - 1))
+                anchor = (old.index[i0], old.index[i1], x0 - round(x0), x1 - round(x1), at_right, x1 - x0)
+        except Exception:
+            anchor = None
+        base_result = result
+        result = self._with_indicators(df, result)
+        if self.mode == "pyqtgraph":
+            self.impl.drawings._json_cache = self._drawings_json if getattr(self.impl, "drawings", None) is not None else None
         self.impl.set_data(df, result, trades=trades, title=title)
         if self.mode == "pyqtgraph":
+            self.impl.drawings.tool = self._tool
+            try:
+                self.impl.drawings.changed.disconnect()
+            except Exception:
+                pass
+            self.impl.drawings.changed.connect(self._on_drawings_changed)
+        if anchor is not None:
+            try:
+                ts0, ts1, f0, f1, at_right, width = anchor
+                n = len(df)
+                if at_right:
+                    self.set_x_range(n - width + 3, n + 3)
+                else:
+                    j0 = int(df.index.searchsorted(ts0)); j1 = int(df.index.searchsorted(ts1))
+                    self.set_x_range(j0 + f0, max(j1 + f1, j0 + f0 + 5))
+            except Exception:
+                pass
+        if self.mode == "pyqtgraph":
             self.impl._result, self.impl._trades, self.impl._title = result, trades, title
+            self.impl._base_result = base_result
             if not self._checked and ChartWidget._forced is None and _renderer_pref() == "auto":
                 self._checked = True
                 QtCore.QTimer.singleShot(1200, self._blank_guard)
@@ -622,6 +805,87 @@ class ChartWidget(QtWidgets.QWidget):
 
     def update_last_bar(self, ts, o, h, l, c, v, closed=False):
         return self.impl.update_last_bar(ts, o, h, l, c, v, closed)
+
+    # -- Phase 17: indicators / drawings / highlight
+    def _with_indicators(self, df, result):
+        if not self.indicators or df is None:
+            return result
+        from strategies.base import StrategyResult
+        from core import chart_indicators as CI
+        import copy
+        if result is None:
+            result = StrategyResult(pd.Series(0, index=df.index, dtype=int))
+        r = copy.copy(result)
+        r.overlays = dict(result.overlays or {}); r.panels = dict(result.panels or {}); r.levels = list(result.levels or [])
+        r.bands = list(getattr(result, "bands", []) or []); r.hlines = dict(getattr(result, "hlines", {}) or {})
+        for key, params in self.indicators:
+            try:
+                out = CI.compute(df, key, **params)
+            except Exception:
+                continue
+            for k, v in out["overlays"].items():
+                r.overlays[k if k not in r.overlays else f"{k} ′"] = v
+            for k, v in out["panels"].items():
+                r.panels[k if k not in r.panels else f"{k} ′"] = v
+            r.levels += out["levels"]; r.bands += out["bands"]; r.hlines.update(out["hlines"])
+        return r
+
+    def add_indicator(self, key, params=None):
+        self.indicators.append((key, dict(params or {})))
+        self.refresh_same()
+
+    def remove_indicator(self, idx):
+        if 0 <= idx < len(self.indicators):
+            self.indicators.pop(idx); self.refresh_same()
+
+    def clear_indicators(self):
+        self.indicators = []; self.refresh_same()
+
+    def refresh_same(self):
+        """Re-render the current frame/result with the current indicator list, keeping the view."""
+        df = self.impl.df
+        if df is None:
+            return
+        res = getattr(self.impl, "_base_result", None) if self.mode == "pyqtgraph" else getattr(self.impl, "result", None)
+        tr = getattr(self.impl, "_trades", None) if self.mode == "pyqtgraph" else getattr(self.impl, "trades", None)
+        title = getattr(self.impl, "_title", "") if self.mode == "pyqtgraph" else getattr(self.impl, "title", "")
+        self.set_data(df, res, trades=tr, title=title, keep_view=True)
+
+    def set_tool(self, name):
+        self._tool = name
+        if self.mode == "pyqtgraph" and getattr(self.impl, "drawings", None) is not None:
+            self.impl.drawings.set_tool(name)
+
+    def _on_drawings_changed(self):
+        try:
+            self._drawings_json = self.impl.drawings.to_json()
+        except Exception:
+            pass
+        self.drawingsChanged.emit()
+
+    def drawings_json(self):
+        return list(self._drawings_json)
+
+    def load_drawings(self, items):
+        self._drawings_json = list(items or [])
+        if self.mode == "pyqtgraph" and getattr(self.impl, "drawings", None) is not None and self.impl.df is not None:
+            self.impl.drawings.df = self.impl.df
+            self.impl.drawings.load_json(self._drawings_json)
+
+    def clear_drawings(self):
+        self._drawings_json = []
+        if self.mode == "pyqtgraph" and getattr(self.impl, "drawings", None) is not None:
+            self.impl.drawings.clear()
+
+    def undo_drawing(self):
+        if self.mode == "pyqtgraph" and getattr(self.impl, "drawings", None) is not None:
+            self.impl.drawings.remove_last()
+
+    def highlight(self, i, pan=True):
+        if self.mode == "pyqtgraph":
+            self.impl.highlight(i, pan=pan)
+        else:
+            self.set_x_range(max(i - 80, 0), min(i + 40, len(self.impl.df or [])))
 
     def set_live_status(self, text, ok=True):
         self.impl.set_live_status(text, ok)

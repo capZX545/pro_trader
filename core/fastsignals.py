@@ -20,7 +20,7 @@ from core import indicators as ta
 FAST_TFS = ["1m", "3m", "5m", "15m"]
 SCALP_IDS = ["vwap_pullback_scalp", "vwap_band_fade", "cvd_divergence", "stop_run_scalp", "brooks_h2l2", "micro_squeeze_pop",
              "session_orb", "triple_confirm_scalp", "fast_rsi_div_scalp", "volume_climax_scalp", "funding_crowd_reversal", "ib_extension",
-             "value_area_bounce", "triple_a_flow", "stacked_imbalance_retest", "lvn_breakout", "anchored_scalp", "flat_bb_stoch", "nfi_dip_multi", "unfinished_auction"]
+             "value_area_bounce", "triple_a_flow", "stacked_imbalance_retest", "lvn_breakout", "anchored_scalp", "flat_bb_stoch", "nfi_dip_multi", "unfinished_auction", "ichimoku_tk_strong", "ichimoku_kijun_bounce", "ichimoku_mtf"]
 CLASSIC_INTRADAY = ["orb", "silver_bullet", "liquidity_sweep", "ict_fvg", "bb_squeeze", "vwap", "rsi_div", "engulfing", "pinbar", "supertrend"]
 ROUND_TRIP_BPS = {"spot_taker": 24.0, "fut_taker": 13.0, "fut_maker": 5.0}     # commission×2 + spread + slippage
 

@@ -84,6 +84,7 @@ class SymbolBar(QtWidgets.QWidget):
             self.proven_only.toggled.connect(self._fill_strats)
             self._fill_strats()
             self.cat.currentIndexChanged.connect(self._fill_strats)
+            self.tf.currentTextChanged.connect(lambda *_: self._fill_strats())
             h.addWidget(self.proven_only)
             h.addWidget(QtWidgets.QLabel(t("category")))
             h.addWidget(self.cat)
@@ -112,7 +113,14 @@ class SymbolBar(QtWidgets.QWidget):
                 if proven and cls.id not in proven:
                     continue
                 tag = " ✓" if cls.id in proven else ""
-                self.strat.addItem(f"{strat_name(cls)}{tag}  ·  {cls.category}", cls.id)
+                wr = ""
+                try:
+                    st = PB.stats_for(cls.id, self.tf.currentText(), self.symbol()) if proven else None
+                    if st:
+                        wr = f"  [{st['wr']:.0f}% · PF {st['pf']:.2f}]"
+                except Exception:
+                    pass
+                self.strat.addItem(f"{strat_name(cls)}{tag}{wr}  ·  {cls.category}", cls.id)
         if self.strat.count() == 0:   # nothing proven in this category → show all so the user is never stuck
             for cls in S.ALL_STRATEGIES:
                 if cat is None or cls.category == cat:
@@ -440,9 +448,47 @@ class ChartPage(QtWidgets.QWidget):
         self.render_btn.setCheckable(True)
         self.render_btn.toggled.connect(self._toggle_renderer)
         self.bar.layout().insertWidget(self.bar.layout().count() - 1, self.render_btn)
+        # world / local clock (exact system timezone) — top-right corner
+        self.clock_lbl = QtWidgets.QLabel("")
+        self.clock_lbl.setObjectName("clock")
+        self.clock_lbl.setStyleSheet(f"color:{C['text']}; font-family: Consolas, monospace; font-size:12px; padding:0 6px; border:1px solid {C['border']}; border-radius:6px;")
+        self.clock_lbl.setToolTip(t("clock_tip"))
+        self.bar.layout().addWidget(self.clock_lbl)
         v.addWidget(self.bar)
+        # TradingView-style tool strip
+        tools = QtWidgets.QHBoxLayout(); tools.setSpacing(4)
+        from .chart_tools import TOOLS
+        self.tool_group = QtWidgets.QButtonGroup(self); self.tool_group.setExclusive(True)
+        for name, icon, key in TOOLS:
+            b = QtWidgets.QToolButton(); b.setText(icon); b.setToolTip(t(key)); b.setCheckable(True); b.setFixedSize(30, 26)
+            b.setProperty("tool", name); self.tool_group.addButton(b); tools.addWidget(b)
+            if name == "cursor":
+                b.setChecked(True)
+        self.tool_group.buttonClicked.connect(lambda b: self.chart.set_tool(b.property("tool")))
+        undo = QtWidgets.QToolButton(); undo.setText("↶"); undo.setToolTip(t("tool_undo")); undo.clicked.connect(lambda: self.chart.undo_drawing()); tools.addWidget(undo)
+        clr = QtWidgets.QToolButton(); clr.setText("🗑"); clr.setToolTip(t("tool_clear")); clr.clicked.connect(self._clear_drawings); tools.addWidget(clr)
+        tools.addSpacing(12)
+        self.ind_btn = QtWidgets.QPushButton("ƒx  " + t("ind_add")); self.ind_btn.clicked.connect(self._add_indicator); tools.addWidget(self.ind_btn)
+        self.ind_list = QtWidgets.QComboBox(); self.ind_list.setMinimumWidth(180); self.ind_list.setToolTip(t("ind_list_tip")); tools.addWidget(self.ind_list)
+        rm = QtWidgets.QToolButton(); rm.setText("✕"); rm.setToolTip(t("ind_remove")); rm.clicked.connect(self._remove_indicator); tools.addWidget(rm)
+        self.tpl_btn = QtWidgets.QToolButton(); self.tpl_btn.setText("★"); self.tpl_btn.setToolTip(t("ind_templates")); tools.addWidget(self.tpl_btn)
+        tm = QtWidgets.QMenu(self.tpl_btn)
+        for label, keys in ((t("tpl_ichimoku"), [("ichimoku", {})]), (t("tpl_classic"), [("ema", {"n": 20}), ("ema", {"n": 50}), ("ema", {"n": 200}), ("rsi", {}), ("macd", {})]),
+                            (t("tpl_scalp"), [("vwap", {}), ("bollinger", {}), ("stoch", {"k": 5, "d": 3, "smooth": 3}), ("cvd", {}), ("relative_volume", {})]),
+                            (t("tpl_volume"), [("volume_profile", {}), ("obv", {}), ("cmf", {}), ("mfi", {})]),
+                            (t("tpl_trend"), [("supertrend", {}), ("adx", {}), ("kama", {}), ("psar", {})])):
+            tm.addAction(label, lambda keys=keys: self._apply_template(keys))
+        self.tpl_btn.setMenu(tm); self.tpl_btn.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.refresh_btn = QtWidgets.QPushButton("⟳ " + t("refresh_keep")); self.refresh_btn.setToolTip(t("refresh_keep_tip")); self.refresh_btn.clicked.connect(lambda: self.run(keep_view=True))
+        tools.addWidget(self.refresh_btn)
+        self.tz_btn = QtWidgets.QToolButton(); self.tz_btn.setCheckable(True); self.tz_btn.setToolTip(t("tz_toggle_tip")); tools.addWidget(self.tz_btn)
+        self.tz_btn.toggled.connect(self._toggle_tz)
+        tools.addStretch()
+        v.addLayout(tools)
         split = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
         self.chart = ChartWidget()
+        self.chart.signalClicked.connect(self._on_chart_signal_click)
+        self.chart.drawingsChanged.connect(self._save_drawings)
         split.addWidget(self.chart)
         right = QtWidgets.QWidget()
         rv = QtWidgets.QVBoxLayout(right)
@@ -465,8 +511,11 @@ class ChartPage(QtWidgets.QWidget):
         self.param_card.v.addLayout(pb)
         rv.addWidget(self.param_card)
         self.tbl_card = Card(t("signals"))
-        self.tbl = make_table([t("time"), t("side"), t("price"), t("stop"), t("target"), t("rr")])
+        self.tbl = make_table([t("time"), t("side"), t("price"), t("stop"), t("target"), t("rr"), t("outcome")])
+        self.tbl.setToolTip(t("signals_click_tip"))
         self.tbl_card.add(self.tbl)
+        self.wr_lbl = QtWidgets.QLabel(""); self.wr_lbl.setWordWrap(True); self.wr_lbl.setObjectName("subtitle")
+        self.tbl_card.add(self.wr_lbl)
         rv.addWidget(self.tbl_card, 1)
         split.addWidget(right)
         split.setSizes([950, 470])
@@ -580,7 +629,17 @@ class ChartPage(QtWidgets.QWidget):
         self._tick_clock()
 
     def _tick_clock(self):
-        """Countdown to the close of the current bar (like TradingView)."""
+        """Countdown to the close of the current bar (like TradingView) + local/UTC clocks."""
+        try:
+            from core import clock
+            lt, ld, ut = clock.now_strings()
+            self.clock_lbl.setText(f"🕒 {lt}  {ld}  ·  UTC {ut}")
+            if not hasattr(self, "_tz_init"):
+                self._tz_init = True
+                self.tz_btn.blockSignals(True); self.tz_btn.setChecked(clock.display_mode() == "utc"); self.tz_btn.blockSignals(False)
+                self.tz_btn.setText("UTC" if clock.display_mode() == "utc" else clock.tz_name().split(" ")[0])
+        except Exception:
+            pass
         if self.df is None or not len(self.df):
             self.live_lbl.setText(""); return
         from core.sources import TF_SECONDS
@@ -623,8 +682,7 @@ class ChartPage(QtWidgets.QWidget):
             if (sym, tf) != (self.bar.symbol(), self.bar.timeframe()):
                 return
             df2, res, bt = r
-            vr = self.chart.view_range()
-            self._show(sym, tf, sid, df2, True, res, bt, keep_view=vr)
+            self._show(sym, tf, sid, df2, True, res, bt, keep_view=True)
         self._rw.done.connect(done)
         self._rw.error.connect(lambda e: None)
         self._rw.start()
@@ -670,9 +728,11 @@ class ChartPage(QtWidgets.QWidget):
             self.bar.set_strategy(sid)
         self.run()
 
-    def run(self):
+    def run(self, keep_view=None):
         sym, tf, sid = self.bar.symbol(), self.bar.timeframe(), self.bar.strategy_id()
         params = self.params()
+        if keep_view is None:                      # same symbol/timeframe as what is on screen → keep the user's view
+            keep_view = (getattr(self, "_shown_key", None) == (sym, tf))
         self.bar.btn.setEnabled(False)
         self.bar.btn.setText(t("loading"))
 
@@ -696,9 +756,163 @@ class ChartPage(QtWidgets.QWidget):
         except Exception:
             pass
         self.w = Worker(work)
-        self.w.done.connect(lambda r: (self._show(sym, tf, sid, *r), self.start_stream(sym, tf)))
+        self.w.done.connect(lambda r: (self._show(sym, tf, sid, *r, keep_view=keep_view), self.start_stream(sym, tf)))
         self.w.error.connect(lambda e: (self.bar.btn.setEnabled(True), self.bar.btn.setText(t("run")), QtWidgets.QMessageBox.warning(self, "Error", e)))
         self.w.start()
+
+    # ---- Phase 17 helpers
+    def _add_indicator(self):
+        from .chart_tools import IndicatorDialog
+        d = IndicatorDialog(self)
+        if d.exec() and d.result_value:
+            key, params = d.result_value
+            self.chart.add_indicator(key, params)
+            self._refresh_ind_list(); self._save_layout()
+
+    def _remove_indicator(self):
+        i = self.ind_list.currentIndex()
+        if i >= 0:
+            self.chart.remove_indicator(i); self._refresh_ind_list(); self._save_layout()
+
+    def _apply_template(self, keys):
+        self.chart.indicators = [(k, dict(p)) for k, p in keys]
+        self.chart.refresh_same(); self._refresh_ind_list(); self._save_layout()
+
+    def _refresh_ind_list(self):
+        self.ind_list.clear()
+        for k, p in self.chart.indicators:
+            self.ind_list.addItem(f"{k}({', '.join(f'{a}={b:g}' if isinstance(b, float) else f'{a}={b}' for a, b in p.items())})" if p else k)
+
+    def _layout_key(self):
+        return f"{self.bar.symbol()}|{self.bar.timeframe()}"
+
+    def _save_layout(self):
+        try:
+            cur = json.load(open(SETTINGS_PATH))
+        except Exception:
+            cur = {}
+        lay = cur.setdefault("chart_layouts", {})
+        lay[self._layout_key()] = {"indicators": self.chart.indicators}
+        lay["__last__"] = {"indicators": self.chart.indicators}
+        try:
+            json.dump(cur, open(SETTINGS_PATH, "w"), indent=1)
+        except Exception:
+            pass
+
+    def _load_layout(self, sym, tf):
+        try:
+            lay = json.load(open(SETTINGS_PATH)).get("chart_layouts", {})
+            d = lay.get(f"{sym}|{tf}") or lay.get("__last__") or {}
+            self.chart.indicators = [(k, dict(p)) for k, p in d.get("indicators", [])]
+        except Exception:
+            pass
+        self._refresh_ind_list()
+
+    def _save_drawings(self):
+        try:
+            from core import drawings as D
+            D.save(self.bar.symbol(), self.bar.timeframe(), self.chart.drawings_json())
+        except Exception:
+            pass
+
+    def _clear_drawings(self):
+        self.chart.clear_drawings(); self._save_drawings()
+
+    def _toggle_tz(self, on):
+        try:
+            cur = json.load(open(SETTINGS_PATH))
+        except Exception:
+            cur = {}
+        cur["chart_tz"] = "utc" if on else "local"
+        try:
+            json.dump(cur, open(SETTINGS_PATH, "w"), indent=1)
+        except Exception:
+            pass
+        from core import clock
+        self.tz_btn.setText("UTC" if on else clock.tz_name().split(" ")[0])
+        if self.df is not None:
+            self.chart.refresh_same(); self._fill_table()
+
+    def _on_chart_signal_click(self, i):
+        """Chart marker clicked → select the matching table row and show its details."""
+        for r in range(self.tbl.rowCount()):
+            it = self.tbl.item(r, 0)
+            if it is not None and it.data(QtCore.Qt.ItemDataRole.UserRole) == i:
+                self.tbl.selectRow(r); self.tbl.scrollToItem(it); break
+        self._describe_signal(i)
+
+    def _describe_signal(self, i):
+        df, res = self.df, self.res
+        if df is None or res is None or not (0 <= i < len(df)):
+            return
+        from core import clock
+        side = int(res.signal.iloc[i]); px = float(df.close.iloc[i])
+        sl = float(res.stop.iloc[i]) if res.stop is not None else float("nan")
+        tp = float(res.target.iloc[i]) if res.target is not None else float("nan")
+        col = C["green"] if side == 1 else C["red"]
+        out = self._outcomes.get(i)
+        oc = ""
+        if out:
+            oc = f"<br>{t('outcome')}: <b style='color:{C['green'] if out[0] > 0 else C['red']}'>{out[1]}</b> ({out[0]:+.2f}R · {out[2]} {t('bars')})"
+        self.sig_lbl.setText(
+            f"<div style='font-size:15px'>📍 <b style='color:{col}'>{t('long') if side == 1 else t('short')}</b> · {strat_name(S.REGISTRY[self.bar.strategy_id()])}</div>"
+            f"<div style='color:{C['muted']}'>{clock.fmt(df.index[i])} ({t('local_time')}) · UTC {pd.Timestamp(df.index[i]).strftime('%H:%M')} · {len(df) - 1 - i} {t('bars_ago')}</div><br>"
+            f"{t('entry')}: <b>{px:,.6g}</b><br>{t('stop')}: <b style='color:{C['red']}'>{sl:,.6g}</b><br>{t('target')}: <b style='color:{C['green']}'>{tp:,.6g}</b>"
+            + (f"<br>{t('rr')}: <b>1:{abs(tp - px) / abs(px - sl):.1f}</b>" if sl == sl and tp == tp and px != sl else "") + oc)
+
+    def _fill_table(self):
+        df, res, bt = self.df, self.res, getattr(self, "_bt", None)
+        if df is None or res is None:
+            return
+        from core import clock
+        sig = res.signal
+        idxs = np.where(sig.values != 0)[0][-200:][::-1]
+        # outcome per signal bar from the backtest trades (entry bar = signal bar + 1 fill)
+        self._outcomes = {}
+        if bt is not None:
+            pos = {ts: k for k, ts in enumerate(df.index)}
+            for tr in bt.trades:
+                k = pos.get(tr.entry_time)
+                if k is None:
+                    continue
+                for j in (k - 1, k):
+                    if 0 <= j < len(sig) and sig.iloc[j] != 0:
+                        self._outcomes[j] = (tr.r_multiple, t("win") if tr.pnl > 0 else t("loss"), tr.bars); break
+        self.tbl.setSortingEnabled(False)
+        self.tbl.setRowCount(0)
+        for i in idxs:
+            r = self.tbl.rowCount()
+            self.tbl.insertRow(r)
+            side = int(sig.iloc[i])
+            px = df.close.iloc[i]
+            sl = res.stop.iloc[i] if res.stop is not None else np.nan
+            tp = res.target.iloc[i] if res.target is not None else np.nan
+            rr = abs(tp - px) / abs(px - sl) if sl == sl and tp == tp and px != sl else np.nan
+            it = cell(clock.fmt(df.index[i]))
+            it.setData(QtCore.Qt.ItemDataRole.UserRole, int(i))
+            self.tbl.setItem(r, 0, it)
+            self.tbl.setItem(r, 1, cell(t("long") if side == 1 else t("short"), C["green"] if side == 1 else C["red"]))
+            self.tbl.setItem(r, 2, ncell(px, "{:,.6g}"))
+            self.tbl.setItem(r, 3, ncell(sl, "{:,.6g}", C["red"]))
+            self.tbl.setItem(r, 4, ncell(tp, "{:,.6g}", C["green"]))
+            self.tbl.setItem(r, 5, ncell(rr, "1:{:.1f}"))
+            out = self._outcomes.get(int(i))
+            if out:
+                self.tbl.setItem(r, 6, cell(f"{out[1]} {out[0]:+.1f}R", C["green"] if out[0] > 0 else C["red"]))
+            else:
+                self.tbl.setItem(r, 6, cell(t("open_or_na"), C["muted"]))
+        # success-rate summary for this strategy on this symbol/timeframe (+ playbook OOS if available)
+        if bt is not None:
+            st = bt.stats
+            txt = f"<b>{t('success_rate')}:</b> {st['win_rate']:.0f}% · PF {st['profit_factor']:.2f} · n={st['trades']} ({t('in_sample')})"
+            try:
+                from core import playbook as PB
+                pbst = PB.stats_for(self.bar.strategy_id(), self.bar.timeframe(), self.bar.symbol())
+                if pbst:
+                    txt += f"<br><b>{t('oos_rate')}:</b> {pbst['wr']:.0f}% [{pbst['wr_lo']:.0f}–{pbst['wr_hi']:.0f}] · PF {pbst['pf']:.2f} · {pbst['grade']}"
+            except Exception:
+                pass
+            self.wr_lbl.setText(txt)
 
     def _show(self, sym, tf, sid, df, ok, res, bt, keep_view=None):
         self.bar.btn.setEnabled(True)
@@ -713,37 +927,31 @@ class ChartPage(QtWidgets.QWidget):
             title += f"  [{t('offline')}]"
         elif df.attrs.get("stale"):
             title += f"  [{t('stale_cache')}]"
-        self.chart.set_data(df, res, trades=bt.trades, title=title)
-        if keep_view is not None:
+        self._bt = bt
+        new_key = (sym, tf)
+        if getattr(self, "_shown_key", None) != new_key:
+            self._load_layout(sym, tf)
+        keep = keep_view is not None and keep_view is not False
+        self.chart.set_data(df, res, trades=bt.trades, title=title, keep_view=keep)
+        if isinstance(keep_view, tuple):
             try:
                 self.chart.set_x_range(*keep_view)
             except Exception:
                 pass
+        if getattr(self, "_shown_key", None) != new_key:
+            try:
+                from core import drawings as D
+                self.chart.load_drawings(D.load(sym, tf))
+            except Exception:
+                pass
+        self._shown_key = new_key
         if getattr(self, "_live_text", ""):
             self._on_stream_status(self._live_text)
         self._tick_clock()
         # table
         sig = res.signal
-        idxs = np.where(sig.values != 0)[0][-60:][::-1]
-        self.tbl.setSortingEnabled(False)
-        self.tbl.setRowCount(0)
-        for i in idxs:
-            r = self.tbl.rowCount()
-            self.tbl.insertRow(r)
-            side = int(sig.iloc[i])
-            px = df.close.iloc[i]
-            sl = res.stop.iloc[i] if res.stop is not None else np.nan
-            tp = res.target.iloc[i] if res.target is not None else np.nan
-            rr = abs(tp - px) / abs(px - sl) if sl == sl and tp == tp and px != sl else np.nan
-            it = cell(pd.Timestamp(df.index[i]).strftime("%Y-%m-%d %H:%M"))
-            it.setData(QtCore.Qt.ItemDataRole.UserRole, int(i))
-            self.tbl.setItem(r, 0, it)
-            self.tbl.setItem(r, 1, cell(t("long") if side == 1 else t("short"), C["green"] if side == 1 else C["red"]))
-            self.tbl.setItem(r, 2, ncell(px, "{:,.6g}"))
-            self.tbl.setItem(r, 3, ncell(sl, "{:,.6g}", C["red"]))
-            self.tbl.setItem(r, 4, ncell(tp, "{:,.6g}", C["green"]))
-            self.tbl.setItem(r, 5, ncell(rr, "1:{:.1f}"))
-        self.tbl.setSortingEnabled(False)
+        idxs = np.where(sig.values != 0)[0][-200:][::-1]
+        self._fill_table()
         # last signal card
         if len(idxs):
             i = idxs[0]
@@ -756,7 +964,7 @@ class ChartPage(QtWidgets.QWidget):
             fresh = "🟢" if ago <= 2 else ("🟡" if ago <= 10 else "⚪")
             self.sig_lbl.setText(
                 f"<div style='font-size:15px'>{fresh} <b style='color:{col}'>{t('long') if side == 1 else t('short')}</b> · {strat_name(cls)}</div>"
-                f"<div style='color:{C['muted']}'>{pd.Timestamp(df.index[i]).strftime('%Y-%m-%d %H:%M')} · {ago} {t('bars_ago')}</div><br>"
+                f"<div style='color:{C['muted']}'>{__import__('core.clock', fromlist=['fmt']).fmt(df.index[i])} · {ago} {t('bars_ago')}</div><br>"
                 f"{t('entry')}: <b>{px:,.6g}</b><br>{t('stop')}: <b style='color:{C['red']}'>{sl:,.6g}</b><br>"
                 f"{t('target')}: <b style='color:{C['green']}'>{tp:,.6g}</b><br>"
                 f"{t('rr')}: <b>1:{abs(tp - px) / abs(px - sl):.1f}</b>" if sl == sl and tp == tp and px != sl else
@@ -768,7 +976,8 @@ class ChartPage(QtWidgets.QWidget):
         i = self.tbl.item(item.row(), 0).data(QtCore.Qt.ItemDataRole.UserRole)
         if i is None or self.df is None:
             return
-        self.chart.set_x_range(max(i - 80, 0), min(i + 40, len(self.df)))
+        self.chart.highlight(int(i), pan=True)
+        self._describe_signal(int(i))
 
 
 # ---------------------------------------------------------------- Scanner

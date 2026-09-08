@@ -17,6 +17,8 @@ class StrategyResult:
     panels: dict = field(default_factory=dict)     # name -> {series_name: Series} drawn in sub-panels
     levels: list = field(default_factory=list)     # list of (price, label, color) horizontal lines
     zones: list = field(default_factory=list)      # list of (start_idx, end_idx, lo, hi, color, label)
+    bands: list = field(default_factory=list)      # list of (upper_overlay_name, lower_overlay_name, color) filled areas
+    hlines: dict = field(default_factory=dict)     # panel name -> [reference levels]
     exit_long: pd.Series | None = None      # rule-based exit for longs (True = close at this bar's close)
     exit_short: pd.Series | None = None     # rule-based exit for shorts
     bt_kwargs: dict = field(default_factory=dict)   # backtester overrides bundled with the strategy
