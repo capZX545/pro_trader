@@ -80,7 +80,7 @@ jobs:
       - uses: android-actions/setup-android@v3
       - name: Stage engine (self-test imports the engine with the Android-pinned stack)
         run: |
-          python -m pip install -q -r requirements-android.txt
+          python -m pip install -q -r requirements-web.txt opencv-python-headless matplotlib
           python scripts/prepare_android.py
       - name: Version
         shell: bash
