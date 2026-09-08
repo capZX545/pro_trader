@@ -170,7 +170,7 @@ class DashboardPage(QtWidgets.QWidget):
         tl = QtWidgets.QVBoxLayout()
         self.title = QtWidgets.QLabel(t("welcome"))
         self.title.setObjectName("title")
-        self.sub = QtWidgets.QLabel(t("welcome_sub"))
+        self.sub = QtWidgets.QLabel(t("welcome_sub").replace("{n}", str(len(S.ALL_STRATEGIES))))
         self.sub.setObjectName("subtitle")
         tl.addWidget(self.title)
         tl.addWidget(self.sub)

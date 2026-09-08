@@ -242,7 +242,7 @@ STR = {
                                         "include simplifying assumptions, and past performance never guarantees future results. "
                                         "Most retail traders lose money. Never risk money you cannot afford to lose."),
         "welcome": "Welcome back, trader",
-        "welcome_sub": "94 strategies · 15 bots ported · 30 books embedded · Quant Lab · Forward Test · Self-Health · CI-graded Playbook 5m→1d · Advisor + Portfolio · 71 indicators · Whole-market live stream · ML Lab · Validation Lab · Ensemble · Backtester · Academy",
+        "welcome_sub": "{n} strategies (Ichimoku · Indicators · World Masters) · 15 bots ported · 37 books embedded · Quant Lab · Forward Test · Self-Health · CI-graded Playbook 5m→1d · Advisor + Portfolio · 73 indicators + success % beside every signal · Whole-market live stream · ML Lab · Validation Lab · Ensemble · Backtester · Academy",
         "quick": "Quick start", "top_strats": "Top strategies on this symbol (backtest)", "market_pulse": "Market pulse",
         "trend": "Trend", "regime": "Regime", "vol": "Volatility (ATR%)", "rsi": "RSI(14)", "change": "24h change",
         "bull": "Bullish", "bear": "Bearish", "range": "Ranging", "trending": "Trending", "high": "High", "low": "Low", "normal": "Normal",
@@ -424,7 +424,7 @@ STR = {
                                           "و عملکرد گذشته هرگز تضمین نتایج آینده نیست. اکثر تریدرهای خرد ضرر می‌کنند. "
                                           "هرگز با پولی که توان از دست دادنش را ندارید معامله نکنید."),
         "welcome": "خوش برگشتی، تریدر",
-        "welcome_sub": "۹۴ استراتژی · ۱۵ بات · ۳۰ کتاب · آزمایشگاه کوانت · تست پیش‌رو · خودتشخیصی · کتاب راهنمای نمره‌دار (بازهٔ اطمینان) تایم‌فریم ۵m→۱d · مشاور · ۷۱ اندیکاتور · استریم زندهٔ کل بازار · آزمایشگاه ML · اعتبارسنجی · آنسامبل · بک‌تستر · آکادمی",
+        "welcome_sub": "{n} استراتژی (ایچیموکو · اندیکاتورها · استادان جهان) · ۱۵ بات · ۳۷ کتاب · آزمایشگاه کوانت · تست پیش‌رو · خودتشخیصی · کتاب راهنمای نمره‌دار (بازهٔ اطمینان) تایم‌فریم ۵m→۱d · مشاور · ۷۳ اندیکاتور + درصد موفقیت کنار هر سیگنال · استریم زندهٔ کل بازار · آزمایشگاه ML · اعتبارسنجی · آنسامبل · بک‌تستر · آکادمی",
         "quick": "شروع سریع", "top_strats": "بهترین استراتژی‌ها روی این نماد (بک‌تست)", "market_pulse": "نبض بازار",
         "trend": "روند", "regime": "رژیم", "vol": "نوسان (ATR%)", "rsi": "RSI(14)", "change": "تغییر ۲۴ساعته",
         "bull": "صعودی", "bear": "نزولی", "range": "رنج", "trending": "رونددار", "high": "بالا", "low": "پایین", "normal": "عادی",

@@ -504,6 +504,8 @@ class PGChart(QtWidgets.QWidget):
                 self.price_plot.addItem(sp)
             # sub panels
             for k, (pname, series_dict) in enumerate(result.panels.items()):
+                if not isinstance(series_dict, dict):          # tolerate panels={"RSI": series}
+                    series_dict = {pname: series_dict}
                 pl = self.glw.addPlot(row=2 + k, col=0, axisItems={"bottom": TimeAxis(orientation="bottom")})
                 pl.setMaximumHeight(130)
                 pl.setXLink(self.price_plot)

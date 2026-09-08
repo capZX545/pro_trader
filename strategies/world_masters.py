@@ -127,8 +127,8 @@ class ChanFirstBuy(_WM):
                 j = _confirm_bar(df, i, False, pct)
                 if j is not None and zd < df.close.iloc[j] * 0.998:
                     short.iloc[j] = True; stop.iloc[j] = df.high.iloc[i]; tgt.iloc[j] = zd
-        levels = [(z[3], "ZG") for z in zs[-2:]] + [(z[2], "ZD") for z in zs[-2:]]
-        return self.finish(df, long, short, panels={"MACD hist": hist}, levels=levels, stop=stop, tgt=tgt)
+        levels = [(z[3], "ZG", "#e05a5a") for z in zs[-2:]] + [(z[2], "ZD", "#3ec97a") for z in zs[-2:]]
+        return self.finish(df, long, short, panels={"MACD": {"hist": hist}}, levels=levels, stop=stop, tgt=tgt)
 
 
 class ChanThirdBuy(_WM):
@@ -173,7 +173,7 @@ class ChanThirdBuy(_WM):
                         break
                     if c[j] < l[j - 3:j].min() and c[j] < c[j - 1] and z[2] - w < c[j] * 0.998:
                         short.iloc[j] = True; stop.iloc[j] = max(z[2], h[j0:j + 1].max()) + 0.3 * a.iloc[j]; tgt.iloc[j] = z[2] - w; break
-        levels = [(z[3], "ZG") for z in zs[-2:]] + [(z[2], "ZD") for z in zs[-2:]]
+        levels = [(z[3], "ZG", "#e05a5a") for z in zs[-2:]] + [(z[2], "ZD", "#3ec97a") for z in zs[-2:]]
         return self.finish(df, long, short, levels=levels, stop=stop, tgt=tgt)
 
 
