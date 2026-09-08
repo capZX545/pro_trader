@@ -142,6 +142,13 @@ def task_playbook_quick():
     return "quick playbook"
 
 
+def task_success_rates():
+    """Phase 19: fill core/success.py for the default universe so every signal shows its measured success % on first run."""
+    from core import success as SR
+    SR.precompute(progress=lambda p, m: STATE.update(progress=p, detail=f"success-rates {m}"), stop=_stop.is_set)
+    return "success rates"
+
+
 def task_playbook():
     """stage 2: full universe, all timeframes (hours; resumable per timeframe)"""
     from core import playbook as PB
@@ -185,6 +192,7 @@ def loop(forward_every=900, health_every=6 * 3600, playbook_every=7 * 86400):
         STATE["running"] = False; return
     # ---- self-training on first run (the user never has to "teach" anything)
     _run("audit", task_audit)
+    _run("success-rates", task_success_rates)          # WR/PF next to every signal, majors first (fast, resumable)
     from core import playbook as PB
     pb = PB.load()
     if not pb:

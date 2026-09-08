@@ -22,7 +22,8 @@ SCALP_IDS = ["vwap_pullback_scalp", "vwap_band_fade", "cvd_divergence", "stop_ru
              "session_orb", "triple_confirm_scalp", "fast_rsi_div_scalp", "volume_climax_scalp", "funding_crowd_reversal", "ib_extension",
              "value_area_bounce", "triple_a_flow", "stacked_imbalance_retest", "lvn_breakout", "anchored_scalp", "flat_bb_stoch", "nfi_dip_multi", "unfinished_auction", "ichimoku_tk_strong", "ichimoku_kijun_bounce", "ichimoku_mtf"]
 INDICATOR_VOTES = ["halftrend_flip", "qqe_cross", "schaff_cycle", "fisher_transform", "vortex_cross", "klinger_cross", "rvol_breakout", "hv_squeeze_breakout",
-                   "heikin_ashi_trend", "mass_index_bulge", "coppock_turn", "ultimate_osc", "zigzag_structure", "fib_golden_pocket"]
+                   "heikin_ashi_trend", "mass_index_bulge", "coppock_turn", "ultimate_osc", "zigzag_structure", "fib_golden_pocket",
+                   "chan_buy1", "gerchik_false_break", "gerchik_paranormal_bar", "lw_setup_92", "stormer_81", "rtm_quasimodo", "rtm_ftr", "sakata_sanpo"]
 CLASSIC_INTRADAY = ["orb", "silver_bullet", "liquidity_sweep", "ict_fvg", "bb_squeeze", "vwap", "rsi_div", "engulfing", "pinbar", "supertrend"]
 ROUND_TRIP_BPS = {"spot_taker": 24.0, "fut_taker": 13.0, "fut_maker": 5.0}     # commission×2 + spread + slippage
 

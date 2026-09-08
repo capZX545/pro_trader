@@ -360,7 +360,7 @@ class QuantLabPage(QtWidgets.QWidget):
             tiles.addWidget(x)
         v.addLayout(tiles)
         split = QtWidgets.QHBoxLayout()
-        self.pl_tbl = make_table([t("symbol"), t("ql_pl_kept"), t("ql_pl_reason"), "Volatility (ann.)", "Range %", "Spread proxy %", "Quote vol"])
+        self.pl_tbl = make_table([t("symbol"), t("ql_pl_kept"), t("ql_pl_reason"), t("ql_vol_ann"), t("ql_range_pct"), t("ql_spread_proxy"), t("ql_quote_vol")])
         c1 = Card(t("ql_pl_title")); c1.add(self.pl_tbl); split.addWidget(c1, 3)
         right = QtWidgets.QVBoxLayout()
         self.octo_tbl = make_table([t("ql_octo_eval"), t("ql_octo_val"), t("ql_octo_w")]); c2 = Card(t("ql_octo_title")); c2.add(self.octo_tbl); right.addWidget(c2, 1)

@@ -204,3 +204,15 @@ def test_phase18_indicator_strategies_and_success():
     assert d is not None and SR.get("halftrend_flip", "TEST", "1h")["n"] == d["n"]
     assert SR.label("halftrend_flip", "TEST", "1h", short=True).endswith("%")
     assert "UTC" in clock.world_line()
+
+
+def test_phase19_world_masters():
+    import strategies as S
+    from strategies.world_masters import WORLD_STRATEGIES
+    assert len(WORLD_STRATEGIES) == 16 and all(c.id in S.REGISTRY for c in WORLD_STRATEGIES)
+    df = generate_synthetic(3000)
+    for cls in WORLD_STRATEGIES:
+        r = cls().run(df); assert len(r.signal) == len(df), cls.id
+        assert cls.description_fa and cls.rules_fa and cls.description_en and cls.rules_en, cls.id
+    from core import library as L
+    assert any("Chan Lun" in b[0] for b in L.BOOKS)

@@ -389,8 +389,9 @@ class AIPage(QtWidgets.QWidget):
             self.en_pipe.setItem(j, 4, cell("✓" if row["longs"] else "", C["green"])); self.en_pipe.setItem(j, 5, cell("✓" if row["shorts"] else "", C["red"]))
         self.en_pipe.setSortingEnabled(True)
         fw = r["fw"]
-        lines = [f"Strategy: {strat_name(S.REGISTRY[r['sid']])}", "", "Alpha insights:"] + [f"  {s}: {'▲' if v[0] > 0 else ('▼' if v[0] < 0 else '—')} conf {v[1]:.2f}" for s, v in fw["insights"].items()]
-        lines += ["", "Portfolio weights (max 25%/asset):"] + [f"  {s}: {w_:+.2f}" for s, w_ in fw["weights"].items()]
-        lines += ["", f"Risk: drawdown kill-switch {'ACTIVE' if fw['halted'] else 'ok'}", "", "Execution orders:"] + [f"  {o['action']} {o['symbol']} → {o['target_weight']:+.2f}" for o in fw["orders"]]
+        fa_ = I18N.lang == "fa"
+        lines = [f"{'استراتژی' if fa_ else 'Strategy'}: {strat_name(S.REGISTRY[r['sid']])}", "", "بینش‌های آلفا:" if fa_ else "Alpha insights:"] + [f"  {s}: {'▲' if v[0] > 0 else ('▼' if v[0] < 0 else '—')} conf {v[1]:.2f}" for s, v in fw["insights"].items()]
+        lines += ["", "وزن‌های پرتفوی (حداکثر ۲۵٪ هر دارایی):" if fa_ else "Portfolio weights (max 25%/asset):"] + [f"  {s}: {w_:+.2f}" for s, w_ in fw["weights"].items()]
+        lines += ["", (f"ریسک: کلید قطع افت سرمایه {'فعال' if fw['halted'] else 'عادی'}" if fa_ else f"Risk: drawdown kill-switch {'ACTIVE' if fw['halted'] else 'ok'}"), "", "دستورهای اجرا (شبیه‌سازی):" if fa_ else "Execution orders:"] + [f"  {o['action']} {o['symbol']} → {o['target_weight']:+.2f}" for o in fw["orders"]]
         lines += ["", t("ai_freqai") + f": {len(r['sched'])} windows"] + [f"  train [{a}, {b}) → test [{b}, {c})" for a, b, c in r["sched"][:6]]
         self.en_fw.setPlainText("\n".join(lines))
