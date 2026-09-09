@@ -154,7 +154,7 @@ def api_signals(q):
     """all strategies on one symbol/tf → fresh signals in the last `recent` bars, ranked like the desktop scanner, each with success %"""
     import strategies as S, numpy as np
     from core.backtest import run_backtest
-    from core import success as SR, clock, playbook as PB
+    from core import success as SR, clock, playbook as PB, quality as Q, calendar as CAL
     sym, tf, recent = q.get("sym", "BTC/USDT"), q.get("tf", "1h"), int(q.get("recent", 5))
     ck = ("signals", sym, tf, recent)
     with _lock:
@@ -177,11 +177,27 @@ def api_signals(q):
         px = float(df.close.values[i]); sl = res.stop.values[i] if res.stop is not None else float("nan"); tp = res.target.values[i] if res.target is not None else float("nan")
         rr = abs(tp - px) / abs(px - sl) if sl == sl and tp == tp and px != sl else None
         pbst = PB.stats_for(cls.id, tf, sym) or {}
+        qs = Q.score(cls.id, sym, tf, ev=(d, pbst or None, None))
         out.append(dict(sid=cls.id, name=cls.name_en, name_fa=cls.name_fa, category=cls.category, side=int(sig[i]), ago=n - 1 - i, time=clock.fmt(df.index[i]),
-                        px=px, sl=_clean(sl), tp=_clean(tp), rr=rr, wr=d["wr"], pf=d["pf"], n=d["n"], grade=pbst.get("grade"), oos_wr=pbst.get("wr")))
+                        px=px, sl=_clean(sl), tp=_clean(tp), rr=rr, wr=d["wr"], pf=d["pf"], n=d["n"], grade=pbst.get("grade"), oos_wr=pbst.get("wr"),
+                        oos_pf=pbst.get("pf"), oos_n=pbst.get("n"), score=qs["score"], verdict=qs["verdict"], why_en=qs["reasons_en"], why_fa=qs["reasons_fa"]))
     SR.flush()
-    out.sort(key=lambda r: (-(r["pf"] >= 1), r["ago"], -r["pf"]))
-    res = dict(sym=sym, tf=tf, last=float(df.close.values[-1]), time=clock.fmt(df.index[-1]), rows=out)
+    # Phase 23: forward-test evidence (one pass, cheap) can upgrade/downgrade verdicts
+    try:
+        from core import forward as FW
+        closed = FW.records("closed")
+        for r in out:
+            rs = [x for x in closed if x.get("sid") == r["sid"] and x.get("tf") == tf]
+            if len(rs) >= 5:
+                qs = Q.score(r["sid"], sym, tf, ev=(dict(wr=r["wr"], pf=r["pf"], n=r["n"]), PB.stats_for(r["sid"], tf, sym), FW._agg(rs)))
+                r.update(score=qs["score"], verdict=qs["verdict"], why_en=qs["reasons_en"], why_fa=qs["reasons_fa"], fwd_pf=qs["fwd"]["pf"], fwd_n=qs["fwd"]["n"])
+    except Exception:
+        pass
+    rank = {"PROVEN": 0, "CANDIDATE": 1, "UNPROVEN": 2, "FAILED": 3}
+    out.sort(key=lambda r: (rank[r["verdict"]], -r["score"], r["ago"]))
+    news = CAL.risk_now()
+    res = dict(sym=sym, tf=tf, last=float(df.close.values[-1]), time=clock.fmt(df.index[-1]), rows=out, quality=Q.summary(out),
+               news_risk=_clean(news), news_text_fa=CAL.text(news, "fa"), news_text_en=CAL.text(news, "en"))
     with _lock:
         _cache[ck] = (time.time(), res)
     return res
@@ -442,7 +458,38 @@ def api_symbol_search(q):
     return [x for cat, d in UNIVERSE.items() for x in d if s in x.lower()][:50]
 
 
-ROUTES = {"/api/meta": api_meta, "/api/symbols": api_symbols, "/api/strategies": api_strategies, "/api/ohlcv": api_ohlcv, "/api/run": api_run,
+def api_quality(q):
+    """trust score + verdict + reasons for one strategy on sym/tf (hover / detail panel)"""
+    from core import quality as Q
+    sid, sym, tf = q.get("sid", "ema_cross"), q.get("sym", "BTC/USDT"), q.get("tf", "1h")
+    r = Q.score(sid, sym, tf)
+    if q.get("stress") == "1":
+        r["stress"] = Q.stress_test(sid, sym, tf, df=_df(sym, tf, 0))
+    return _clean(r)
+
+
+def api_calendar(q):
+    from core import calendar as CAL
+    now = CAL.risk_now()
+    return dict(now=_clean(now), text_fa=CAL.text(now, "fa"), text_en=CAL.text(now, "en"), upcoming=_clean(CAL.upcoming(int(q.get("hours", 72)))))
+
+
+def api_notifications(q):
+    """push feed for the mobile app / desktop tray: new alerts since `since` (unix ts). The Android shell polls this
+    every minute from its foreground service and raises system notifications."""
+    from core import alerts as AL
+    since = float(q.get("since", 0) or 0)
+    hist = [h for h in AL.history(200) if float(h.get("ts", 0) or 0) > since]
+    return dict(now=time.time(), items=_clean(hist[-30:]))
+
+
+def api_alert_scan(q):
+    """run the alert scanner now (same as desktop 'scan & notify'); dry=1 only lists"""
+    from core import alerts as AL
+    return _clean(AL.scan(tfs=[t for t in q.get("tfs", "1h,4h").split(",") if t], lang=q.get("lang", "fa"), dry=q.get("dry") == "1"))
+
+
+ROUTES = {"/api/meta": api_meta, "/api/quality": api_quality, "/api/calendar": api_calendar, "/api/notifications": api_notifications, "/api/alert_scan": api_alert_scan, "/api/symbols": api_symbols, "/api/strategies": api_strategies, "/api/ohlcv": api_ohlcv, "/api/run": api_run,
           "/api/signals": api_signals, "/api/advise": api_advise, "/api/fast": api_fast, "/api/library": api_library, "/api/clock": api_clock,
           "/api/success": api_success,
           "/api/indicators": api_indicators, "/api/indicator": api_indicator, "/api/drawings": api_drawings, "/api/forward": api_forward,

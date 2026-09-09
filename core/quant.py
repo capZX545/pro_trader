@@ -280,3 +280,23 @@ def davey_incubation(stats, mc_dd95_pct, wfe, min_trades=30, biggest_trade_share
         "no single trade > 20% of net": biggest_trade_share <= 0.2 or stats.get("net_profit", 0) <= 0,
     }
     return checks, all(checks.values())
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Phase 23 unified entry point: everything from core.quant2 (the Phase-12/13 extension set) is also reachable from this
+# module, so callers only need one import path. Resolved lazily (PEP 562) to stay import-order safe: core.quant2
+# itself imports this module, so an eager re-export would see a half-initialised module.
+def __getattr__(name):
+    if name.startswith("_"):
+        raise AttributeError(name)
+    import importlib
+    m = importlib.import_module("core.quant2")
+    try:
+        return getattr(m, name)
+    except AttributeError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+
+
+def __dir__():
+    import importlib
+    return sorted(set(globals()) | {k for k in dir(importlib.import_module("core.quant2")) if not k.startswith("_")})

@@ -119,8 +119,15 @@ class AlertsPanel(QtWidgets.QWidget):
         self.cb_dt = QtWidgets.QCheckBox(t("al_desktop")); self.cb_dt.setChecked(a.get("desktop", True))
         self.minc = QtWidgets.QSpinBox(); self.minc.setRange(0, 100); self.minc.setValue(int(a.get("min_conf", 55)))
         self.tfs = QtWidgets.QLineEdit(",".join(a.get("tfs", ["1h", "4h", "1d"])))
+        # Phase 23: quality gate + news filter for alerts
+        self.cb_news = QtWidgets.QCheckBox(t("news_filter")); self.cb_news.setChecked(a.get("news_filter", True))
+        self.qmode = QtWidgets.QComboBox()
+        for k, lab in (("proven", t("q_proven_only")), ("candidate", t("q_candidate")), ("all", t("q_all"))):
+            self.qmode.addItem(lab, k)
+        self.qmode.setCurrentIndex({"proven": 0, "candidate": 1, "all": 2}.get(a.get("quality_mode", "candidate"), 1))
         f.addRow(t("tg_token"), self.tok); f.addRow(t("tg_chat"), self.chat)
         f.addRow(t("al_channels"), self._row(self.cb_tg, self.cb_dt)); f.addRow(t("al_min_conf"), self.minc); f.addRow(t("al_tfs"), self.tfs)
+        f.addRow(t("quality_mode"), self.qmode); f.addRow("", self.cb_news)
         v.addLayout(f)
         h = QtWidgets.QHBoxLayout()
         self.save = QtWidgets.QPushButton(t("save")); self.save.setObjectName("primary"); self.save.clicked.connect(self._save)
@@ -142,7 +149,8 @@ class AlertsPanel(QtWidgets.QWidget):
         from core import alerts as AL
         AL.save_settings(dict(telegram_token=self.tok.text().strip(), telegram_chat_id=self.chat.text().strip(),
                               alerts=dict(telegram=self.cb_tg.isChecked(), desktop=self.cb_dt.isChecked(), min_conf=self.minc.value(),
-                                          tfs=[x.strip() for x in self.tfs.text().split(",") if x.strip()])))
+                                          tfs=[x.strip() for x in self.tfs.text().split(",") if x.strip()],
+                                          quality_mode=self.qmode.currentData(), news_filter=self.cb_news.isChecked())))
         self.log.appendPlainText("✓ " + t("saved"))
 
     def _test(self):

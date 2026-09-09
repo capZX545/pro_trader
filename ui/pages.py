@@ -1025,11 +1025,22 @@ class ScannerPage(QtWidgets.QWidget):
             cb.setChecked(cat in ("Crypto", "Forex", "Commodities"))
             self.cats[cat] = cb
             top.addWidget(cb)
+        self.quality = QtWidgets.QComboBox()
+        for k, lab in (("proven", t("q_proven_only")), ("candidate", t("q_candidate")), ("all", t("q_all"))):
+            self.quality.addItem(lab, k)
+        self.quality.setCurrentIndex(1)
+        self.quality.setToolTip(t("q_tip"))
+        top.addWidget(QtWidgets.QLabel(t("q_filter")))
+        top.addWidget(self.quality)
         self.btn = QtWidgets.QPushButton(t("scan"))
         self.btn.setObjectName("primary")
         top.addWidget(self.btn)
         top.addStretch()
         v.addLayout(top)
+        self.news = QtWidgets.QLabel("")
+        self.news.setStyleSheet(f"color:{C['yellow']};font-weight:600")
+        self.news.setWordWrap(True)
+        v.addWidget(self.news)
         hint = QtWidgets.QLabel(t("scan_hint"))
         hint.setObjectName("subtitle")
         v.addWidget(hint)
@@ -1040,7 +1051,7 @@ class ScannerPage(QtWidgets.QWidget):
         self.status = QtWidgets.QLabel("")
         self.status.setObjectName("subtitle")
         v.addWidget(self.status)
-        self.tbl = make_table([t("symbol"), t("strategy"), t("category"), t("side"), t("fresh"), t("price"), t("stop"), t("target"), t("rr"), t("winrate"), t("pf"), t("conf"), t("robust"), t("grade"), t("score")])
+        self.tbl = make_table([t("symbol"), t("strategy"), t("category"), t("side"), t("fresh"), t("price"), t("stop"), t("target"), t("rr"), t("winrate"), t("pf"), t("conf"), t("robust"), t("grade"), t("score"), t("q_verdict")])
         self.tbl.itemDoubleClicked.connect(self._open)
         v.addWidget(self.tbl, 1)
         self.btn.clicked.connect(self.scan)
@@ -1139,10 +1150,26 @@ class ScannerPage(QtWidgets.QWidget):
         self.w.start()
 
     def _show(self, rows):
+        from core import quality as Q, calendar as CAL
         self.btn.setEnabled(True)
         self.btn.setText(t("scan"))
         self.prog.setValue(100)
-        self.status.setText(f"{len(rows)} signals · {time.strftime('%H:%M:%S')}")
+        mode = self.quality.currentData()
+        total = len(rows)
+        for d in rows:
+            try:
+                qs = Q.score(d["cls"].id, d["sym"], d["tf"])
+            except Exception:
+                qs = dict(score=0, verdict="UNPROVEN", reasons_en=[], reasons_fa=[])
+            d["q"] = qs
+        rows = [d for d in rows if Q.passes(d["q"]["verdict"], mode)]
+        hidden = total - len(rows)
+        self.status.setText(f"{len(rows)} signals" + (f" · {hidden} {t('q_hidden')}" if hidden else "") + f" · {time.strftime('%H:%M:%S')}")
+        try:
+            ev = CAL.risk_now()
+            self.news.setText(CAL.text(ev, I18N.lang) if ev else "")
+        except Exception:
+            self.news.setText("")
         self.tbl.setSortingEnabled(False)
         self.tbl.setRowCount(0)
         for d in rows:
@@ -1169,7 +1196,10 @@ class ScannerPage(QtWidgets.QWidget):
             self.tbl.setItem(r, 13, cell(f"● {g} · n={d.get('pb_n', 0)}", {"A": C["green"], "B": C["accent2"], "C": C["yellow"]}.get(g, C["red"])))
             sc = d["score"]
             self.tbl.setItem(r, 14, ncell(sc, "{:.0f}", C["green"] if sc >= 60 else (C["yellow"] if sc >= 45 else C["muted"])))
-            row_tooltip(self.tbl, r, success_tip(d["cls"].id, d["sym"], d["tf"], strat_name(d["cls"])))
+            qv = d["q"]["verdict"]
+            self.tbl.setItem(r, 15, cell(f"{Q.label(qv, I18N.lang)} · {d['q']['score']}", Q.VERDICT_COLOR.get(qv, C["muted"])))
+            why = "\n".join("• " + x for x in (d["q"]["reasons_fa"] if I18N.lang == "fa" else d["q"]["reasons_en"]))
+            row_tooltip(self.tbl, r, success_tip(d["cls"].id, d["sym"], d["tf"], strat_name(d["cls"])) + "\n\n" + t("q_why") + ":\n" + why)
         self.tbl.setSortingEnabled(True)
         self.tbl.sortItems(14, QtCore.Qt.SortOrder.DescendingOrder)
         fp = getattr(self.window(), "page", lambda k: None)("nav_forward")

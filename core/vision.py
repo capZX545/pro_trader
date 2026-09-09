@@ -776,3 +776,23 @@ def real_report():
     except Exception:
         pass
     return out
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Phase 23 unified entry point: everything from core.vision2 (the Phase-12/13 extension set) is also reachable from this
+# module, so callers only need one import path. Resolved lazily (PEP 562) to stay import-order safe: core.vision2
+# itself imports this module, so an eager re-export would see a half-initialised module.
+def __getattr__(name):
+    if name.startswith("_"):
+        raise AttributeError(name)
+    import importlib
+    m = importlib.import_module("core.vision2")
+    try:
+        return getattr(m, name)
+    except AttributeError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+
+
+def __dir__():
+    import importlib
+    return sorted(set(globals()) | {k for k in dir(importlib.import_module("core.vision2")) if not k.startswith("_")})

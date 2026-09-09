@@ -1,3 +1,10 @@
+import warnings as _w
+import pandas as _pd
+try:  # pandas ≥2.2: opt in to the future (non-downcasting) behaviour so .fillna(False) on bool masks stays bool and silent
+    _pd.set_option("future.no_silent_downcasting", True)
+except Exception:
+    pass
+_w.filterwarnings("ignore", category=FutureWarning, module=r"strategies\..*")
 from .base import Strategy, StrategyResult
 from . import trend, meanrev, priceaction, masters, bots, ensemble, highwr, masters2, bots2, bots3, scalp, orderflow, ichimoku, indicator_signals, world_masters
 

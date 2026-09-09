@@ -122,6 +122,16 @@ def scan(tfs=None, min_conf=None, lang="fa", progress=None, dry=False):
     pb = PB.load()
     if not pb:
         return []
+    # Phase 23: no new alerts inside a high-impact news window (FOMC/CPI/NFP…) unless the user disabled the filter
+    if s.get("news_filter", True) and not dry:
+        try:
+            from core import calendar as CAL
+            ev = CAL.risk_now()
+            if ev:
+                _log(dict(ts=time.time(), title="news filter", body=CAL.text(ev, lang), meta=dict(kind="news_skip"), result={}))
+                return []
+        except Exception:
+            pass
     sent = []
     jobs = [(tf, g, syms) for tf in tfs for g, syms in PB.GROUPS.items() if pb.get("best", {}).get(tf, {}).get(g)]
     for j, (tf, g, syms) in enumerate(jobs):
@@ -155,6 +165,13 @@ def scan(tfs=None, min_conf=None, lang="fa", progress=None, dry=False):
                 conf = min(100.0, 40 + 20 * min(st.get("pf", 1) - 1, 1) * 2 + score * 10)
                 if conf < min_conf:
                     continue
+                # Phase 23: quality gate — only PROVEN (default) or PROVEN+CANDIDATE strategies may alert
+                try:
+                    from core import quality as Q
+                    if not Q.passes(Q.score(sid, sym, tf)["verdict"], s.get("quality_mode", "candidate")):
+                        continue
+                except Exception:
+                    pass
                 new = FW.record(sym, tf, sid, side, df.index[i], entry, stop, target, source="alert", conf=conf,
                                 expect=dict(wr=st.get("wr"), pf=st.get("pf")))
                 if not new:

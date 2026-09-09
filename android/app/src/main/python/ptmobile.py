@@ -62,7 +62,21 @@ def start(port=8765):
             maintenance.start()
     except Exception:
         pass
+    threading.Thread(target=_alert_loop, name="pt-alerts", daemon=True).start()
     return p
+
+
+def _alert_loop(every=900):
+    """Phase 23: the same alert scanner as the desktop (proven strategies only, news-window aware) runs on the phone;
+    results land in alerts history → EngineService turns them into system notifications."""
+    time.sleep(120)
+    while True:
+        try:
+            from core import alerts as AL
+            AL.scan(tfs=["1h", "4h"], lang="fa")
+        except Exception:
+            pass
+        time.sleep(every)
 
 
 def port():
