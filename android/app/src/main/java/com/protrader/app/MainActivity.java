@@ -38,6 +38,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Phase 23: Android 13+ requires a runtime grant before signal notifications can be shown
+        if (android.os.Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 7231);
+        }
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.parseColor("#0b0e14"));
         web = new WebView(this);
