@@ -1,3 +1,17 @@
+## v1.11.0 — Phase 24: Edge analytics & trade plan (core/edge.py)
+
+The quality gate (v1.10) says *whether* a strategy has an edge; this release answers *how to trade this exact signal*:
+
+- **Trade plan** per signal (desktop Scanner: right-click / "Trade plan" button; web & mobile: "Plan" button on every signal row; API `/api/plan`), bilingual FA/EN, with a GO / REDUCED / NO-TRADE verdict and every number explained.
+- **Regime fit**: backtest trades split by the regime at entry (trend/range/mixed × bull/bear/flat); shows PF and n of this strategy in the *current* regime → misfit = no trade.
+- **Edge decay**: PF of the last 12 months vs. all history (decayed → size ×0.3 and a warning).
+- **Higher-timeframe alignment**: EMA50/200 stack + slope on the next timeframe up; counter-trend → size ×0.6.
+- **Monte-Carlo for the next 50 trades** at the suggested risk: P(loss), median/p5/p95 return, p95 drawdown, longest losing streak to expect.
+- **Suggested size**: ¼-Kelly from real R-multiples, scaled by trust score × regime fit × HTF × decay, capped at 1% (0 when expectancy is negative or n<20). Position in units / notional for the chosen equity.
+- **Entry / Stop / TP1 (1R) / TP2**, stop in ATR units, expected hold, news-window flag, list of "avoid-if" reasons.
+- **Cluster risk** (`/api/cluster`, web Fast-scan): same-direction signals on symbols with ρ ≥ 0.7 are flagged as ONE bet.
+- Tests: tests/test_phase24.py (14) — 61 total pass.
+
 ## v1.10.0 — Phase 23: signal trust gate, news filter, phone push, unified engine
 
 **Why:** a scanner that lists 24 signals of which 15 come from strategies that lose out-of-sample is noise. v1.10.0 makes the program say which signals it can actually stand behind — and hides the rest by default.

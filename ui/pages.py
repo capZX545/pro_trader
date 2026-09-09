@@ -1053,8 +1053,63 @@ class ScannerPage(QtWidgets.QWidget):
         v.addWidget(self.status)
         self.tbl = make_table([t("symbol"), t("strategy"), t("category"), t("side"), t("fresh"), t("price"), t("stop"), t("target"), t("rr"), t("winrate"), t("pf"), t("conf"), t("robust"), t("grade"), t("score"), t("q_verdict")])
         self.tbl.itemDoubleClicked.connect(self._open)
+        self.tbl.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tbl.customContextMenuRequested.connect(self._ctx)
         v.addWidget(self.tbl, 1)
+        hb = QtWidgets.QHBoxLayout()
+        self.plan_btn = QtWidgets.QPushButton("📋 " + t("plan"))
+        self.plan_btn.clicked.connect(self._plan_selected)
+        hb.addWidget(self.plan_btn)
+        ph = QtWidgets.QLabel(t("plan_hint")); ph.setObjectName("subtitle"); ph.setWordWrap(True)
+        hb.addWidget(ph, 1)
+        v.addLayout(hb)
+        self.plan_out = QtWidgets.QTextBrowser()
+        self.plan_out.setMaximumHeight(210)
+        self.plan_out.setVisible(False)
+        v.addWidget(self.plan_out)
         self.btn.clicked.connect(self.scan)
+
+    def _ctx(self, pos):
+        it = self.tbl.itemAt(pos)
+        if not it:
+            return
+        m = QtWidgets.QMenu(self)
+        a = m.addAction("📋 " + t("plan"))
+        if m.exec(self.tbl.viewport().mapToGlobal(pos)) == a:
+            self.tbl.selectRow(it.row()); self._plan_selected()
+
+    def _plan_selected(self):
+        r = self.tbl.currentRow()
+        if r < 0:
+            return
+        d = self.tbl.item(r, 0).data(QtCore.Qt.ItemDataRole.UserRole)
+        if not d:
+            return
+        sym, sid = d[0], d[1]
+        tf = self.tf.currentText()
+        self.plan_out.setVisible(True)
+        self.plan_out.setPlainText(t("scanning"))
+        self.plan_btn.setEnabled(False)
+
+        def job():
+            from core import edge as E
+            return E.trade_plan(sym, tf, sid)
+        self._plan_w = Worker(job)
+        self._plan_w.done.connect(self._plan_done)
+        self._plan_w.error.connect(lambda e: (self.plan_out.setPlainText("⚠ " + str(e)), self.plan_btn.setEnabled(True)))
+        self._plan_w.start()
+
+    def _plan_done(self, p):
+        self.plan_btn.setEnabled(True)
+        if "error" in p:
+            self.plan_out.setPlainText(str(p["error"])); return
+        txt = p["text_fa"] if I18N.lang == "fa" else p["text_en"]
+        col = C["green"] if p["verdict_en"] == "GO" else (C["yellow"] if p["verdict_en"] == "REDUCED" else C["red"])
+        import html as _h
+        body = _h.escape(txt).replace("\n", "<br>")
+        import re as _re
+        body = _re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", body)
+        self.plan_out.setHtml(f'<div style="color:{col};line-height:1.6">{body}</div>')
 
     def scan(self):
         tf = self.tf.currentText()
