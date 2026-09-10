@@ -1,3 +1,63 @@
+## v1.13.3 — Fix: Desktop & Mobile Not Running - Restore Working v1.12.0 + Safe Advanced Chart
+
+**User report: برنامم اصلا ران نمیشه ن توی دسکتاپ ن توی موبایل چیکار کردی با برنامم؟؟؟؟ قبلش کار میکرد نسخه های قبلی**
+
+### Root Cause:
+Advanced TradingView chart changes in v1.13.0-v1.13.2 broke desktop & mobile:
+- ui/pages.py had unsafe TradingView toolbar without fallback
+- ui/main_window.py had nav_tv without safe fallback
+- web/index.html replaced working canvas chart (proven) with new lightweight-charts that needs CDN (fails offline, breaks mobile WebView)
+
+### Fixed:
+
+1. **Restored Working Files from v1.12.0 (Proven Working):**
+   - ui/pages.py from v1.12.0 (2121 lines, working)
+   - ui/main_window.py from v1.12.0 (working)
+   - ui/theme.py from v1.12.0 (working)
+   - web/index.html from backup (old canvas chart - 59KB, proven working)
+
+2. **Re-added Advanced Features SAFELY with Fallbacks:**
+   - ui/pages.py: TradingViewToolbar optional with HAS_ADV_TB flag, try/except, safe methods
+     * _on_advanced_hover, _on_chart_type, _on_screenshot, _on_chart_settings all safe
+     * If advanced toolbar fails, falls back to normal chart
+   - ui/main_window.py: nav_tv optional with HAS_TV flag, fallback to ChartPage
+   - ui/theme.py: nav_tv translation safe
+
+3. **Kept All Powerful Bot Fixes (Core - Not Breaking):**
+   - 196 strategies for all charts (was 179 with 79 disabled) - strategies/__init__.py, world_masters2.py
+   - Real Iran Gold costs (1-3.5% not 0.05%) - core/costs.py
+   - Live Iran Gold - core/live.py
+   - News + Sentiment - core/news_gold.py
+   - Security + Backup - core/security.py
+   - Anti-filter resilient - core/resilient.py
+   - Iran Gold complete - core/iran_gold.py, bubble.py, correlation.py, arbitrage.py, jalali.py, toman.py, risk_gold.py, gold_alerts.py
+   - Persistence + auto-evolution + monitoring - core/persistence.py, auto_evolution.py, monitoring.py
+
+4. **Advanced Chart Still Available (Separate, Optional, Not Breaking Main):**
+   - web/advanced_chart.html (22KB) - standalone advanced TradingView page, access via /advanced_chart.html
+   - web/tv_advanced.js (12KB) + web/lightweight-charts.standalone.production.js (157KB offline bundle)
+   - ui/tradingview_page.py + ui/chart_advanced_toolbar.py - optional advanced pages, safe fallback
+   - If they fail, main chart still works like v1.12.0
+
+### Result:
+- ✅ Desktop runs like v1.12.0 (working version) + safe advanced toolbar (optional)
+- ✅ Mobile runs like v1.12.0 (working version) + advanced chart available via /advanced_chart.html
+- ✅ Webapp OK, 196 strategies, Iran Gold, real costs, live, news, security
+- ✅ No breaking changes, all safe with try/except fallbacks
+- ✅ English only, no toman conversion for non-gold (per user)
+- ✅ Exactly like before + advanced chart optional
+
+### Installable Files (Desktop + Android - Fixed to Run):
+
+- **Windows:** ProTrader-Setup-1.13.3-windows-x64.exe + portable.zip - FIXED, runs like v1.12.0
+- **Linux:** ProTrader-1.13.3-linux-x64.tar.gz - FIXED
+- **macOS:** ProTrader-1.13.3-macos-arm64.dmg - FIXED
+- **Android:** ProTrader-1.13.3-android.apk - FIXED, runs like before + online analysis & signals exactly like desktop
+
+**User: Before it worked, previous versions - Now fixed to run like before + safe advanced chart**
+
+---
+
 ## v1.13.2 — Phase 26.2: Android Online Analysis & Signals Exactly Like Desktop
 
 **User clarification: ببین منظورم از نسخه آفلاین اندروید این نبود ک کلا آفلاین باشه، چارت و اینا رو بتونه بده، تحلیل و سیگنال بتونه بده دقیقا مثل دسکتاپ**
