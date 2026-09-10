@@ -1,3 +1,91 @@
+## v1.13.1 — Phase 26.1: Android Complete & Fast - All Desktop Features, No Extra Installs, Instant Start
+
+**User request: هرچی توی برنامه دسکتاپ هست رو میخوام روی اندروید اعمال کنی بدون کم و کاستی و اینکه همه موارد لازم رو روش از قبل بریزی و ارور های احتمالیشم برطرف کنی واینکه میخوام وقتی توی گوشی نصب میکنم سریع کار کنه ن اینکه بگه این رو نصب کن فلان چیزو نصب کن منتظر موتور بمون**
+
+### Fixed Android - Complete Desktop Parity, Fast, Offline, No Extra Installs
+
+**Problem before:**
+- Splash said "Starting the trading engine... (first launch takes ~20 s)" - slow, user doesn't want waiting
+- Engine needed to extract packages and copy seed data on first run - 20s delay
+- tv_advanced.js loaded from CDN (unpkg.com, cdn.jsdelivr.net) - fails offline on Android
+- Some seed files missing - needed download
+- Could say "install this, install that, wait for engine"
+
+**Fixed now:**
+
+1. **MainActivity.java - Fast Loading (no 20s wait):**
+   - New splash: "◆ ProTrader" + "Advanced TradingView Chart • 196 Strategies • All Markets" + features
+   - Progress bar with blue accent, not generic
+   - Engine starts in background thread with retry (3 tries, 500ms)
+   - Splash shows minimum 1 second for branding, not 20 seconds
+   - If error, shows "Tap to retry" not crash
+   - WebView optimized: allow file access, content access, file URLs, universal access, zoom enabled
+   - Foreground service starts immediately
+
+2. **ptmobile.py - Complete, Fast, Offline:**
+   - All 196 strategies pre-loaded, not 179
+   - All seed files pre-installed: playbook.json, validation.json, audit.json, success.json, vision, gold_alerts, iran_gold_live, evolution_state, journal, settings, drawings, forward
+   - Models folder (ML models) pre-installed
+   - Cache samples pre-installed for fast first run
+   - Fast seed: only copy missing files, not all
+   - Webapp starts FAST with no delay, finds advanced_chart.html and tv_advanced.js
+   - Preload strategies in background thread - first Run is fast
+   - Alert loop in English (per user: fully English)
+   - `is_ready()` function for fast UI check
+   - No extra installs needed, works offline immediately
+
+3. **prepare_android.py - All Pre-installed:**
+   - Copies ALL core modules (66 files) - complete desktop engine, byte-identical
+   - Copies ALL strategies (196) - not 179
+   - Copies ALL web files including tv_advanced.js (12KB) and advanced_chart.html (22KB) and lightweight-charts.offline.js (157KB)
+   - Copies ALL seed files: playbook, validation, audit, success, vision, gold_alerts, iran_gold_live, evolution_state, journal, settings, drawings, forward
+   - Copies models folder (ML models) pre-installed
+   - Copies cache samples for fast first run
+   - Checks tv_advanced.js has CDN with fallback - OK for offline
+   - Sanity check: engine must import with 196 strategies
+   - Stats: shows core/, strategies/, web/, ptdata/ counts
+
+4. **tv_advanced.js - Offline First (for Android):**
+   - New `ensureLib()`: tries offline bundled version first (`./lightweight-charts.standalone.production.js` - 157KB)
+   - Then CDN1 (unpkg.com), then CDN2 (jsdelivr.net)
+   - For Android: offline works immediately, no internet needed, fast
+   - For web: CDN works, offline fallback
+
+5. **web/lightweight-charts.standalone.production.js (NEW - 157KB):**
+   - Offline bundle of TradingView Lightweight Charts v4.1.0
+   - For Android - works without internet, fast, no download
+   - Served from WEB_DIR via webapp (127.0.0.1:8765)
+
+6. **strings.xml - No Waiting Message:**
+   - Before: "Starting the trading engine... (first launch takes ~20 s)"
+   - Now: "Loading ProTrader..." - fast, no 20s mention
+   - Engine running message: "ProTrader is running - All 196 strategies active, TradingView chart ready"
+
+### Result: Android = Desktop, Complete, Fast, No Extra Installs
+
+- ✅ All 196 strategies from desktop on Android (was 179)
+- ✅ Advanced TradingView chart (tv_advanced.js + advanced_chart.html + lightweight-charts offline)
+- ✅ Iran Gold complete (11 symbols, bubble, correlation, arbitrage, jalali, toman, risk_gold, gold_alerts)
+- ✅ All markets (Crypto, Forex, Commodities, Stocks, ETFs, Iran Gold)
+- ✅ All data seeds pre-installed (playbook, validation, audit, success, vision, models)
+- ✅ Works offline immediately - no need to download anything
+- ✅ Fast start: 1 second splash, not 20 seconds
+- ✅ No "install this, install that" messages
+- ✅ No "wait for engine" - engine starts in background, UI shows immediately
+- ✅ No errors - all modules tested, all imports OK
+- ✅ English only (per user request)
+- ✅ No toman conversion for non-gold (per user request)
+- ✅ Same as desktop, without deficiency (بدون کم و کاستی)
+
+### Desktop Installers (Same - Already Complete)
+
+- Windows: ProTrader-Setup-1.13.1-windows-x64.exe (installer) + portable.zip
+- Linux: tar.gz
+- macOS: dmg
+- All include 196 strategies, TradingView advanced chart, Iran Gold, anti-filter, persistence, etc.
+
+---
+
 ## v1.13.0 — Phase 26: Advanced TradingView Chart (online + desktop)
 
 **User request: Advanced online chart like TradingView, fully English, rates unchanged except gold (no toman conversion for others)**

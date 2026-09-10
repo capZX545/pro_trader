@@ -27,18 +27,29 @@ const COLORS = {
 function ensureLib(){
   if(window.LightweightCharts) return Promise.resolve();
   return new Promise((res, rej)=>{
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js';
-    s.onload = ()=>res();
-    s.onerror = ()=>{
-      // fallback to local if exists or second CDN
+    // Try offline bundled version first (for Android - fast, no internet needed)
+    const tryOffline = ()=>{
+      const s0 = document.createElement('script');
+      s0.src = './lightweight-charts.standalone.production.js';
+      s0.onload = ()=>res();
+      s0.onerror = ()=>tryCDN1();
+      document.head.appendChild(s0);
+    };
+    const tryCDN1 = ()=>{
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js';
+      s.onload = ()=>res();
+      s.onerror = ()=>tryCDN2();
+      document.head.appendChild(s);
+    };
+    const tryCDN2 = ()=>{
       const s2 = document.createElement('script');
       s2.src = 'https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js';
       s2.onload = ()=>res();
-      s2.onerror = ()=>rej('Failed to load lightweight-charts');
+      s2.onerror = ()=>rej('Failed to load lightweight-charts - check internet or bundle offline file');
       document.head.appendChild(s2);
     };
-    document.head.appendChild(s);
+    tryOffline();
   });
 }
 
