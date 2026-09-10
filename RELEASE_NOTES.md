@@ -1,3 +1,15 @@
+## v1.12.0 — Phase 25: Trading Desk (daily briefing) — core/desk.py
+
+- **New page "Trading Desk"** (desktop nav, web/mobile "More → Trading desk", API `/api/desk`): one bilingual document, in the order a professional desk works:
+  1. *Is it safe to trade?* — high-impact news window + hard risk gates (open risk, today's realised loss, losing streak/cool-down) computed from the open forward-test positions.
+  2. *What is the market doing?* — regime (trend/range/mixed × bull/bear) + 24h change of the bellwether of each asset class.
+  3. *What do I already have on?* — open forward-test positions with live unrealised R, MFE/MAE, bars held.
+  4. *What is worth doing today?* — fresh signals of playbook-proven strategies → Phase-24 trade plan → only GO/REDUCED survive, ranked by trust×size; correlated same-direction plans halved; total risk capped at the 3% portfolio limit (open positions included). If nothing passes it says so.
+  5. *What is quietly breaking?* — proven strategies whose 12-month PF decayed vs history.
+  6. *Reality vs backtest* — forward-test verdict and realised/expected PF gap.
+- **Bug fix (found by the desk scan):** `ensemble` ↔ `regime_ensemble` could recurse into each other forever, freezing any scan that included both; meta-strategies now never nest.
+- Tests: tests/test_phase25.py (6) — 67 total pass. No Android/desktop rebuild in this push (code-only on main).
+
 ## v1.11.0 — Phase 24: Edge analytics & trade plan (core/edge.py)
 
 The quality gate (v1.10) says *whether* a strategy has an edge; this release answers *how to trade this exact signal*:

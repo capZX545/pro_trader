@@ -475,6 +475,15 @@ def api_plan(q):
     return _clean(E.trade_plan(sym, tf, sid, df=_df(sym, tf, 0), equity=float(q.get("equity", 10000) or 10000), cap_pct=float(q.get("cap", 1.0) or 1.0)))
 
 
+def api_desk(q):
+    """Phase 25 daily trading-desk briefing (safety → regimes → open positions → ranked plans → decay → reality)."""
+    from core import desk as D
+    tfs = tuple(x for x in (q.get("tfs") or "4h,1d").split(",") if x)
+    b = D.briefing(tfs=tfs, equity=float(q.get("equity", 10000) or 10000), mode=q.get("mode", "proven"), recent=int(q.get("recent", 3)),
+                   max_age=0 if q.get("refresh") == "1" else 600)
+    return _clean(b)
+
+
 def api_cluster(q):
     """same-direction signals on highly correlated symbols = one bet (Phase 24)."""
     from core import edge as E
@@ -504,7 +513,7 @@ def api_alert_scan(q):
     return _clean(AL.scan(tfs=[t for t in q.get("tfs", "1h,4h").split(",") if t], lang=q.get("lang", "fa"), dry=q.get("dry") == "1"))
 
 
-ROUTES = {"/api/meta": api_meta, "/api/quality": api_quality, "/api/plan": api_plan, "/api/cluster": api_cluster, "/api/calendar": api_calendar, "/api/notifications": api_notifications, "/api/alert_scan": api_alert_scan, "/api/symbols": api_symbols, "/api/strategies": api_strategies, "/api/ohlcv": api_ohlcv, "/api/run": api_run,
+ROUTES = {"/api/meta": api_meta, "/api/quality": api_quality, "/api/plan": api_plan, "/api/desk": api_desk, "/api/cluster": api_cluster, "/api/calendar": api_calendar, "/api/notifications": api_notifications, "/api/alert_scan": api_alert_scan, "/api/symbols": api_symbols, "/api/strategies": api_strategies, "/api/ohlcv": api_ohlcv, "/api/run": api_run,
           "/api/signals": api_signals, "/api/advise": api_advise, "/api/fast": api_fast, "/api/library": api_library, "/api/clock": api_clock,
           "/api/success": api_success,
           "/api/indicators": api_indicators, "/api/indicator": api_indicator, "/api/drawings": api_drawings, "/api/forward": api_forward,

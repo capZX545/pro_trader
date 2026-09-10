@@ -9,6 +9,7 @@ from .advisor_page import AdvisorPage
 from .ml_page import MLPage
 from .forward_page import ForwardPage
 from .health_page import HealthPage
+from .desk_page import DeskPage
 from .vision_page import VisionPage
 from .ai_page import AIPage
 from .quant_page import QuantLabPage
@@ -43,6 +44,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stack = QtWidgets.QStackedWidget()
         self.pages = [
             ("nav_dash", "🏠", DashboardPage()),
+            ("nav_desk", "🗞", DeskPage()),
             ("nav_chart", "📈", ChartPage()),
             ("nav_scan", "📡", ScannerPage()),
             ("nav_advisor", "🎯", AdvisorPage()),

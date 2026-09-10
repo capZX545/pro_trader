@@ -566,8 +566,8 @@ class RegimeAdaptiveEnsemble(Strategy):
         used = 0
         for sid in cands:
             cls = S.REGISTRY.get(sid)
-            if not cls or cls.id == self.id:
-                continue
+            if not cls or cls.id == self.id or cls.category == "Ensemble":
+                continue   # never nest meta-strategies (ensemble ↔ regime_ensemble recursion)
             try:
                 s = cls().run(df).signal.fillna(0)
             except Exception:

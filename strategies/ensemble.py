@@ -65,6 +65,9 @@ class RobustEnsemble(Strategy):
             ids = [k for k, v in cache.items() if v.get("score", 0) >= self.p["min_score"] and k != self.id]
         if len(ids) < self.p["min_agree"]:  # fallback default members if lab not run yet
             ids = ["binhv45", "nfi_lite", "silver_bullet", "holy_grail", "triple_rsi", "ibs", "macd_cci_bot", "clucmay"]
+        # meta-strategies must never nest (ensemble ↔ regime_ensemble recursion would never terminate)
+        META = {"ensemble", "regime_ensemble", "strategy_tournament", "meta_router"}
+        ids = [i for i in ids if i not in META]
         self.last_members = ids
         return [S.REGISTRY[i] for i in ids if i in S.REGISTRY]
 
