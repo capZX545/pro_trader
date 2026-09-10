@@ -1,3 +1,87 @@
+## v1.15.0 — Strategy Intelligence - هوش استراتژی - Auto-select Best Strategy per Chart/Timeframe
+
+**User request: ماژول داشته به اسم هوش استراتژی که خودش برای اون چارت یه استراتژی درست انتخاب کنه بر حسب تایم فریم انتخاب شده که تحلیل کنه با همون استراتژی ای که انتخاب کرده بین این همه استراتژی هم خوبه - یعنی یه ماژول اینطوری بساز خودت به بات آموزشش بده چیکار کنه**
+
+### Built:
+
+1. **Core Brain - core/strategy_intelligence.py (688 lines):**
+   - `analyze_market_regime(df)`: Detects market regime from OHLCV
+     * EMA 50/200 trend, ADX strength, ATR volatility vs median, RSI, volume trend
+     * Regimes: strong_trend_bull/bear, weak_trend_bull/bear, ranging, high_vol_breakout, low_vol_squeeze, volatile_choppy
+     * Confidence scoring
+   - `tf_match_score(strategy_tfs, target_tf)`: Parses "1h – 1d", "15m – 4h", "any" etc. and scores 0-100 match
+   - `REGIME_CATEGORY_SCORES`: Which categories work best in each regime
+     * Strong trend: Trend 95, Momentum 90, Smart-Money 85
+     * Ranging: Mean-Reversion 95, Price-Action 85
+     * High vol: Volatility 95, Volume 90
+   - `score_strategies(symbol, tf, df, market)`: Scores all 196 strategies
+     * TF match 30% + Regime match 30% + Historical performance 25% + Success/PF/Proven bonus 15% - difficulty penalty
+     * Uses playbook (proven Grade A/B/C/D), success WR/PF, validation score, quality verdict
+     * Detailed reasoning in FA/EN
+   - `select_best_strategy(symbol, tf, df)`: Main entry - returns IntelligenceResult with best, top_5, all_scored, market analysis, timing
+   - `auto_analyze(symbol, tf)`: Runs backtest with best strategy, returns signals
+   - `learn_from_forward()`: Teaches bot from forward testing results
+   - `get_intelligence_summary()`: Human-readable summary FA/EN
+
+2. **UI Page - ui/strategy_intelligence_page.py (384 lines):**
+   - Symbol/TF selector with auto mode (analyzes when chart changes)
+   - Market regime tiles: regime, trend strength, volatility, ADX, RSI, confidence
+   - Best strategy card: name FA/EN, id, category, score/100, confidence, grade, WR, PF, breakdown (TF, regime, historical)
+   - Reasoning text: why this strategy was chosen
+   - Apply to chart button
+   - Top 5 table: #/strategy/category/score/grade/WR/PF/confidence - double-click to apply
+   - All 196 strategies table (top 30): score/strategy/category/TF/grade/WR/reasoning - double-click to apply
+   - Backtest stats + chart widget with signals
+   - Worker thread for non-blocking analysis
+
+3. **Integration:**
+   - `ui/main_window.py`: Added nav_intelligence page "🧠 هوش استراتژی" with HAS_INTEL safe fallback
+   - `ui/pages.py`: Added "🧠 هوش استراتژی" button to ChartPage toolbar (blue) - auto-selects best strategy for current chart/TF, shows dialog with market regime, best strategy, reasoning, top 5, and Yes/No to apply
+   - `ui/theme.py`: Added translations nav_intelligence, intelligence_sub in EN/FA
+   - `core/webapp.py`: Added /api/intelligence endpoint - returns market, best, top_5, top_20, total_scored, analysis_time_ms, summaries
+
+4. **Teaching the Bot:**
+   - Bot learns market regime from price action (EMA, ADX, ATR, RSI, volume)
+   - Scores strategies based on proven performance (playbook, success, validation, quality)
+   - Regime-aware selection: Trend in trending, Mean-Reversion in ranging, etc.
+   - Timeframe-aware: parses strategy timeframes and matches
+   - Confidence and reasoning for every selection
+   - Learns from forward testing (learn_from_forward)
+
+### How to Use:
+
+**Desktop:**
+- Sidebar -> "🧠 هوش استراتژی" / "Strategy Intelligence"
+- Select symbol (e.g., BTC/USDT) and timeframe (e.g., 1h)
+- Click "🧠 تحلیل هوشمند - Analyze"
+- See market regime (e.g., "روند نزولی قوی" ADX 33 RSI 36), best strategy (e.g., ichimoku_tk_strong Score 77 Grade B WR 55%), reasoning, top 5
+- Click "📈 اعمال به چارت" to apply to chart page
+
+**Chart Page:**
+- Open any chart (e.g., BTC/USDT 1h)
+- Click blue button "🧠 هوش استراتژی" in toolbar
+- Bot analyzes market regime and all 196 strategies for that symbol/TF
+- Shows dialog: market regime, best strategy, score, reasoning, top 5
+- Click "✅ بله، اعمال کن" to apply best strategy to chart - chart updates with signals
+
+**Web/Mobile:**
+- GET /api/intelligence?sym=BTC/USDT&tf=1h
+- Returns JSON with market regime, best strategy, top 5, etc.
+
+### Example:
+BTC/USDT 1h -> Market: روند نزولی قوی (ADX 33, RSI 36, قدرت روند 93%)
+Best: ichimoku_tk_strong (Ichimoku TK cross) - Score 77/100 - Category Trend - Grade B - WR 55% PF 1.2
+Reason: تایم‌فریم 1h کاملاً مناسب (15m – 4h) • برای روند نزولی قوی عالیه (Trend) • اثبات شده Grade B
+
+### Result:
+- ✅ Module named هوش استراتژی exists
+- ✅ Auto-selects correct strategy per chart based on timeframe
+- ✅ Analyzes with that strategy and it's good among all 196
+- ✅ Bot taught how to choose: regime + TF + historical performance + reasoning
+- ✅ Desktop + mobile + web all have it
+
+---
+
 ## v1.13.4 — Fix HAS_TV NameError - Program Not Running
 
 **User error: Traceback ... NameError: name 'HAS_TV' is not defined in ui/main_window.py line 49**
