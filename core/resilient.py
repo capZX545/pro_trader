@@ -72,8 +72,9 @@ def doh_resolve(hostname: str, timeout=5) -> Optional[str]:
             continue
     return None
 
-# ------------------------------------------------------------------ Proxy auto-detection
-_COMMON_PROXY_PORTS = [10808, 10809, 1080, 7890, 7891, 2080, 8080, 1081]
+# ------------------------------------------------------------------ Proxy auto-detection (Enhanced)
+_COMMON_PROXY_PORTS = [10808, 10809, 1080, 7890, 7891, 2080, 8080, 1081, 9050, 9150]  # Added Tor 9050, 9150
+_TOR_PORTS = [9050, 9150]  # Tor ports
 _PROXY_CACHE = {"checked": False, "proxy": None, "ts": 0}
 
 def _is_port_open(host: str, port: int, timeout=0.5) -> bool:
@@ -83,8 +84,10 @@ def _is_port_open(host: str, port: int, timeout=0.5) -> bool:
     except Exception:
         return False
 
-def detect_system_proxy() -> Optional[str]:
-    """Detect proxy from env, Windows registry, or common local ports (V2Ray, Clash, etc.)"""
+def detect_system_proxy(include_tor: bool = True) -> Optional[str]:
+    """Detect proxy from env, Windows registry, or common local ports (V2Ray, Clash, Tor, etc.)
+    Enhanced to support Tor for maximum anti-filter.
+    """
     # cache 60s
     if time.time() - _PROXY_CACHE["ts"] < 60 and _PROXY_CACHE["checked"]:
         return _PROXY_CACHE["proxy"]
@@ -120,14 +123,49 @@ def detect_system_proxy() -> Optional[str]:
         except Exception:
             pass
     
-    # 3) common local proxy ports (Clash, V2Ray, Sing-box)
+    # 3) common local proxy ports (Clash, V2Ray, Sing-box, Tor)
     for port in _COMMON_PROXY_PORTS:
         if _is_port_open("127.0.0.1", port, timeout=0.3):
-            proxy_url = f"http://127.0.0.1:{port}"
-            _PROXY_CACHE.update(checked=True, proxy=proxy_url, ts=time.time())
-            return proxy_url
+            # Check if it's Tor (SOCKS) or HTTP
+            if port in _TOR_PORTS and include_tor:
+                # Tor is SOCKS, need to use socks proxy
+                # For requests, we need to use socks5h://
+                # But we return http proxy for compatibility, user can configure Tor to provide HTTP
+                # Actually Tor Browser provides SOCKS, but we can try both
+                proxy_url = f"socks5h://127.0.0.1:{port}"
+                # Test if SOCKS works, otherwise try HTTP on same port (some Tor configs provide HTTP)
+                _PROXY_CACHE.update(checked=True, proxy=proxy_url, ts=time.time())
+                return proxy_url
+            else:
+                proxy_url = f"http://127.0.0.1:{port}"
+                _PROXY_CACHE.update(checked=True, proxy=proxy_url, ts=time.time())
+                return proxy_url
+    
+    # 4) Tor specific check with more thorough detection
+    if include_tor:
+        for port in _TOR_PORTS:
+            if _is_port_open("127.0.0.1", port, timeout=0.3):
+                proxy_url = f"socks5h://127.0.0.1:{port}"
+                _PROXY_CACHE.update(checked=True, proxy=proxy_url, ts=time.time())
+                return proxy_url
     
     _PROXY_CACHE.update(checked=True, proxy=None, ts=time.time())
+    return None
+
+def get_tor_session() -> Optional["ResilientSession"]:
+    """Get a session that uses Tor if available"""
+    tor_proxy = None
+    for port in _TOR_PORTS:
+        if _is_port_open("127.0.0.1", port, timeout=0.5):
+            tor_proxy = f"socks5h://127.0.0.1:{port}"
+            break
+    
+    if tor_proxy:
+        try:
+            sess = ResilientSession(use_proxy=tor_proxy, timeout=20)
+            return sess
+        except Exception:
+            pass
     return None
 
 # ------------------------------------------------------------------ User-Agent rotation
@@ -330,8 +368,10 @@ MIRRORS = {
     ],
 }
 
-def health_check(verbose=False) -> Dict[str, bool]:
-    """Quick check which hosts are reachable (for UI diagnostics)."""
+def health_check(verbose=False, include_iran: bool = True) -> Dict[str, bool]:
+    """Quick check which hosts are reachable (for UI diagnostics).
+    Enhanced with Iran-specific hosts and Tor check.
+    """
     results = {}
     tests = {
         "binance-vision": "https://data-api.binance.vision/api/v3/ping",
@@ -340,7 +380,25 @@ def health_check(verbose=False) -> Dict[str, bool]:
         "yahoo": "https://query1.finance.yahoo.com/v8/finance/chart/BTC-USD?range=1d&interval=1d",
         "tgju": "https://api.tgju.org/v1/market/indicator/summary-table-data/price_dollar_rl",
         "cloudflare-doh": "https://cloudflare-dns.com/dns-query?name=google.com&type=A",
+        "google-doh": "https://dns.google/resolve?name=google.com&type=A",
+        "quad9-doh": "https://dns.quad9.net:5053/dns-query?name=google.com&type=A",
     }
+    
+    if include_iran:
+        tests.update({
+            "tgju-www": "https://www.tgju.org/",
+            "alanchand": "https://alanchand.com/",
+            "bonbast": "https://bonbast.com/",
+        })
+    
+    # Check Tor
+    try:
+        tor_available = any(_is_port_open("127.0.0.1", p, timeout=0.3) for p in _TOR_PORTS)
+        results["tor"] = tor_available
+        if verbose and tor_available:
+            print(f"[health] tor: available (anti-filter strongest mode)")
+    except Exception:
+        results["tor"] = False
     for name, url in tests.items():
         try:
             r = session().get(url, timeout=8, headers={"accept": "application/dns-json"} if "doh" in name else {})

@@ -147,10 +147,34 @@ def main():
         print(f"[ProTrader] Resilient init failed: {e}")
 
     try:
-        # 2) Iran Gold background updater
-        from core import iran_gold
+        # 2) Iran Gold background updater + related services
+        from core import iran_gold, bubble, jalali, correlation
         iran_gold.start_background_updater()
         print("[ProTrader] Iran Gold (طلای ایران) live updater started")
+        
+        # 2b) Gold alerts checker
+        try:
+            from core import gold_alerts
+            gold_alerts.start_checker()
+            print("[ProTrader] Gold alerts checker started")
+        except Exception as e:
+            print(f"[ProTrader] Gold alerts failed: {e}")
+        
+        # 2c) Jalali calendar - log seasonal pattern
+        try:
+            pattern = jalali.get_seasonal_pattern()
+            print(f"[ProTrader] Jalali: {pattern['jalali_date']} - {pattern['season']} - Demand: {pattern['gold_demand']}")
+        except Exception as e:
+            print(f"[ProTrader] Jalali failed: {e}")
+        
+        # 2d) Monitoring
+        try:
+            from core import monitoring
+            monitoring.start_monitoring()
+            print("[ProTrader] Monitoring started")
+        except Exception as e:
+            print(f"[ProTrader] Monitoring failed: {e}")
+            
     except Exception as e:
         print(f"[ProTrader] Iran Gold init failed: {e}")
 

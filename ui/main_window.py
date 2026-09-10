@@ -14,6 +14,7 @@ from .vision_page import VisionPage
 from .ai_page import AIPage
 from .quant_page import QuantLabPage
 from .portfolio_page import PortfolioPage
+from .iran_gold_page import IranGoldPage
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -48,6 +49,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ("nav_chart", "📈", ChartPage()),
             ("nav_scan", "📡", ScannerPage()),
             ("nav_advisor", "🎯", AdvisorPage()),
+            ("nav_irangold", "🇮🇷", IranGoldPage()),
             ("nav_forward", "🔬", ForwardPage()),
             ("nav_live", "⚡", LiveMarketPage()),
             ("nav_fast", "🎯", FastSignalsPage()),
