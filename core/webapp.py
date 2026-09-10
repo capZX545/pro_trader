@@ -112,6 +112,15 @@ def _df(sym, tf, n):
     return df.tail(int(n)) if n else df
 
 
+def api_chart_config(q):
+    """TradingView-style chart config: type, indicators, drawings"""
+    return dict(
+        chart_types=["candle", "line", "area", "heikin", "renko"],
+        timeframes=["1m","3m","5m","15m","30m","1h","2h","4h","6h","12h","1d","1wk","1mo"],
+        drawing_tools=["cursor","trend","hline","vline","ray","rect","fib","measure","text"],
+        indicators_count=73,
+    )
+
 def api_ohlcv(q):
     df = _df(q.get("sym", "BTC/USDT"), q.get("tf", "1h"), q.get("n", 600))
     return dict(t=_ts_list(df.index), o=df.open.round(8).tolist(), h=df.high.round(8).tolist(), l=df.low.round(8).tolist(),
@@ -513,7 +522,7 @@ def api_alert_scan(q):
     return _clean(AL.scan(tfs=[t for t in q.get("tfs", "1h,4h").split(",") if t], lang=q.get("lang", "fa"), dry=q.get("dry") == "1"))
 
 
-ROUTES = {"/api/meta": api_meta, "/api/quality": api_quality, "/api/plan": api_plan, "/api/desk": api_desk, "/api/cluster": api_cluster, "/api/calendar": api_calendar, "/api/notifications": api_notifications, "/api/alert_scan": api_alert_scan, "/api/symbols": api_symbols, "/api/strategies": api_strategies, "/api/ohlcv": api_ohlcv, "/api/run": api_run,
+ROUTES = {"/api/meta": api_meta, "/api/chart_config": api_chart_config, "/api/quality": api_quality, "/api/plan": api_plan, "/api/desk": api_desk, "/api/cluster": api_cluster, "/api/calendar": api_calendar, "/api/notifications": api_notifications, "/api/alert_scan": api_alert_scan, "/api/symbols": api_symbols, "/api/strategies": api_strategies, "/api/ohlcv": api_ohlcv, "/api/run": api_run,
           "/api/signals": api_signals, "/api/advise": api_advise, "/api/fast": api_fast, "/api/library": api_library, "/api/clock": api_clock,
           "/api/success": api_success,
           "/api/indicators": api_indicators, "/api/indicator": api_indicator, "/api/drawings": api_drawings, "/api/forward": api_forward,

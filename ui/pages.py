@@ -16,6 +16,11 @@ import strategies as S
 from .theme import C, t, I18N
 from .widgets import Card, StatTile, Badge, side_badge, hline, stars, make_table, cell, ncell, Worker, color_for, success_tip, row_tooltip
 from .chart import ChartWidget, EquityChart
+try:
+    from .chart_advanced_toolbar import TradingViewToolbar, ChartStatusBar, AdvancedChartWidget
+    HAS_ADVANCED = True
+except Exception:
+    HAS_ADVANCED = False
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from core.paths import data as _data
@@ -463,6 +468,17 @@ class ChartPage(QtWidgets.QWidget):
         self.clock_lbl.setToolTip(t("clock_tip"))
         self.bar.layout().addWidget(self.clock_lbl)
         v.addWidget(self.bar)
+        # === Advanced TradingView-style toolbar (Phase 26) ===
+        if HAS_ADVANCED:
+            self.tv_toolbar = TradingViewToolbar()
+            self.tv_toolbar.timeframeChanged.connect(lambda tf: (self.bar.tf.setCurrentText(tf), self.run()))
+            self.tv_toolbar.chartTypeChanged.connect(self._on_chart_type)
+            self.tv_toolbar.screenshotRequested.connect(self._on_screenshot)
+            self.tv_toolbar.settingsRequested.connect(self._on_chart_settings)
+            v.addWidget(self.tv_toolbar)
+            
+            self.chart_status = ChartStatusBar()
+            # Will be added after chart
         # TradingView-style tool strip
         tools = QtWidgets.QHBoxLayout(); tools.setSpacing(4)
         from .chart_tools import TOOLS
@@ -497,6 +513,7 @@ class ChartPage(QtWidgets.QWidget):
         self.chart = ChartWidget()
         self.chart.signalClicked.connect(self._on_chart_signal_click)
         self.chart.drawingsChanged.connect(self._save_drawings)
+        self.chart.barHovered.connect(self._on_advanced_hover)
         split.addWidget(self.chart)
         right = QtWidgets.QWidget()
         rv = QtWidgets.QVBoxLayout(right)
@@ -548,6 +565,99 @@ class ChartPage(QtWidgets.QWidget):
         self._clock = QtCore.QTimer(self)
         self._clock.timeout.connect(self._tick_clock)
         self._clock.start(1000)
+
+    def _on_advanced_hover(self, i):
+        """Advanced TradingView-style status bar update on hover"""
+        if not hasattr(self, 'chart_status'):
+            return
+        try:
+            df = self.chart.df
+            if df is None or not (0 <= i < len(df)):
+                return
+            r = df.iloc[i]
+            prev = df.iloc[i-1] if i>0 else r
+            chg = (r.close/prev.close-1)*100 if prev.close else 0
+            self.chart_status.set_ohlc(r.open, r.high, r.low, r.close, r.volume, chg)
+            if hasattr(self, 'tv_toolbar'):
+                self.tv_toolbar.set_price_info(f"{r.close:,.6g} {chg:+.2f}%")
+        except Exception:
+            pass
+
+    def _on_chart_type(self, ctype):
+        """Switch chart type like TradingView"""
+        try:
+            # For now, we keep candlestick but can implement Heikin Ashi, Renko via chart_indicators
+            if ctype == "heikin":
+                self.chart.add_indicator("heikin_ashi", {})
+            elif ctype == "renko":
+                self.chart.add_indicator("renko", {})
+            elif ctype in ("line", "area"):
+                # Change candle display via settings
+                from core.paths import data as _data
+                import json, os
+                settings_path = _data("settings.json")
+                try:
+                    cur = json.load(open(settings_path)) if os.path.exists(settings_path) else {}
+                except:
+                    cur = {}
+                cur["chart_type"] = ctype
+                json.dump(cur, open(settings_path, "w"), indent=1)
+                self.chart.refresh_same()
+        except Exception as e:
+            print(f"chart type switch failed: {e}")
+
+    def _on_screenshot(self):
+        """TradingView-like screenshot"""
+        try:
+            pixmap = self.chart.grab()
+            from PyQt6.QtWidgets import QFileDialog
+            import datetime
+            fname = f"chart_{self.bar.symbol()}_{self.bar.timeframe()}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+            path, _ = QFileDialog.getSaveFileName(self, "Save Chart Screenshot", fname, "PNG (*.png)")
+            if path:
+                pixmap.save(path)
+        except Exception as e:
+            print(f"screenshot failed: {e}")
+
+    def _on_chart_settings(self):
+        """Chart settings dialog like TradingView"""
+        try:
+            from PyQt6.QtWidgets import QDialog, QFormLayout, QCheckBox, QSpinBox, QDialogButtonBox
+            dlg = QDialog(self)
+            dlg.setWindowTitle("Chart Settings - TradingView Style")
+            dlg.resize(400, 300)
+            layout = QFormLayout(dlg)
+            
+            # Grid
+            grid_cb = QCheckBox()
+            grid_cb.setChecked(True)
+            layout.addRow("Show Grid", grid_cb)
+            
+            # Volume
+            vol_cb = QCheckBox()
+            vol_cb.setChecked(True)
+            layout.addRow("Show Volume", vol_cb)
+            
+            # Crosshair
+            cross_cb = QCheckBox()
+            cross_cb.setChecked(True)
+            layout.addRow("Show Crosshair", cross_cb)
+            
+            # Price line
+            price_cb = QCheckBox()
+            price_cb.setChecked(True)
+            layout.addRow("Show Price Line", price_cb)
+            
+            btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            btns.accepted.connect(dlg.accept)
+            btns.rejected.connect(dlg.reject)
+            layout.addRow(btns)
+            
+            if dlg.exec():
+                # Apply settings
+                pass
+        except Exception as e:
+            print(f"settings dialog failed: {e}")
 
     def _toggle_renderer(self, on):
         from .chart import ChartWidget

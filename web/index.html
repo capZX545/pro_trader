@@ -5,369 +5,545 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0e14">
 <link rel="manifest" href="manifest.webmanifest">
-<title>ProTrader — Web & Mobile</title>
+<title>ProTrader — Advanced TradingView Chart</title>
 <style>
 :root{--bg:#0b0e14;--panel:#131722;--panel2:#1c2230;--border:#2a2e39;--text:#d1d4dc;--muted:#787b86;--accent:#2962ff;--accent2:#5c9bff;--green:#26a69a;--red:#ef5350;--yellow:#ffb74d}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 -apple-system,Segoe UI,Roboto,Vazirmatn,Tahoma,sans-serif;padding-bottom:64px}
-body[dir=rtl]{font-family:Vazirmatn,Tahoma,-apple-system,Segoe UI,sans-serif}
-header{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--border);padding:6px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-header .brand{font-weight:700;color:#fff}
-html,body{max-width:100vw;overflow-x:hidden}
-header .clock{margin-inline-start:auto;min-width:0;max-width:70vw;direction:ltr;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--accent2);text-align:end}
-header .world{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70vw}
-.bar{display:flex;gap:6px;padding:8px 10px;flex-wrap:wrap;align-items:center}
-select,button,input{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:14px}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.5 -apple-system,Segoe UI,Roboto,Inter,sans-serif;padding-bottom:64px}
+header{position:sticky;top:0;z-index:10;background:var(--panel);border-bottom:1px solid var(--border);padding:6px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+header .brand{font-weight:800;color:#fff;font-size:14px}
+header .clock{margin-left:auto;min-width:0;max-width:60vw;direction:ltr;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--accent2);text-align:end}
+header .world{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+.bar{display:flex;gap:6px;padding:6px 10px;flex-wrap:wrap;align-items:center;background:var(--panel);border-bottom:1px solid var(--border)}
+select,button,input{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12.5px}
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 button:active{transform:scale(.98)}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin:8px 10px;padding:10px}
-.card h3{margin:0 0 8px;font-size:14px;color:var(--accent2)}
-#panel{width:100%;display:none;background:#0e1219;border-radius:8px;margin-top:3px}
-#chart{width:100%;height:46vh;min-height:260px;display:block;border-radius:8px;background:#0e1219;touch-action:none}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px}
-.tile{background:var(--panel2);border-radius:8px;padding:6px 8px}
-.tile .k{font-size:11px;color:var(--muted)}.tile .v{font-weight:700;font-size:15px}
-table{width:100%;border-collapse:collapse;font-size:12.5px}
-th,td{padding:6px 5px;border-bottom:1px solid var(--border);text-align:start;white-space:nowrap}
-th{color:var(--muted);font-weight:500;position:sticky;top:0;background:var(--panel)}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;margin:8px 10px;padding:10px}
+.card h3{margin:0 0 8px;font-size:13px;color:var(--accent2)}
+#tv-chart-container{width:100%;height:52vh;min-height:340px;position:relative;background:#0b0e14;border-radius:8px;overflow:hidden}
+#tv-chart{width:100%;height:100%}
+#tv-ohlc{position:absolute;top:6px;left:10px;z-index:3;background:#131722cc;padding:3px 8px;border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:11px;pointer-events:none;backdrop-filter:blur(4px);border:1px solid #2a2e39;max-width:75%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tv-indicators{position:absolute;top:6px;right:10px;z-index:3;display:flex;gap:4px;flex-wrap:wrap;max-width:35%;justify-content:flex-end}
+.ind-pill{background:#131722ee;padding:2px 6px;border-radius:10px;font-size:10px;border:1px solid #2a2e39}
+.tv-toolbar{display:flex;gap:3px;padding:4px 8px;flex-wrap:wrap;align-items:center;background:var(--panel);border-bottom:1px solid var(--border)}
+.tv-toolbar .grp{display:flex;gap:2px;padding:2px 4px;border-right:1px solid var(--border);margin-right:4px}
+.tv-toolbar button{padding:4px 8px;font-size:11.5px;border-radius:6px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:6px}
+.tile{background:var(--panel2);border-radius:8px;padding:6px 8px;border:1px solid var(--border)}
+.tile .k{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}.tile .v{font-weight:700;font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:5px 6px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel);font-size:10px;text-transform:uppercase}
 tr.row{cursor:pointer}tr.row:active{background:var(--panel2)}
 .g{color:var(--green)}.r{color:var(--red)}.y{color:var(--yellow)}.m{color:var(--muted)}
-.wrap{overflow:auto;max-height:60vh}
-nav{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--border);display:flex;z-index:6;padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;border:0;border-radius:0;background:transparent;color:var(--muted);padding:9px 2px;font-size:11px}
-nav button.on{color:var(--accent2)}nav button span{display:block;font-size:18px}
+.wrap{overflow:auto;max-height:55vh}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--border);display:flex;z-index:20;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;border-radius:0;background:transparent;color:var(--muted);padding:8px 2px;font-size:11px}
+nav button.on{color:var(--accent2)}nav button span{display:block;font-size:17px}
 .page{display:none}.page.on{display:block}
-#tip{position:fixed;z-index:9;background:#000c;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;max-width:86vw;pointer-events:none;display:none;backdrop-filter:blur(6px)}
-.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;background:var(--panel2)}
-.spin{color:var(--muted);padding:12px;text-align:center}
+#tip{position:fixed;z-index:30;background:#000e;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:11px;max-width:86vw;pointer-events:none;display:none;backdrop-filter:blur(8px)}
+.pill{display:inline-block;padding:1px 6px;border-radius:10px;font-size:10px;background:var(--panel2);border:1px solid var(--border)}
 .succ{font-weight:700}
-details summary{cursor:pointer;color:var(--accent2)}
-.legend{font-size:11px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+#loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel);padding:12px 20px;border-radius:10px;border:1px solid var(--border);z-index:5;display:none}
+#loading.show{display:block}
 </style>
 </head>
 <body>
 <header>
-  <span class="brand">◆ ProTrader</span>
-  <button id="lang" style="padding:3px 8px;font-size:12px">FA</button>
+  <span class="brand">◆ ProTrader Advanced</span>
   <div class="clock"><div id="clk">--:--:--</div><div class="world" id="world"></div></div>
 </header>
 
 <div id="p-chart" class="page on">
   <div class="bar">
-    <select id="sym"></select>
-    <select id="tf"></select>
-    <select id="sid" style="max-width:52vw"></select>
-    <button class="primary" id="run" data-i="run">Run</button>
-    <span class="m" id="status"></span>
+    <select id="sym" style="min-width:130px"></select>
+    <select id="tf" style="min-width:70px"></select>
+    <select id="sid" style="min-width:180px;max-width:50vw"></select>
+    <button class="primary" id="run">Run Analysis</button>
+    <span class="m" id="status" style="font-size:11px"></span>
+    <span id="price" style="margin-left:auto;font-weight:700"></span>
+    <span id="change" style="font-size:11px"></span>
   </div>
-  <div class="bar">
-    <select id="ind"></select><button id="indadd" data-i="ind_add">+ indicator</button>
-    <input id="hl" type="number" step="any" data-i-ph="hline_ph" placeholder="price for H-line" style="width:120px"><button id="hladd" data-i="hline_add">+ line</button><button id="hlclr" data-i="hline_clr">clear lines</button>
-    <span id="indlist" class="m" style="font-size:11px"></span>
+  
+  <div class="tv-toolbar">
+    <div class="grp">
+      <button data-tf="1m">1m</button>
+      <button data-tf="5m">5m</button>
+      <button data-tf="15m">15m</button>
+      <button data-tf="1h" class="active">1h</button>
+      <button data-tf="4h">4h</button>
+      <button data-tf="1d">1D</button>
+      <button data-tf="1wk">1W</button>
+    </div>
+    <div class="grp">
+      <button data-type="candle" class="active">🕯 Candle</button>
+      <button data-type="line">〰 Line</button>
+      <button data-type="area">⛰ Area</button>
+    </div>
+    <div class="grp">
+      <button id="ind-btn">ƒx Indicators</button>
+      <select id="ind-select" style="display:none;min-width:150px"></select>
+      <button id="compare-btn">⊕ Compare</button>
+    </div>
+    <div class="grp">
+      <button data-tool="hline" title="Horizontal Line">─ H-Line</button>
+      <button id="clear-lines" title="Clear Lines">🗑 Clear</button>
+      <button id="screenshot" title="Screenshot">📷</button>
+      <button id="fullscreen" title="Fullscreen">⛶</button>
+    </div>
+    <div class="grp" id="active-inds" style="border-right:0"></div>
   </div>
-  <div class="card">
-    <canvas id="chart"></canvas>
-    <canvas id="panel" style="height:0"></canvas>
-    <div class="legend" id="legend"></div>
-    <div class="m" id="hint" data-i="hint" style="font-size:11px;margin-top:4px">Tap a ▲/▼ marker: where, when, entry/SL/TP and the measured success % of this signal type. Pinch/drag to zoom & pan — refresh keeps your place.</div>
+  
+  <div class="card" style="padding:0;overflow:hidden">
+    <div id="tv-chart-container">
+      <div id="tv-chart"></div>
+      <div id="tv-ohlc"></div>
+      <div id="tv-indicators"></div>
+      <div id="loading">Loading advanced chart...</div>
+    </div>
+    <div style="padding:6px 10px;font-size:11px;color:#787b86;display:flex;gap:12px;flex-wrap:wrap">
+      <span>💡 TradingView-powered chart: Crosshair shows OHLC, drag to pan, wheel to zoom, click markers for signal details</span>
+      <span style="margin-left:auto" id="chart-info"></span>
+    </div>
   </div>
-  <div class="card"><h3 data-i="stats">Backtest on this symbol & timeframe (fees included)</h3><div class="tiles" id="tiles"></div><div id="succ" style="margin-top:8px"></div></div>
-  <div class="card"><h3 data-i="trades">Last trades</h3><div class="wrap"><table id="trades"></table></div></div>
+  
+  <div class="card"><h3>Backtest Results (Fees Included)</h3><div class="tiles" id="tiles"></div><div id="succ" style="margin-top:8px;font-size:12px"></div></div>
+  <div class="card"><h3>Last Trades</h3><div class="wrap"><table id="trades"></table></div></div>
 </div>
 
 <div id="p-signals" class="page">
-  <div class="bar"><select id="sym2"></select><select id="tf2"></select><select id="qmode"><option value="proven" data-i="q_proven">Proven only</option><option value="candidate" selected data-i="q_cand">Proven + candidates</option><option value="all" data-i="q_all">Show all</option></select><button class="primary" id="scan" data-i="scan">Scan all strategies</button><span class="m" id="status2"></span></div>
-  <div id="news" class="y" style="padding:0 12px;font-weight:600"></div>
-  <div class="card"><h3 data-i="sig_title">Fresh signals — every strategy, with its success % here</h3><div class="wrap"><table id="sigs"></table></div><div id="planbox" class="card" style="display:none;margin-top:8px"></div></div>
+  <div class="bar"><select id="sym2"></select><select id="tf2"></select><select id="qmode"><option value="proven">Proven only</option><option value="candidate" selected>Proven + candidates</option><option value="all">Show all</option></select><button class="primary" id="scan">Scan All Strategies</button><span class="m" id="status2"></span></div>
+  <div id="news" class="y" style="padding:0 12px;font-weight:600;font-size:12px"></div>
+  <div class="card"><h3>Fresh Signals — Every Strategy With Success Rate</h3><div class="wrap"><table id="sigs"></table></div><div id="planbox" class="card" style="display:none;margin-top:8px"></div></div>
 </div>
 
 <div id="p-advisor" class="page">
-  <div class="bar"><select id="sym3"></select><button class="primary" id="advise" data-i="advise">Advise (all timeframes)</button><span class="m" id="status3"></span></div>
-  <div class="card" id="advout"><div class="m" data-i="adv_hint">Regime, best proven strategy and fresh signal per timeframe, plus a verdict.</div></div>
+  <div class="bar"><select id="sym3"></select><button class="primary" id="advise">Advise (All Timeframes)</button><span class="m" id="status3"></span></div>
+  <div class="card" id="advout"><div class="m">Regime, best proven strategy and fresh signal per timeframe, plus a verdict.</div></div>
 </div>
 
 <div id="p-fast" class="page">
-  <div class="bar"><select id="tf4"><option>1m</option><option>3m</option><option selected>5m</option><option>15m</option></select><button class="primary" id="fast" data-i="fast">Fast signals (confluence)</button><span class="m" id="status4"></span></div>
+  <div class="bar"><select id="tf4"><option>1m</option><option>3m</option><option selected>5m</option><option>15m</option></select><button class="primary" id="fast">Fast Signals (Confluence)</button><span class="m" id="status4"></span></div>
   <div class="card"><div class="wrap"><table id="fasttbl"></table></div></div>
 </div>
 
 <div id="p-academy" class="page">
-  <div class="bar"><input id="q" data-i-ph="search" placeholder="Search strategies / books…" style="flex:1"></div>
-  <div class="card"><h3 data-i="strats">Strategies</h3><div id="strats"></div></div>
-  <div class="card"><h3 data-i="books">Library — lessons embedded</h3><div id="books"></div></div>
+  <div class="bar"><input id="q" placeholder="Search strategies / books..." style="flex:1"></div>
+  <div class="card"><h3>Strategies (196 total)</h3><div id="strats"></div></div>
+  <div class="card"><h3>Library — Lessons Embedded</h3><div id="books"></div></div>
 </div>
 
 <div id="p-dash" class="page">
-  <div class="card"><h3 data-i="n_dash">Dashboard</h3><div class="tiles" id="dtiles"></div><div id="dlog" class="m" style="font-size:11px;white-space:pre-wrap;margin-top:8px"></div></div>
-  <div class="card"><h3 data-i="n_health">Bot health</h3><div class="bar"><button class="primary" id="hrun" data-i="h_run">Run checks</button><span class="m" id="hst"></span></div><div id="hout"></div></div>
+  <div class="card"><h3>Dashboard</h3><div class="tiles" id="dtiles"></div><div id="dlog" class="m" style="font-size:11px;white-space:pre-wrap;margin-top:8px"></div></div>
+  <div class="card"><h3>Bot Health</h3><div class="bar"><button class="primary" id="hrun">Run Checks</button><span class="m" id="hst"></span></div><div id="hout"></div></div>
 </div>
-<div id="p-forward" class="page">
-  <div class="bar"><button class="primary" id="fwupd" data-i="fw_upd">Update forward test</button><span class="m" id="fwst"></span></div>
-  <div class="card"><h3 data-i="fw_title">Forward test — signals tracked in real time after they fired</h3><div class="tiles" id="fwtiles"></div><div class="wrap"><table id="fwsid"></table></div></div>
-  <div class="card"><h3 data-i="fw_open">Open</h3><div class="wrap"><table id="fwopen"></table></div><h3 data-i="fw_closed">Closed</h3><div class="wrap"><table id="fwclosed"></table></div></div>
-</div>
-<div id="p-portfolio" class="page">
-  <div class="bar"><select id="tf5"></select><input id="peq" type="number" value="10000" style="width:100px"><button class="primary" id="pbuild" data-i="p_build">Build proven portfolio</button><span class="m" id="pst"></span></div>
-  <div class="card" id="pout"></div>
-</div>
-<div id="p-risk" class="page">
-  <div class="card"><h3 data-i="n_risk">Risk & position size</h3>
-   <div class="bar"><label data-i="equity">Equity</label><input id="req" type="number" value="10000" style="width:90px"><label data-i="risk_pct">Risk %</label><input id="rrp" type="number" value="1" step="0.1" style="width:60px"></div>
-   <div class="bar"><label data-i="entry">Entry</label><input id="ren" type="number" value="100" step="any" style="width:90px"><label data-i="sl">SL</label><input id="rst" type="number" value="98" step="any" style="width:90px"></div>
-   <div class="bar"><label data-i="wr">Win rate</label><input id="rwr" type="number" value="45" style="width:60px"><label>R:R</label><input id="rrr" type="number" value="2" step="0.1" style="width:60px"><button class="primary" id="rcalc" data-i="calc">Calculate</button></div>
-   <div class="tiles" id="rtiles"></div><div id="rtg"></div></div>
-</div>
-<div id="p-journal" class="page">
-  <div class="card"><h3 data-i="n_journal">Trading journal (shared with desktop)</h3>
-   <div class="bar"><input id="jd" type="date" style="width:130px"><input id="jsym" placeholder="BTC/USDT" style="width:100px"><select id="jside"><option value="long">LONG</option><option value="short">SHORT</option></select><input id="jstr" data-i-ph="strategy" placeholder="strategy" style="width:110px"></div>
-   <div class="bar"><input id="jen" type="number" step="any" data-i-ph="entry" placeholder="entry" style="width:80px"><input id="jsl" type="number" step="any" placeholder="SL" style="width:80px"><input id="jex" type="number" step="any" data-i-ph="exit" placeholder="exit" style="width:80px"><input id="jr" type="number" step="0.1" placeholder="R" style="width:60px"></div>
-   <div class="bar"><select id="jemo"><option>calm</option><option>fear</option><option>greed</option><option>revenge</option><option>fomo</option><option>bored</option></select><input id="jn" data-i-ph="j_notes" placeholder="notes" style="flex:1"><button class="primary" id="jadd" data-i="add">Add</button></div>
-   <div class="wrap"><table id="jtbl"></table></div><h3 data-i="j_audit">Steenbarger audit (emotion × result)</h3><div class="wrap"><table id="jaud"></table></div></div>
-</div>
-<div id="p-patterns" class="page">
-  <div class="bar"><select id="sym6"></select><select id="tf6"></select><button class="primary" id="pscan" data-i="pt_scan">Detect patterns</button><span class="m" id="ptst"></span></div>
-  <div class="card"><h3 data-i="pt_candle">Candlestick patterns (recent)</h3><div class="wrap"><table id="ptc"></table></div></div>
-  <div class="card"><h3 data-i="pt_chart">Chart patterns (Bulkowski)</h3><div class="wrap"><table id="ptp"></table></div></div>
-</div>
-<div id="p-analyst" class="page">
-  <div class="bar"><select id="sym7"></select><select id="tf7"></select><button class="primary" id="arun" data-i="an_run">Analyst report</button><span class="m" id="ast"></span></div>
-  <div class="bar"><input id="aq" data-i-ph="ask_ph" placeholder="Ask the analyst…" style="flex:1"><button id="aask" data-i="ask">Ask</button></div>
-  <div class="card" id="aout" style="white-space:pre-wrap;font-size:13px"></div>
-</div>
-<div id="p-vision" class="page">
-  <div class="card"><h3 data-i="n_vision">Vision — understand a chart screenshot</h3><div class="bar"><input type="file" id="vfile" accept="image/*"><button class="primary" id="vrun" data-i="v_run">Analyse image</button><span class="m" id="vst"></span></div>
-   <img id="vimg" style="max-width:100%;display:none;border-radius:8px"><div id="vout" style="white-space:pre-wrap;font-size:13px"></div></div>
-</div>
-<div id="p-lab" class="page">
-  <div class="card"><h3 data-i="n_ml">ML lab</h3><div class="bar"><select id="sym8"></select><select id="tf8"></select><button id="mlget" data-i="ml_get">Model status</button><button class="primary" id="mltrain" data-i="ml_train">Train (may take minutes)</button><span class="m" id="mlst"></span></div><div id="mlout" style="white-space:pre-wrap;font-size:12px"></div></div>
-  <div class="card"><h3 data-i="n_quant">Quant lab</h3><div class="bar"><select id="sym9"></select><select id="sym9b"></select><select id="tf9"></select><button class="primary" id="qrun" data-i="q_run">ADF / Hurst / cointegration</button><span class="m" id="qst"></span></div><div class="tiles" id="qtiles"></div></div>
-</div>
-<div id="p-settings" class="page">
-  <div class="card"><h3 data-i="n_settings">Settings & alerts</h3>
-   <div class="bar"><label data-i="min_conf">Min confidence</label><input id="smc" type="number" value="60" style="width:70px"><label><input type="checkbox" id="stg"> Telegram</label><input id="stok" placeholder="bot token" style="width:160px"><input id="schat" placeholder="chat id" style="width:100px"><button class="primary" id="ssave" data-i="save">Save</button><span class="m" id="sst"></span></div>
-   <div class="bar"><button id="sprec" data-i="s_prec">Compute success rates for all signal types</button><span class="m" id="sprst"></span></div>
-   <h3 data-i="s_hist">Alert history</h3><div class="wrap"><table id="shist"></table></div>
-   <h3 data-i="s_ind">All indicators — uses & signals</h3><input id="iq" data-i-ph="search" placeholder="search" style="width:100%"><div id="indocs"></div></div>
-</div>
-<div id="p-desk" class="page"><div class="card"><h3 data-i="n_desk">Trading desk</h3><div class="bar"><select id="dkmode"><option value="proven" data-i="q_proven">Proven only</option><option value="candidate" data-i="q_cand">Proven + candidates</option></select><input id="dkeq" type="number" value="10000" style="width:90px"><button class="primary" id="dkrun" data-i="dk_run">Briefing</button><span class="m" id="dkst"></span></div><div id="dkout" style="white-space:pre-wrap;line-height:1.7"></div></div></div>
-<div id="p-calendar" class="page"><div class="card"><h3 data-i="n_calendar">News</h3><div id="calnow" class="y" style="font-weight:600"></div><div class="wrap"><table id="caltbl"></table></div></div></div>
+
 <div id="p-more" class="page"><div class="card"><div class="tiles" id="moregrid"></div></div></div>
 
 <nav>
-  <button class="on" data-p="chart"><span>📈</span><b data-i="n_chart">Chart</b></button>
-  <button data-p="signals"><span>📡</span><b data-i="n_signals">Signals</b></button>
-  <button data-p="advisor"><span>🎯</span><b data-i="n_advisor">Advisor</b></button>
-  <button data-p="fast"><span>⚡</span><b data-i="n_fast">Fast</b></button>
-  <button data-p="more"><span>☰</span><b data-i="n_more">More</b></button>
+  <button class="on" data-p="chart"><span>📈</span><b>Advanced Chart</b></button>
+  <button data-p="signals"><span>📡</span><b>Signals</b></button>
+  <button data-p="advisor"><span>🎯</span><b>Advisor</b></button>
+  <button data-p="fast"><span>⚡</span><b>Fast</b></button>
+  <button data-p="more"><span>☰</span><b>More</b></button>
 </nav>
+
 <div id="tip"></div>
 
+<script src="tv_advanced.js"></script>
 <script>
-const I18N={en:{plan:"Plan",n_desk:"Trading desk",dk_run:"Briefing (refresh)",cluster:"Correlated signals = ONE bet, size them together",q_proven:"Proven only",q_cand:"Proven + candidates",q_all:"Show all (incl. unproven)",q_verdict:"Verdict",v_PROVEN:"PROVEN",v_CANDIDATE:"Candidate",v_UNPROVEN:"Unproven",v_FAILED:"FAILED",n_calendar:"News",ind_add:"+ indicator",hline_ph:"price for H-line",hline_add:"+ line",hline_clr:"clear lines",n_more:"More",n_dash:"Dashboard",n_health:"Bot health",h_run:"Run checks",fw_upd:"Update forward test",fw_title:"Forward test — signals tracked in real time after they fired",fw_open:"Open",fw_closed:"Closed",p_build:"Build proven portfolio",n_portfolio:"Portfolio",n_risk:"Risk & position size",equity:"Equity",risk_pct:"Risk %",calc:"Calculate",n_journal:"Journal",exit:"Exit",j_notes:"notes",add:"Add",j_audit:"Steenbarger audit (emotion × result)",n_patterns:"Patterns",pt_scan:"Detect patterns",pt_candle:"Candlestick patterns (recent)",pt_chart:"Chart patterns (Bulkowski)",n_analyst:"AI analyst",an_run:"Analyst report",ask_ph:"Ask the analyst…",ask:"Ask",n_vision:"Vision",v_run:"Analyse image",n_ml:"ML lab",ml_get:"Model status",ml_train:"Train (may take minutes)",n_quant:"Quant lab",q_run:"ADF / Hurst / cointegration",n_lab:"Labs",n_settings:"Settings & alerts",min_conf:"Min confidence",save:"Save",s_prec:"Compute success rates for all signal types",s_hist:"Alert history",s_ind:"All indicators — uses & signals",n_forward:"Forward",delete:"delete",emotion:"Emotion",date:"Date",symbol:"Symbol",risk:"Risk",result:"Result",errors:"errors",warns:"warnings",saved:"saved ✓",gap:"backtest→reality gap",weight:"Weight",uses:"Uses",signals:"Signals",pitfalls:"Pitfalls",name:"Name",status_t:"Training stage",playbook:"Playbook",success_cov:"Success-rate entries",no_model:"no model yet — train it",prob:"P(up) last bar",stationary:"Stationary",coint:"Cointegrated",hedge:"Hedge ratio",half_life:"Half-life",run:"Run",scan:"Scan all strategies",advise:"Advise (all timeframes)",fast:"Fast signals (confluence)",stats:"Backtest on this symbol & timeframe (fees included)",trades:"Last trades",sig_title:"Fresh signals — every strategy, with its success % here",strats:"Strategies",books:"Library — lessons embedded",n_chart:"Chart",n_signals:"Signals",n_advisor:"Advisor",n_fast:"Fast",n_academy:"Academy",search:"Search strategies / books…",hint:"Tap a ▲/▼ marker: where, when, entry/SL/TP and the measured success % of this signal type. Pinch/drag to zoom & pan — refresh keeps your place.",adv_hint:"Regime, best proven strategy and fresh signal per timeframe, plus a verdict.",wr:"Win rate",pf:"Profit factor",n:"Trades",ret:"Return",dd:"Max DD",exp:"Expectancy R",succ:"Success rate of this signal type",oos:"Out-of-sample",unknown:"not measured yet",long:"LONG",short:"SHORT",entry:"Entry",bars_ago:"bars ago",strategy:"Strategy",side:"Side",when:"When",price:"Price",sl:"SL",tp:"TP",rr:"R:R",grade:"Grade",loading:"working…",verdict:"Verdict",regime:"Regime",best:"Best strategy",signal:"Signal",votes:"votes",none:"none",insample:"in-sample"},
-fa:{plan:"برنامهٔ معامله",n_desk:"میز معامله",dk_run:"بریفینگ (تازه‌سازی)",cluster:"سیگنال‌های هم‌بسته = یک شرط؛ حجم را جمعاً حساب کنید",q_proven:"فقط اثبات‌شده",q_cand:"اثبات‌شده + نامزدها",q_all:"نمایش همه (حتی اثبات‌نشده)",q_verdict:"حکم",v_PROVEN:"اثبات‌شده",v_CANDIDATE:"نامزد",v_UNPROVEN:"اثبات‌نشده",v_FAILED:"شکست‌خورده",n_calendar:"اخبار",ind_add:"+ اندیکاتور",hline_ph:"قیمت برای خط افقی",hline_add:"+ خط",hline_clr:"پاک کردن خط‌ها",n_more:"بیشتر",n_dash:"داشبورد",n_health:"سلامت ربات",h_run:"اجرای بررسی‌ها",fw_upd:"به‌روزرسانی فوروارد تست",fw_title:"فوروارد تست — ردیابی زندهٔ سیگنال‌ها پس از صدور",fw_open:"باز",fw_closed:"بسته‌شده",p_build:"ساخت سبد اثبات‌شده",n_portfolio:"سبد",n_risk:"ریسک و حجم معامله",equity:"سرمایه",risk_pct:"ریسک ٪",calc:"محاسبه",n_journal:"ژورنال",exit:"خروج",j_notes:"یادداشت",add:"افزودن",j_audit:"ممیزی استینبارگر (احساس × نتیجه)",n_patterns:"الگوها",pt_scan:"تشخیص الگوها",pt_candle:"الگوهای کندلی (اخیر)",pt_chart:"الگوهای نموداری (بولکوفسکی)",n_analyst:"تحلیل‌گر هوشمند",an_run:"گزارش تحلیل‌گر",ask_ph:"از تحلیل‌گر بپرسید…",ask:"بپرس",n_vision:"بینایی",v_run:"تحلیل تصویر",n_ml:"آزمایشگاه ML",ml_get:"وضعیت مدل",ml_train:"آموزش (چند دقیقه)",n_quant:"آزمایشگاه کوانت",q_run:"ADF / هرست / هم‌انباشتگی",n_lab:"آزمایشگاه‌ها",n_settings:"تنظیمات و هشدارها",min_conf:"حداقل اطمینان",save:"ذخیره",s_prec:"محاسبهٔ درصد موفقیت همهٔ انواع سیگنال",s_hist:"تاریخچهٔ هشدارها",s_ind:"همهٔ اندیکاتورها — کاربردها و سیگنال‌ها",n_forward:"فوروارد",delete:"حذف",emotion:"احساس",date:"تاریخ",symbol:"نماد",risk:"ریسک",result:"نتیجه",errors:"خطا",warns:"هشدار",saved:"ذخیره شد ✓",gap:"شکاف بک‌تست→واقعیت",weight:"وزن",uses:"کاربردها",signals:"سیگنال‌ها",pitfalls:"دام‌ها",name:"نام",status_t:"مرحلهٔ آموزش",playbook:"کتاب راهنما",success_cov:"تعداد درصد موفقیت‌های محاسبه‌شده",no_model:"هنوز مدلی نیست — آموزش دهید",prob:"احتمال صعود (کندل آخر)",stationary:"ایستا",coint:"هم‌انباشته",hedge:"نسبت هج",half_life:"نیمه‌عمر",run:"اجرا",scan:"اسکن همهٔ استراتژی‌ها",advise:"مشاوره (همهٔ تایم‌فریم‌ها)",fast:"سیگنال سریع (تلاقی)",stats:"بک‌تست روی این نماد و تایم‌فریم (با کارمزد)",trades:"آخرین معاملات",sig_title:"سیگنال‌های تازه — همهٔ استراتژی‌ها با درصد موفقیت همین‌جا",strats:"استراتژی‌ها",books:"کتابخانه — درس‌های جاسازی‌شده",n_chart:"چارت",n_signals:"سیگنال‌ها",n_advisor:"مشاور",n_fast:"سریع",n_academy:"آکادمی",search:"جستجوی استراتژی / کتاب…",hint:"روی نشانگر ▲/▼ بزنید: کجا، کی، ورود/استاپ/هدف و درصد موفقیت اندازه‌گیری‌شدهٔ این نوع سیگنال. با دو انگشت زوم/جابه‌جا کنید — رفرش جای شما را حفظ می‌کند.",adv_hint:"رژیم، بهترین استراتژی اثبات‌شده و سیگنال تازه در هر تایم‌فریم، به‌علاوهٔ حکم نهایی.",wr:"وین‌ریت",pf:"پرافیت فکتور",n:"معاملات",ret:"بازده",dd:"حداکثر افت",exp:"امید ریاضی R",succ:"درصد موفقیت این نوع سیگنال",oos:"برون‌نمونه",unknown:"هنوز اندازه‌گیری نشده",long:"خرید",short:"فروش",entry:"ورود",bars_ago:"کندل قبل",strategy:"استراتژی",side:"جهت",when:"زمان",price:"قیمت",sl:"استاپ",tp:"هدف",rr:"R:R",grade:"درجه",loading:"در حال کار…",verdict:"حکم",regime:"رژیم",best:"بهترین استراتژی",signal:"سیگنال",votes:"رأی",none:"هیچ",insample:"درون‌نمونه"}};
-let lang=localStorage.lang||"en"; const t=k=>(I18N[lang][k]||I18N.en[k]||k);
-function applyLang(){document.documentElement.lang=lang;document.body.dir=lang==="fa"?"rtl":"ltr";document.getElementById("lang").textContent=lang==="fa"?"EN":"FA";
- document.querySelectorAll("[data-i]").forEach(e=>e.textContent=t(e.dataset.i));document.querySelectorAll("[data-i-ph]").forEach(e=>e.placeholder=t(e.dataset.iPh));}
-document.getElementById("lang").onclick=()=>{lang=lang==="fa"?"en":"fa";localStorage.lang=lang;applyLang();renderMore();INDOCS=null;BOOKS=null;fillStrats();if(state.run)render();};
-const api=(p,q={})=>fetch(p+"?"+new URLSearchParams(q)).then(r=>r.json());
-const $=id=>document.getElementById(id);
-const esc=x=>String(x??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const fmt=(x,d=6)=>x==null?"—":Number(x).toLocaleString(undefined,{maximumSignificantDigits:d});
-const pct=x=>x==null?"—":Number(x).toFixed(0)+"%";
-const succCls=d=>!d||!d.n?"m":(d.pf>=1.2&&d.n>=30?"g":(d.pf>=1?"y":"r"));
-function succHtml(d,o){let h="";if(d&&d.n)h+=`<span class="succ ${succCls(d)}">📊 ${t("succ")}: ${pct(d.wr)}</span> · PF ${d.pf.toFixed(2)} · n=${d.n} <span class="m">(${t("insample")})</span>`;else h+=`<span class="m">📊 ${t("succ")}: ${t("unknown")}</span>`;
- if(o)h+=`<br><span class="m">🔬 ${t("oos")}: ${pct(o.wr)} [${o.wr_lo?.toFixed(0)}–${o.wr_hi?.toFixed(0)}] · PF ${o.pf?.toFixed(2)} · ${o.grade||""}</span>`;return h;}
+// FORCE ENGLISH ONLY - per user request
+const I18N = { en: {} };
+let lang = 'en';
+const t = k => k;
 
-// ---------- nav
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>goPage(b.dataset.p));
-
-// ---------- clock (computer clock of the SERVER host = same as desktop; phone shows its own local too)
-async function clock(){try{const c=await api("/api/clock");$("clk").textContent=c.local+"  ("+c.tz+")";$("world").textContent=c.world;}catch(e){$("clk").textContent=new Date().toLocaleTimeString();}}
-setInterval(clock,1000);clock();
-
-// ---------- state & persistence (refresh keeps symbol/tf/strategy AND view window)
-const state=JSON.parse(localStorage.pt_state||"{}");state.view=state.view||null;
-function save(){localStorage.pt_state=JSON.stringify({sym:$("sym").value,tf:$("tf").value,sid:$("sid").value,view:state.view});}
-let META,STRATS=[];
-async function init(){META=await api("/api/meta");const syms=await api("/api/symbols");
- for(const id of["sym","sym2","sym3","sym6","sym7","sym8","sym9","sym9b"]){const s=$(id);s.innerHTML="";for(const[cat,arr]of Object.entries(syms)){const g=document.createElement("optgroup");g.label=cat;arr.forEach(x=>{const o=document.createElement("option");o.textContent=x;g.appendChild(o)});s.appendChild(g);}s.value=state.sym||"BTC/USDT";}
- for(const id of["tf","tf2","tf5","tf6","tf7","tf8","tf9"]){const s=$(id);s.innerHTML=META.tfs.map(x=>`<option>${x}</option>`).join("");s.value=state.tf||"1h";}$("tf5").value="4h";$("tf9").value="1d";$("sym9b").value="ETH/USDT";fillIndSel();
- await fillStrats();applyLang();if(state.sid)$("sid").value=state.sid;run();}
-async function fillStrats(){STRATS=await api("/api/strategies",{sym:$("sym").value,tf:$("tf").value,lang});const cur=$("sid").value;const sel=$("sid");sel.innerHTML="";
- for(const s of STRATS){const o=document.createElement("option");o.value=s.id;o.textContent=`${s.name}${s.label?"  ["+s.label+"]":""} · ${s.category}`;o.title=(s.description||"")+(s.label?`\n📊 ${t("succ")}: ${s.label}`:"");sel.appendChild(o);}
- if(cur)sel.value=cur;renderAcademy();}
-$("sym").onchange=$("tf").onchange=()=>{state.view=null;fillStrats();save();};
-
-// ---------- chart
-const cv=$("chart"),ctx=cv.getContext("2d");let R=null;const dpr=()=>window.devicePixelRatio||1;
-function sizeCanvas(){const r=cv.getBoundingClientRect();cv.width=r.width*dpr();cv.height=r.height*dpr();}
-window.addEventListener("resize",()=>{sizeCanvas();render();});
-async function run(){$("status").textContent=t("loading");$("run").disabled=true;try{R=await api("/api/run",{sym:$("sym").value,tf:$("tf").value,sid:$("sid").value,n:800});state.run=true;sizeCanvas();await loadExtras();
- if(!state.view||state.view.sym!==R.sym||state.view.tf!==R.tf){const n=R.candles.t.length;state.view={sym:R.sym,tf:R.tf,t0:R.candles.t[Math.max(0,n-120)],t1:R.candles.t[n-1]};}
- render();renderStats();$("status").textContent=R.candles.venue||"";}catch(e){$("status").textContent="⚠ "+e;}finally{$("run").disabled=false;save();}}
-$("run").onclick=run;
-function idxOfTime(ts){const T=R.candles.t;let lo=0,hi=T.length-1;while(lo<hi){const m=(lo+hi)>>1;if(T[m]<ts)lo=m+1;else hi=m;}return lo;}
-let markers=[];
-function render(){if(!R)return;const C=R.candles,n=C.t.length,W=cv.width,H=cv.height,d=dpr();ctx.clearRect(0,0,W,H);
- const i0=Math.max(0,idxOfTime(state.view.t0)),i1=Math.min(n-1,idxOfTime(state.view.t1));const cnt=Math.max(5,i1-i0+1);
- const padR=62*d,padB=18*d,volH=H*0.14,priceH=H-padB-volH;const bw=(W-padR)/cnt;
- let lo=Infinity,hi=-Infinity,vmax=0;for(let i=i0;i<=i1;i++){lo=Math.min(lo,C.l[i]);hi=Math.max(hi,C.h[i]);vmax=Math.max(vmax,C.v[i]);}
- for(const k in R.overlays)for(let i=i0;i<=i1;i++){const y=R.overlays[k][i];if(y!=null){lo=Math.min(lo,y);hi=Math.max(hi,y);}}
- const pad=(hi-lo)*0.08;lo-=pad;hi+=pad;const Y=p=>priceH-(p-lo)/(hi-lo)*priceH,X=i=>(i-i0+0.5)*bw;
- // grid + price axis
- ctx.strokeStyle="#1f2633";ctx.lineWidth=1;ctx.fillStyle="#787b86";ctx.font=`${10*d}px monospace`;ctx.textAlign="left";
- for(let g=0;g<=6;g++){const p=lo+(hi-lo)*g/6,y=Y(p);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W-padR,y);ctx.stroke();ctx.fillText(fmt(p,5),W-padR+4*d,y+3*d);}
- // time axis
- ctx.textAlign="center";const lblW=(cnt>200?80:130)*d;const step=Math.max(1,Math.ceil(lblW/bw));for(let i=i0+Math.floor(step/2);i<=i1;i+=step){const dt=new Date(C.t[i]*1000);ctx.fillText(cnt>200?dt.toLocaleDateString([],{month:"short",day:"numeric"}):dt.toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}),X(i),H-4*d);}
- // volume
- for(let i=i0;i<=i1;i++){ctx.fillStyle=C.c[i]>=C.o[i]?"#26a69a55":"#ef535055";const vh=C.v[i]/vmax*volH;ctx.fillRect(X(i)-bw*0.35,priceH+volH-vh,bw*0.7,vh);}
- // levels
- for(const L of R.levels||[]){if(L.px<lo||L.px>hi)continue;ctx.setLineDash([4*d,4*d]);ctx.strokeStyle=L.color;ctx.beginPath();ctx.moveTo(0,Y(L.px));ctx.lineTo(W-padR,Y(L.px));ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=L.color;ctx.textAlign="left";ctx.fillText(L.label,4*d,Y(L.px)-3*d);}
- // candles
- for(let i=i0;i<=i1;i++){const up=C.c[i]>=C.o[i];ctx.strokeStyle=ctx.fillStyle=up?"#26a69a":"#ef5350";const x=X(i);ctx.beginPath();ctx.moveTo(x,Y(C.h[i]));ctx.lineTo(x,Y(C.l[i]));ctx.stroke();
-  const y1=Y(Math.max(C.o[i],C.c[i])),y2=Y(Math.min(C.o[i],C.c[i]));ctx.fillRect(x-bw*0.35,y1,Math.max(1,bw*0.7),Math.max(1*d,y2-y1));}
- // Ichimoku Kumo fill (Senkou A/B) and band fills (upper/lower pairs)
- const SA=R.overlays["Senkou A"],SB=R.overlays["Senkou B"];
- if(SA&&SB){for(let i=i0;i<i1;i++){if(SA[i]==null||SB[i]==null||SA[i+1]==null||SB[i+1]==null)continue;ctx.fillStyle=SA[i]>=SB[i]?"#26a69a33":"#ef535033";ctx.beginPath();ctx.moveTo(X(i),Y(SA[i]));ctx.lineTo(X(i+1),Y(SA[i+1]));ctx.lineTo(X(i+1),Y(SB[i+1]));ctx.lineTo(X(i),Y(SB[i]));ctx.closePath();ctx.fill();}}
- // overlays
- const cols=["#5c9bff","#ffb74d","#ba68c8","#4dd0e1","#aed581","#ff8a65"];let ci=0;const leg=[];
- for(const k in R.overlays){const arr=R.overlays[k],col=cols[ci++%cols.length];leg.push(`<span style="color:${col}">— ${k}</span>`);ctx.strokeStyle=col;ctx.lineWidth=1.3*d;ctx.beginPath();let pen=false;
-  for(let i=i0;i<=i1;i++){const y=arr[i];if(y==null){pen=false;continue;}if(!pen){ctx.moveTo(X(i),Y(y));pen=true;}else ctx.lineTo(X(i),Y(y));}ctx.stroke();}
- // user indicators (overlay) + drawings
- for(const u of IND){for(const k in u.overlays){const arr=u.overlays[k],col=cols[ci++%cols.length];leg.push(`<span style="color:${col}">— ${esc(k)}</span>`);ctx.strokeStyle=col;ctx.lineWidth=1.1*d;ctx.beginPath();let pen=false;for(let i=i0;i<=i1;i++){const j=i-(n-arr.length);const y=j>=0?arr[j]:null;if(y==null){pen=false;continue;}if(!pen){ctx.moveTo(X(i),Y(y));pen=true;}else ctx.lineTo(X(i),Y(y));}ctx.stroke();}
-  for(const L of u.levels||[]){if(L.px<lo||L.px>hi)continue;ctx.setLineDash([2*d,3*d]);ctx.strokeStyle=L.color;ctx.beginPath();ctx.moveTo(0,Y(L.px));ctx.lineTo(W-padR,Y(L.px));ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=L.color;ctx.textAlign="left";ctx.fillText(L.label,4*d,Y(L.px)-3*d);}}
- for(const g of DRAW){if(g.type==="hline"&&g.y>=lo&&g.y<=hi){ctx.strokeStyle="#ffd54f";ctx.lineWidth=1*d;ctx.beginPath();ctx.moveTo(0,Y(g.y));ctx.lineTo(W-padR,Y(g.y));ctx.stroke();ctx.fillStyle="#ffd54f";ctx.textAlign="left";ctx.fillText("✎ "+fmt(g.y,6),4*d,Y(g.y)-3*d);}}
- $("legend").innerHTML=leg.join(" ");renderPanels(i0,i1,n,bw,padR);
- // signals
- markers=[];for(const s of R.signals){if(s.i<i0||s.i>i1)continue;const x=X(s.i),up=s.side===1,y=up?Y(C.l[s.i])+10*d:Y(C.h[s.i])-10*d;ctx.fillStyle=up?"#26a69a":"#ef5350";ctx.beginPath();
-  if(up){ctx.moveTo(x,y-6*d);ctx.lineTo(x-5*d,y+4*d);ctx.lineTo(x+5*d,y+4*d);}else{ctx.moveTo(x,y+6*d);ctx.lineTo(x-5*d,y-4*d);ctx.lineTo(x+5*d,y-4*d);}ctx.closePath();ctx.fill();markers.push({x,y,s});
-  if(state.sel===s.i){ctx.strokeStyle="#fff";ctx.lineWidth=1.5*d;ctx.beginPath();ctx.arc(x,y,9*d,0,7);ctx.stroke();ctx.setLineDash([3*d,3*d]);ctx.strokeStyle="#ffffff88";ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,priceH);ctx.stroke();ctx.setLineDash([]);
-   if(s.sl){ctx.strokeStyle="#ef5350";ctx.beginPath();ctx.moveTo(x,Y(s.sl));ctx.lineTo(Math.min(W-padR,x+40*d),Y(s.sl));ctx.stroke();}if(s.tp){ctx.strokeStyle="#26a69a";ctx.beginPath();ctx.moveTo(x,Y(s.tp));ctx.lineTo(Math.min(W-padR,x+40*d),Y(s.tp));ctx.stroke();}}}
- // last price
- const last=C.c[n-1];if(last>=lo&&last<=hi){ctx.fillStyle="#2962ff";ctx.fillRect(W-padR,Y(last)-8*d,padR,16*d);ctx.fillStyle="#fff";ctx.textAlign="left";ctx.fillText(fmt(last,6),W-padR+4*d,Y(last)+3*d);}
+// API helpers
+const api = (p,q={})=>fetch(p+'?'+new URLSearchParams(q)).then(r=>r.json());
+const $ = id=>document.getElementById(id);
+const esc = x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = (x,d=6)=>x==null?'—':Number(x).toLocaleString(undefined,{maximumSignificantDigits:d});
+const pct = x=>x==null?'—':Number(x).toFixed(0)+'%';
+const succCls = d=>!d||!d.n?'m':(d.pf>=1.2&&d.n>=30?'g':(d.pf>=1?'y':'r'));
+function succHtml(d,o){
+  let h='';
+  if(d&&d.n) h+=`<span class="succ ${succCls(d)}">📊 Success: ${pct(d.wr)}</span> · PF ${d.pf.toFixed(2)} · n=${d.n} <span class="m">(in-sample)</span>`;
+  else h+=`<span class="m">📊 Success: Not measured yet</span>`;
+  if(o) h+=`<br><span class="m">🔬 OOS: ${pct(o.wr)} [${o.wr_lo?.toFixed(0)}–${o.wr_hi?.toFixed(0)}] · PF ${o.pf?.toFixed(2)} · ${o.grade||''}</span>`;
+  return h;
 }
 
-// ---------- Phase 21: indicators, drawings, sub-panels (same engine as the desktop chart)
-let IND=[],DRAW=[],INDCAT=null;const pv=$("panel"),pctx=pv.getContext("2d");
-async function fillIndSel(){INDCAT=await api("/api/indicators",{lang});const sel=$("ind");sel.innerHTML="";INDCAT.forEach(x=>{const o=document.createElement("option");o.value=x.key;o.textContent=x.key.toUpperCase()+" ("+Object.entries(x.params).map(([k,v])=>k+"="+v).join(",")+")"+(x.place==="panel"?" ▾":"");sel.appendChild(o);});}
-function indKeys(){try{return JSON.parse(localStorage.pt_ind||"[]");}catch(e){return[];}}
-async function loadExtras(){const keys=indKeys();IND=[];for(const k of keys){try{IND.push(await api("/api/indicator",{sym:$("sym").value,tf:$("tf").value,key:k,n:800}));}catch(e){}}
- try{DRAW=(await api("/api/drawings",{sym:$("sym").value,tf:$("tf").value})).items||[];}catch(e){DRAW=[];}
- $("indlist").innerHTML="";keys.forEach((k,i)=>{const b=document.createElement("button");b.textContent=k.toUpperCase()+" ✕";b.style.cssText="font-size:10px;padding:2px 6px;margin:0 2px";b.onclick=()=>{const a=indKeys();a.splice(i,1);localStorage.pt_ind=JSON.stringify(a);loadExtras().then(render);};$("indlist").appendChild(b);});
- const np=IND.reduce((a,u)=>a+Object.keys(u.panels||{}).length,0);pv.style.height=(np?np*90:0)+"px";const r=pv.getBoundingClientRect();pv.width=r.width*dpr();pv.height=r.height*dpr();}
-$("indadd").onclick=()=>{const a=indKeys();if(!a.includes($("ind").value))a.push($("ind").value);localStorage.pt_ind=JSON.stringify(a);loadExtras().then(render);};
-async function saveDraw(){DRAW=(await fetch("/api/drawings?"+new URLSearchParams({sym:$("sym").value,tf:$("tf").value}),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(DRAW)}).then(r=>r.json())).items||[];render();}
-$("hladd").onclick=()=>{const y=parseFloat($("hl").value);if(!isNaN(y)){DRAW.push({type:"hline",y,t:Date.now()/1000});saveDraw();}};
-$("hlclr").onclick=()=>{DRAW=[];saveDraw();};
-function renderPanels(i0,i1,n,bw,padR){const d=dpr();const np=IND.reduce((a,u)=>a+Object.keys(u.panels||{}).length,0);pv.style.height=(np?np*90:0)+"px";pv.style.display=np?"block":"none";pv.width=cv.width;pv.height=np*90*d;const W=pv.width;pctx.clearRect(0,0,W,pv.height);let row=0;const cols=["#5c9bff","#ffb74d","#ba68c8","#4dd0e1","#aed581","#ff8a65"];
- for(const u of IND)for(const pn in u.panels||{}){const top=row*90*d,h=84*d;const series=u.panels[pn];let lo=Infinity,hi=-Infinity;for(const k in series){const arr=series[k];for(let i=i0;i<=i1;i++){const j=i-(n-arr.length),y=j>=0?arr[j]:null;if(y!=null){lo=Math.min(lo,y);hi=Math.max(hi,y);}}}
-  if(!(hi>lo)){hi=lo+1;}const Y=v=>top+h-(v-lo)/(hi-lo)*h,X=i=>(i-i0+0.5)*bw;pctx.strokeStyle="#1f2633";pctx.strokeRect(0,top,W-padR,h);pctx.fillStyle="#787b86";pctx.font=`${10*d}px monospace`;pctx.textAlign="left";pctx.fillText(pn,4*d,top+11*d);pctx.fillText(fmt(hi,4),W-padR+4*d,top+11*d);pctx.fillText(fmt(lo,4),W-padR+4*d,top+h-2*d);
-  let ci=0;for(const k in series){const arr=series[k],col=cols[ci++%cols.length];const isHist=/hist|delta|vol/i.test(k);pctx.strokeStyle=pctx.fillStyle=col;pctx.lineWidth=1.1*d;pctx.beginPath();let pen=false;for(let i=i0;i<=i1;i++){const j=i-(n-arr.length),y=j>=0?arr[j]:null;if(y==null){pen=false;continue;}if(isHist){const y0=Y(Math.max(lo,Math.min(hi,0)));pctx.fillRect(X(i)-bw*0.3,Math.min(Y(y),y0),Math.max(1,bw*0.6),Math.abs(Y(y)-y0)||1);continue;}if(!pen){pctx.moveTo(X(i),Y(y));pen=true;}else pctx.lineTo(X(i),Y(y));}pctx.stroke();}row++;}}
-// interaction: tap marker → tooltip; drag pan; wheel/pinch zoom — view persisted by timestamp
-const tip=$("tip");function showTip(m,px,py){const s=m.s,d=R.success,o=R.oos;tip.innerHTML=`<b class="${s.side===1?"g":"r"}">${s.side===1?"▲ "+t("long"):"▼ "+t("short")}</b> <span class="m">${s.time}</span><br>${t("entry")} <b>${fmt(s.px)}</b> · ${t("sl")} <span class="r">${fmt(s.sl)}</span> · ${t("tp")} <span class="g">${fmt(s.tp)}</span> · ${R.candles.t.length-1-s.i} ${t("bars_ago")}<br><span class="m">${esc(lang==="fa"?R.name_fa:R.name)}</span><br>${succHtml(d,o)}`;
- tip.style.display="block";const r=tip.getBoundingClientRect();tip.style.left=Math.max(4,Math.min(window.innerWidth-r.width-4,px-r.width/2))+"px";tip.style.top=Math.max(4,py-r.height-16)+"px";clearTimeout(tip._t);tip._t=setTimeout(()=>tip.style.display="none",6000);}
-function hit(ev){const r=cv.getBoundingClientRect(),x=(ev.clientX-r.left)*dpr(),y=(ev.clientY-r.top)*dpr();let best=null,bd=18*dpr();for(const m of markers){const dd=Math.hypot(m.x-x,m.y-y);if(dd<bd){bd=dd;best=m;}}return best;}
-let drag=null,pinch=null;
-cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);drag={x:e.clientX,t0:state.view.t0,t1:state.view.t1,moved:false};});
-cv.addEventListener("pointermove",e=>{if(!drag||!R)return;const dx=e.clientX-drag.x;if(Math.abs(dx)>3)drag.moved=true;const span=drag.t1-drag.t0,per=span/cv.getBoundingClientRect().width;let t0=drag.t0-dx*per,t1=drag.t1-dx*per;const T=R.candles.t;const lim0=T[0],lim1=T[T.length-1]+(T[1]-T[0])*20;if(t0<lim0){t1+=lim0-t0;t0=lim0;}if(t1>lim1){t0-=t1-lim1;t1=lim1;}state.view.t0=t0;state.view.t1=t1;render();});
-cv.addEventListener("pointerup",e=>{if(drag&&!drag.moved){const m=hit(e);if(m){state.sel=m.s.i;render();showTip(m,e.clientX,e.clientY);}else{tip.style.display="none";}}drag=null;save();});
-cv.addEventListener("wheel",e=>{e.preventDefault();zoom(e.deltaY>0?1.15:0.87,(e.clientX-cv.getBoundingClientRect().left)/cv.getBoundingClientRect().width);},{passive:false});
-cv.addEventListener("touchstart",e=>{if(e.touches.length===2){pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);drag=null;}},{passive:true});
-cv.addEventListener("touchmove",e=>{if(e.touches.length===2&&pinch){const d2=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);zoom(pinch/d2,0.5);pinch=d2;}},{passive:true});
-cv.addEventListener("touchend",()=>{pinch=null;});
-function zoom(f,anchor){if(!R)return;const v=state.view,span=v.t1-v.t0,a=v.t0+span*anchor;const ns=Math.max((R.candles.t[1]-R.candles.t[0])*8,Math.min(span*f,(R.candles.t[R.candles.t.length-1]-R.candles.t[0])*1.1));v.t0=a-(a-v.t0)*ns/span;v.t1=v.t0+ns;render();save();}
-function renderStats(){const s=R.stats;const tile=(k,v,c="")=>`<div class="tile"><div class="k">${t(k)}</div><div class="v ${c}">${v}</div></div>`;
- $("tiles").innerHTML=tile("wr",pct(s.win_rate),s.win_rate>=50?"g":"")+tile("pf",(s.profit_factor||0).toFixed(2),s.profit_factor>=1?"g":"r")+tile("n",s.trades)+tile("ret",(s.return_pct||0).toFixed(1)+"%",s.return_pct>=0?"g":"r")+tile("dd",(s.max_dd_pct||0).toFixed(1)+"%","r")+tile("exp",(s.avg_r||s.expectancy_r||0).toFixed(2));
- $("succ").innerHTML=succHtml(R.success,R.oos);
- $("trades").innerHTML=`<tr><th>${t("entry")}</th><th>${t("side")}</th><th>R</th><th>PnL</th><th></th></tr>`+R.trades.slice().reverse().map(x=>`<tr><td>${x.entry}</td><td class="${x.side>0?"g":"r"}">${x.side>0?t("long"):t("short")}</td><td class="${x.r>=0?"g":"r"}">${(x.r||0).toFixed(2)}</td><td class="${x.pnl>=0?"g":"r"}">${fmt(x.pnl,4)}</td><td class="m">${x.reason||""}</td></tr>`).join("");}
+// Nav
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>goPage(b.dataset.p));
+function goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on', p.id==='p-'+id));
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on', x.dataset.p===id));
+  window.scrollTo(0,0);
+  if(id==='dash') loadDash();
+}
 
-// ---------- signals page
+// Clock
+async function clock(){
+  try{
+    const c = await api('/api/clock');
+    $('clk').textContent = c.local+' ('+c.tz+')';
+    const w = document.querySelector('.world');
+    if(w) w.textContent = c.world;
+  }catch(e){
+    $('clk').textContent = new Date().toLocaleTimeString();
+  }
+}
+setInterval(clock,1000);clock();
+
+// State
+const state = JSON.parse(localStorage.getItem('pt_state')||'{}');
+let META, STRATS=[], R=null, activeInds = JSON.parse(localStorage.getItem('pt_active_indicators')||'[]');
+let chartReady = false;
+
+async function init(){
+  META = await api('/api/meta');
+  const syms = await api('/api/symbols');
+  
+  // Fill symbols
+  for(const id of ['sym','sym2','sym3']){
+    const s=$(id);
+    if(!s) continue;
+    s.innerHTML='';
+    for(const [cat, arr] of Object.entries(syms)){
+      const g=document.createElement('optgroup');
+      g.label=cat;
+      arr.forEach(x=>{
+        const o=document.createElement('option');
+        o.value=x; o.textContent=x;
+        g.appendChild(o);
+      });
+      s.appendChild(g);
+    }
+    s.value = state.sym||'BTC/USDT';
+  }
+  
+  // Timeframes
+  for(const id of ['tf','tf2']){
+    const s=$(id);
+    if(!s) continue;
+    s.innerHTML = META.tfs.map(x=>`<option>${x}</option>`).join('');
+    s.value = state.tf||'1h';
+  }
+  $('tf4').value='5m';
+  
+  await fillStrats();
+  await fillIndSelect();
+  
+  // Init TradingView chart
+  $('loading').classList.add('show');
+  try{
+    await TVAdvanced.init('tv-chart');
+    chartReady = true;
+    $('loading').classList.remove('show');
+  }catch(e){
+    $('loading').textContent = 'Failed to load TradingView library: '+e+' - Using fallback';
+    console.error(e);
+  }
+  
+  bindEvents();
+  run();
+}
+
+async function fillStrats(){
+  const sym = $('sym').value, tf = $('tf').value;
+  STRATS = await api('/api/strategies', {sym, tf, lang:'en'});
+  const cur = $('sid').value;
+  const sel=$('sid');
+  sel.innerHTML='';
+  STRATS.forEach(s=>{
+    const o=document.createElement('option');
+    o.value=s.id;
+    o.textContent=`${s.name}${s.label?' ['+s.label+']':''} · ${s.category}`;
+    sel.appendChild(o);
+  });
+  if(cur) sel.value=cur;
+}
+
+async function fillIndSelect(){
+  try{
+    const cats = await api('/api/indicators', {lang:'en'});
+    const sel=$('ind-select');
+    sel.innerHTML='<option value="">Select indicator...</option>'+cats.map(c=>`<option value="${c.key}">${c.key.toUpperCase()} (${Object.entries(c.params).map(([k,v])=>k+'='+v).join(',')})</option>`).join('');
+    sel.onchange=()=>{
+      if(sel.value){
+        addIndicator(sel.value);
+        sel.value='';
+        sel.style.display='none';
+      }
+    };
+  }catch(e){}
+}
+
+function bindEvents(){
+  $('sym').onchange=$('tf').onchange=()=>{ fillStrats(); };
+  $('run').onclick=run;
+  
+  // TF toolbar
+  document.querySelectorAll('[data-tf]').forEach(btn=>{
+    btn.onclick=()=>{
+      document.querySelectorAll('[data-tf]').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      $('tf').value=btn.dataset.tf;
+      localStorage.setItem('pt_tf', btn.dataset.tf);
+      run();
+    };
+  });
+  
+  // Chart type
+  document.querySelectorAll('[data-type]').forEach(btn=>{
+    btn.onclick=()=>{
+      document.querySelectorAll('[data-type]').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      if(chartReady) TVAdvanced.setChartType(btn.dataset.type);
+    };
+  });
+  
+  $('ind-btn').onclick=()=>{
+    const s=$('ind-select');
+    s.style.display = s.style.display==='none'?'inline-block':'none';
+  };
+  
+  $('clear-lines').onclick=()=>{
+    if(confirm('Clear all drawings and indicators?')){
+      TVAdvanced.clearPriceLines();
+      TVAdvanced.clearOverlays();
+      activeInds=[];
+      localStorage.setItem('pt_active_indicators', JSON.stringify(activeInds));
+      updateActiveIndsUI();
+      if(R) renderOverlays(R);
+    }
+  };
+  
+  $('screenshot').onclick=()=>{
+    if(!chartReady) return;
+    // Use canvas toDataURL fallback
+    const canvas = document.querySelector('#tv-chart canvas');
+    if(canvas){
+      const a=document.createElement('a');
+      a.href=canvas.toDataURL();
+      a.download=`chart_${$('sym').value}_${$('tf').value}_${Date.now()}.png`;
+      a.click();
+    }
+  };
+  
+  $('fullscreen').onclick=()=>{
+    const el=$('tv-chart-container');
+    if(document.fullscreenElement) document.exitFullscreen();
+    else el.requestFullscreen();
+  };
+}
+
+async function addIndicator(key){
+  if(activeInds.includes(key)) return;
+  activeInds.push(key);
+  localStorage.setItem('pt_active_indicators', JSON.stringify(activeInds));
+  updateActiveIndsUI();
+  if(!R) return;
+  
+  try{
+    const data = await api('/api/indicator', {sym:$('sym').value, tf:$('tf').value, key, n:800});
+    const colors=['#5c9bff','#ffb74d','#ba68c8','#4dd0e1','#aed581','#ff8a65'];
+    let ci=Object.keys(R.overlays||{}).length;
+    for(const [k, arr] of Object.entries(data.overlays||{})){
+      TVAdvanced.addOverlay(k, arr, R.candles.t, colors[ci%colors.length]);
+      ci++;
+    }
+  }catch(e){ console.error(e); }
+}
+
+function updateActiveIndsUI(){
+  $('active-inds').innerHTML = activeInds.map((k,i)=>`<span class="pill">${k.toUpperCase()} <button onclick="removeInd(${i})" style="background:none;border:0;color:#787b86;cursor:pointer">✕</button></span>`).join('');
+}
+window.removeInd = (i)=>{
+  activeInds.splice(i,1);
+  localStorage.setItem('pt_active_indicators', JSON.stringify(activeInds));
+  updateActiveIndsUI();
+  TVAdvanced.clearOverlays();
+  if(R) renderOverlays(R);
+};
+
+async function run(){
+  const sym=$('sym').value, tf=$('tf').value, sid=$('sid').value;
+  $('status').textContent='Loading...';
+  $('run').disabled=true;
+  $('loading').classList.add('show');
+  
+  try{
+    R = await api('/api/run', {sym, tf, sid, n:800});
+    
+    if(!chartReady){
+      await TVAdvanced.init('tv-chart');
+      chartReady=true;
+    }
+    
+    // Precision: crypto <1 needs 6, else 2. Gold keeps original price (no toman conversion)
+    const lastPrice = R.candles.c[R.candles.c.length-1];
+    let precision = 2;
+    if(sym.includes('USDT') && lastPrice<1) precision=6;
+    else if(sym.includes('USDT')) precision=2;
+    else if(sym.includes('طلای') || sym.includes('Gold') || sym.includes('سکه') || sym.includes('Coin')) precision=0; // Gold in IRR, no decimal
+    
+    TVAdvanced.setData(R.candles, {precision});
+    TVAdvanced.clearOverlays();
+    TVAdvanced.clearPriceLines();
+    
+    renderOverlays(R);
+    TVAdvanced.setSignals(R.signals, R.candles);
+    
+    (R.levels||[]).forEach(l=>{
+      TVAdvanced.addPriceLine(l.px, l.color||'#888', l.label);
+    });
+    
+    // Header price
+    const prev = R.candles.c[R.candles.c.length-2];
+    const chg = prev ? (lastPrice/prev-1)*100 : 0;
+    $('price').textContent = fmt(lastPrice, precision===0?0:6);
+    $('change').textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
+    $('change').className = chg>=0?'g':'r';
+    $('chart-info').textContent = `${R.candles.t.length} bars · ${R.candles.venue||''}`;
+    
+    renderStats();
+    $('status').textContent='OK';
+    
+    localStorage.setItem('pt_sym', sym);
+    localStorage.setItem('pt_tf', tf);
+    localStorage.setItem('pt_state', JSON.stringify({sym, tf, sid}));
+    
+  }catch(e){
+    $('status').textContent='⚠ '+e;
+    console.error(e);
+  }finally{
+    $('run').disabled=false;
+    $('loading').classList.remove('show');
+  }
+}
+
+function renderOverlays(data){
+  const colors=['#5c9bff','#ffb74d','#ba68c8','#4dd0e1','#aed581','#ff8a65','#f06292','#fff176'];
+  let ci=0;
+  const indBar=$('tv-indicators');
+  let html='';
+  
+  for(const [k, arr] of Object.entries(data.overlays||{})){
+    TVAdvanced.addOverlay(k, arr, data.candles.t, colors[ci%colors.length]);
+    html+=`<span class="ind-pill" style="color:${colors[ci%colors.length]};border-color:${colors[ci%colors.length]}44">— ${esc(k)}</span>`;
+    ci++;
+  }
+  indBar.innerHTML=html;
+}
+
+function renderStats(){
+  if(!R) return;
+  const s=R.stats;
+  const tile=(k,v,c='')=>`<div class="tile"><div class="k">${k}</div><div class="v ${c}">${v}</div></div>`;
+  $('tiles').innerHTML=
+    tile('Win Rate', pct(s.win_rate), s.win_rate>=50?'g':'')+
+    tile('Profit Factor', (s.profit_factor||0).toFixed(2), s.profit_factor>=1?'g':'r')+
+    tile('Trades', s.trades)+
+    tile('Return', (s.return_pct||0).toFixed(1)+'%', s.return_pct>=0?'g':'r')+
+    tile('Max DD', (s.max_dd_pct||0).toFixed(1)+'%', 'r')+
+    tile('Expectancy', (s.avg_r||0).toFixed(2)+'R', s.avg_r>=0?'g':'r');
+  
+  $('succ').innerHTML=succHtml(R.success, R.oos);
+  $('trades').innerHTML=`<tr><th>Entry</th><th>Side</th><th>R</th><th>PnL</th><th>Reason</th></tr>`+
+    R.trades.slice().reverse().map(x=>`<tr><td>${x.entry}</td><td class="${x.side>0?'g':'r'}">${x.side>0?'LONG':'SHORT'}</td><td class="${x.r>=0?'g':'r'}">${(x.r||0).toFixed(2)}</td><td class="${x.pnl>=0?'g':'r'}">${fmt(x.pnl,4)}</td><td class="m">${x.reason||''}</td></tr>`).join('');
+}
+
+// Signals page (keep original logic but English only)
 let SIGR=null;
-function vcls(v){return v==="PROVEN"?"g":(v==="CANDIDATE"?"y":(v==="FAILED"?"r":"m"));}
-function renderSigs(){if(!SIGR)return;const mode=$("qmode").value;const ok=x=>mode==="all"||x.verdict==="PROVEN"||(mode==="candidate"&&x.verdict==="CANDIDATE");const rows=SIGR.rows.filter(ok);
- $("sigs").innerHTML=`<tr><th>${t("strategy")}</th><th>${t("q_verdict")}</th><th>${t("side")}</th><th>${t("when")}</th><th>${t("price")}</th><th>${t("sl")}</th><th>${t("tp")}</th><th>${t("rr")}</th><th>${t("wr")}</th><th>PF</th><th>n</th><th>${t("plan")}</th><th>OOS</th></tr>`+
- rows.map((x,i)=>`<tr class="row" title="${esc((lang==="fa"?x.why_fa:x.why_en||[]).join("\n"))}" onclick="openSig('${x.sid}')"><td>${esc(lang==="fa"?x.name_fa:x.name)}</td><td class="${vcls(x.verdict)}"><b>${t("v_"+x.verdict)}</b><br><span class="m">${x.score}/100</span></td><td class="${x.side===1?"g":"r"}">${x.side===1?"▲":"▼"}</td><td>${x.time}<br><span class="m">${x.ago} ${t("bars_ago")}</span></td><td>${fmt(x.px)}</td><td class="r">${fmt(x.sl)}</td><td class="g">${fmt(x.tp)}</td><td>${x.rr?("1:"+x.rr.toFixed(1)):"—"}</td><td class="succ ${succCls(x)}">${pct(x.wr)}</td><td class="${x.pf>=1?"g":"r"}">${x.pf.toFixed(2)}</td><td class="m">${x.n}</td><td><button style="font-size:10px;padding:2px 6px" onclick="event.stopPropagation();openPlan('${x.sid}')">${t("plan")}</button></td><td>${x.grade||"—"}${x.oos_pf!=null?"<br><span class=m>PF "+Number(x.oos_pf).toFixed(2)+" n="+x.oos_n+"</span>":""}${x.fwd_pf!=null?"<br><span class=m>FWD PF "+Number(x.fwd_pf).toFixed(2)+"</span>":""}</td></tr>`).join("");
- const q=SIGR.quality||{};$("status2").textContent=`${rows.length}/${SIGR.rows.length} · ✓${q.PROVEN||0} ?${q.CANDIDATE||0} ✗${q.FAILED||0} · ${SIGR.time}`;$("news").textContent=lang==="fa"?(SIGR.news_text_fa||""):(SIGR.news_text_en||"");}
-$("scan").onclick=async()=>{$("status2").textContent=t("loading");$("sigs").innerHTML="";try{SIGR=await api("/api/signals",{sym:$("sym2").value,tf:$("tf2").value,recent:5});renderSigs();}catch(e){$("status2").textContent="⚠ "+e;}};
-$("qmode").onchange=renderSigs;
-window.openPlan=async sid=>{const box=$("planbox");box.style.display="block";box.innerHTML=t("loading");try{const p=await api("/api/plan",{sid,sym:$("sym2").value,tf:$("tf2").value});const txt=(lang==="fa"?p.text_fa:p.text_en)||p.error||"";const col=p.verdict_en==="GO"?"g":(p.verdict_en==="REDUCED"?"y":"r");box.innerHTML=`<div class="${col}" style="white-space:pre-wrap;line-height:1.7">${esc(txt).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")}</div>`;}catch(e){box.innerHTML="⚠ "+e;}};
-window.openSig=sid=>{$("sym").value=$("sym2").value;$("tf").value=$("tf2").value;state.view=null;fillStrats().then(()=>{$("sid").value=sid;run();document.querySelector('nav button[data-p="chart"]').click();});};
+function vcls(v){return v==='PROVEN'?'g':(v==='CANDIDATE'?'y':(v==='FAILED'?'r':'m'));}
+function renderSigs(){
+  if(!SIGR) return;
+  const mode=$('qmode').value;
+  const ok=x=>mode==='all'||x.verdict==='PROVEN'||(mode==='candidate'&&x.verdict==='CANDIDATE');
+  const rows=SIGR.rows.filter(ok);
+  $('sigs').innerHTML=`<tr><th>Strategy</th><th>Verdict</th><th>Side</th><th>When</th><th>Price</th><th>SL</th><th>TP</th><th>R:R</th><th>WR</th><th>PF</th><th>n</th><th>Plan</th></tr>`+
+    rows.map(x=>`<tr class="row" onclick="openSig('${x.sid}')"><td>${esc(x.name)}</td><td class="${vcls(x.verdict)}"><b>${x.verdict}</b><br><span class="m">${x.score}/100</span></td><td class="${x.side===1?'g':'r'}">${x.side===1?'▲':'▼'}</td><td>${x.time}<br><span class="m">${x.ago} bars ago</span></td><td>${fmt(x.px)}</td><td class="r">${fmt(x.sl)}</td><td class="g">${fmt(x.tp)}</td><td>${x.rr?('1:'+x.rr.toFixed(1)):'—'}</td><td class="succ ${succCls(x)}">${pct(x.wr)}</td><td class="${x.pf>=1?'g':'r'}">${x.pf.toFixed(2)}</td><td class="m">${x.n}</td><td><button style="font-size:10px" onclick="event.stopPropagation();openPlan('${x.sid}')">Plan</button></td></tr>`).join('');
+  $('status2').textContent=`${rows.length}/${SIGR.rows.length} · ${SIGR.time}`;
+  $('news').textContent=SIGR.news_text_en||'';
+}
+$('scan').onclick=async()=>{
+  $('status2').textContent='Loading...';
+  try{ SIGR=await api('/api/signals',{sym:$('sym2').value,tf:$('tf2').value,recent:5}); renderSigs(); }catch(e){ $('status2').textContent='⚠ '+e; }
+};
+$('qmode').onchange=renderSigs;
+window.openPlan=async sid=>{
+  const box=$('planbox'); box.style.display='block'; box.innerHTML='Loading...';
+  try{
+    const p=await api('/api/plan',{sid,sym:$('sym2').value,tf:$('tf2').value});
+    const txt=p.text_en||p.error||'';
+    const col=p.verdict_en==='GO'?'g':(p.verdict_en==='REDUCED'?'y':'r');
+    box.innerHTML=`<div class="${col}" style="white-space:pre-wrap;line-height:1.7">${esc(txt).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>`;
+  }catch(e){ box.innerHTML='⚠ '+e; }
+};
+window.openSig=sid=>{
+  $('sym').value=$('sym2').value;
+  $('tf').value=$('tf2').value;
+  fillStrats().then(()=>{ $('sid').value=sid; run(); document.querySelector('nav button[data-p="chart"]').click(); });
+};
 
-// ---------- advisor
-$("advise").onclick=async()=>{$("status3").textContent=t("loading");try{const a=await api("/api/advise",{sym:$("sym3").value});let h=`<h3>${a.symbol} — ${t("verdict")}: <span class="${(a.verdict||{}).side===1?"g":((a.verdict||{}).side===-1?"r":"y")}">${JSON.stringify(a.verdict&&(a.verdict.text||a.verdict.side)||"—")}</span></h3><div class="wrap"><table><tr><th>TF</th><th>${t("regime")}</th><th>${t("best")}</th><th>${t("wr")}</th><th>PF</th><th>${t("signal")}</th></tr>`;
- for(const[tf,d]of Object.entries(a.tfs||{})){const b=d.best||{},s=d.signal||{};h+=`<tr><td>${tf}</td><td>${d.regime||"—"}</td><td>${b.sid||b.id||"—"}</td><td class="succ ${succCls({wr:b.wr,pf:b.pf,n:b.n||40})}">${pct(b.wr)}</td><td>${b.pf!=null?Number(b.pf).toFixed(2):"—"}</td><td class="${s.side===1?"g":(s.side===-1?"r":"m")}">${s.side===1?"▲":(s.side===-1?"▼":"—")} ${s.time||""}</td></tr>`;}
- $("advout").innerHTML=h+"</table></div>";$("status3").textContent="";}catch(e){$("status3").textContent="⚠ "+e;}};
+// Advisor
+$('advise').onclick=async()=>{
+  $('status3').textContent='Loading...';
+  try{
+    const a=await api('/api/advise',{sym:$('sym3').value});
+    let h=`<h3>${a.symbol} — Verdict: <span class="${(a.verdict||{}).side===1?'g':((a.verdict||{}).side===-1?'r':'y')}">${JSON.stringify(a.verdict&&(a.verdict.text||a.verdict.side)||'—')}</span></h3><div class="wrap"><table><tr><th>TF</th><th>Regime</th><th>Best Strategy</th><th>WR</th><th>PF</th><th>Signal</th></tr>`;
+    for(const [tf,d] of Object.entries(a.tfs||{})){
+      const b=d.best||{}, s=d.signal||{};
+      h+=`<tr><td>${tf}</td><td>${d.regime||'—'}</td><td>${b.sid||'—'}</td><td class="succ ${succCls({wr:b.wr,pf:b.pf,n:b.n||40})}">${pct(b.wr)}</td><td>${b.pf!=null?Number(b.pf).toFixed(2):'—'}</td><td class="${s.side===1?'g':(s.side===-1?'r':'m')}">${s.side===1?'▲':(s.side===-1?'▼':'—')} ${s.time||''}</td></tr>`;
+    }
+    $('advout').innerHTML=h+'</table></div>';
+    $('status3').textContent='';
+  }catch(e){ $('status3').textContent='⚠ '+e; }
+};
 
-// ---------- fast
-$("fast").onclick=async()=>{$("status4").textContent=t("loading");try{const rows=await api("/api/fast",{tf:$("tf4").value,n:20});const st=rows.filter(r=>r.setup);
- try{const cl=await api("/api/cluster",{rows:JSON.stringify(st.map(r=>({sym:r.sym,side:r.setup.side})))});if(cl.length){$("status4").textContent="⚠ "+t("cluster")+": "+cl.map(c=>c.symbols.join(" + ")+" ("+(c.side===1?"▲":"▼")+", ρ="+c.avg_corr.toFixed(2)+")").join(" · ");}}catch(e){}
- $("fasttbl").innerHTML=`<tr><th>Sym</th><th>${t("side")}</th><th>${t("votes")}</th><th>${t("entry")}</th><th>${t("sl")}</th><th>${t("tp")}</th><th>${t("wr")}</th><th>PF</th></tr>`+st.map(r=>{const s=r.setup,q=r.stats||{};return`<tr><td>${r.sym}</td><td class="${s.side===1?"g":"r"}">${s.side===1?"▲":"▼"}</td><td>${s.votes} <span class="m">${(s.agree||[]).slice(0,4).join(", ")}</span></td><td>${fmt(s.px)}</td><td class="r">${fmt(s.sl)}</td><td class="g">${fmt(s.tp)}</td><td class="succ ${succCls({wr:q.win_rate,pf:q.profit_factor,n:q.trades})}">${pct(q.win_rate)}</td><td>${q.profit_factor!=null?q.profit_factor.toFixed(2):"—"}</td></tr>`}).join("");
- $("status4").textContent=st.length+" / "+rows.length;}catch(e){$("status4").textContent="⚠ "+e;}};
+// Fast
+$('fast').onclick=async()=>{
+  $('status4').textContent='Loading...';
+  try{
+    const rows=await api('/api/fast',{tf:$('tf4').value,n:20});
+    const st=rows.filter(r=>r.setup);
+    $('fasttbl').innerHTML=`<tr><th>Symbol</th><th>Side</th><th>Votes</th><th>Entry</th><th>SL</th><th>TP</th><th>WR</th><th>PF</th></tr>`+
+      st.map(r=>{
+        const s=r.setup,q=r.stats||{};
+        return `<tr><td>${r.sym}</td><td class="${s.side===1?'g':'r'}">${s.side===1?'▲':'▼'}</td><td>${s.votes} <span class="m">${(s.agree||[]).slice(0,4).join(', ')}</span></td><td>${fmt(s.px)}</td><td class="r">${fmt(s.sl)}</td><td class="g">${fmt(s.tp)}</td><td class="succ ${succCls({wr:q.win_rate,pf:q.profit_factor,n:q.trades})}">${pct(q.win_rate)}</td><td>${q.profit_factor!=null?q.profit_factor.toFixed(2):'—'}</td></tr>`;
+      }).join('');
+    $('status4').textContent=st.length+' / '+rows.length;
+  }catch(e){ $('status4').textContent='⚠ '+e; }
+};
 
-// ---------- academy
+// Academy
 let BOOKS=null;
-async function renderAcademy(){const q=($("q").value||"").toLowerCase();$("strats").innerHTML=STRATS.filter(s=>!q||(s.name+s.id+s.category+s.author+(s.description||"")).toLowerCase().includes(q)).map(s=>`<details><summary>${esc(s.name)} <span class="pill">${esc(s.category)}</span> ${s.label?`<span class="succ ${succCls(s.success)}">${esc(s.label)}</span>`:""}</summary><div style="padding:6px 0 10px"><div class="m">${esc(s.author)} · ${"★".repeat(s.difficulty)} · ${esc(s.timeframes)}</div><p>${esc(s.description)}</p><ol>${(s.rules||[]).map(r=>`<li>${esc(r)}</li>`).join("")}</ol>${succHtml(s.success,s.oos)}</div></details>`).join("");
- if(!BOOKS)BOOKS=await api("/api/library",{lang});$("books").innerHTML=BOOKS.books.filter(b=>!q||(b.title+b.author+b.lesson+b.where).toLowerCase().includes(q)).map(b=>`<details><summary>${esc(b.title)} <span class="pill">${esc(b.category)}</span></summary><div style="padding:6px 0 10px"><div class="m">${esc(b.author)}</div><p>${esc(b.lesson)}</p><div class="m">↳ ${esc(b.where)}</div></div></details>`).join("");}
-$("q").oninput=()=>renderAcademy();
+async function renderAcademy(){
+  const q=($('q').value||'').toLowerCase();
+  $('strats').innerHTML=STRATS.filter(s=>!q||(s.name+s.id+s.category).toLowerCase().includes(q)).map(s=>`<details><summary>${esc(s.name)} <span class="pill">${esc(s.category)}</span> ${s.label?`<span class="succ ${succCls(s.success)}">${esc(s.label)}</span>`:''}</summary><div style="padding:6px 0 10px"><div class="m">${esc(s.author)} · ${'★'.repeat(s.difficulty)} · ${esc(s.timeframes)}</div><p>${esc(s.description)}</p><ol>${(s.rules||[]).map(r=>`<li>${esc(r)}</li>`).join('')}</ol>${succHtml(s.success,s.oos)}</div></details>`).join('');
+  if(!BOOKS) BOOKS=await api('/api/library',{lang:'en'});
+  $('books').innerHTML=BOOKS.books.filter(b=>!q||(b.title+b.author+b.lesson).toLowerCase().includes(q)).map(b=>`<details><summary>${esc(b.title)} <span class="pill">${esc(b.category)}</span></summary><div style="padding:6px 0 10px"><div class="m">${esc(b.author)}</div><p>${esc(b.lesson)}</p><div class="m">↳ ${esc(b.where)}</div></div></details>`).join('');
+}
+$('q').oninput=renderAcademy;
 
-// ---------- Phase 21 pages
-const post=(p,q,body,ctype)=>fetch(p+"?"+new URLSearchParams(q),{method:"POST",headers:{"Content-Type":ctype||"application/json"},body:ctype?body:JSON.stringify(body)}).then(r=>r.json());
-const tile=(k,v,c="")=>`<div class="tile"><div class="k">${esc(k)}</div><div class="v ${c}">${v}</div></div>`;
-const tbl=(el,head,rows)=>{$(el).innerHTML=`<tr>${head.map(h=>`<th>${esc(h)}</th>`).join("")}</tr>`+rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("");};
-const busy=(id,on)=>{$(id).textContent=on?t("loading"):"";};
-const MORE=[["desk","🗞","n_desk"],["dash","🏠","n_dash"],["forward","⏱","n_forward"],["portfolio","💼","n_portfolio"],["risk","🛡","n_risk"],["journal","📓","n_journal"],["patterns","🕯","n_patterns"],["analyst","🧠","n_analyst"],["vision","👁","n_vision"],["lab","🧪","n_lab"],["academy","🎓","n_academy"],["settings","⚙","n_settings"],["calendar","📰","n_calendar"]];
-function goPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.toggle("on",p.id==="p-"+id));document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x.dataset.p===id||(id!=="chart"&&id!=="signals"&&id!=="advisor"&&id!=="fast"&&x.dataset.p==="more")));window.scrollTo(0,0);if(id==="dash")loadDash();if(id==="forward")loadForward();if(id==="journal")loadJournal();if(id==="settings")loadSettings();if(id==="academy")renderAcademy();if(id==="calendar")loadCal();if(id==="desk"&&!$("dkout").textContent)loadDesk(0);}
-async function loadDesk(refresh){$("dkst").textContent=t("loading");$("dkrun").disabled=true;try{const b=await api("/api/desk",{mode:$("dkmode").value,equity:$("dkeq").value,refresh:refresh?1:0});const txt=lang==="fa"?b.text_fa:b.text_en;$("dkout").innerHTML=esc(txt).replace(/^# (.*)$/gm,"<h2>$1</h2>").replace(/^## (.*)$/gm,"<h3>$1</h3>").replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/^_(.*)_\s*(\(.*\))?$/gm,'<span class="m">$1 $2</span>');$("dkst").textContent=(b.gate&&b.gate.ok?"✓":"⛔")+" "+b.plans.length+" / "+b.total_alloc_pct+"%";}catch(e){$("dkout").textContent="⚠ "+e;$("dkst").textContent="";}$("dkrun").disabled=false;}
-$("dkrun").onclick=()=>loadDesk(1);
-async function loadCal(){try{const c=await api("/api/calendar",{hours:96});$("calnow").textContent=lang==="fa"?c.text_fa:c.text_en;tbl("caltbl",[t("when"),"",""],(c.upcoming||[]).map(e=>[new Date(e.ts*1000).toLocaleString(),esc(e.currency),esc(e.title)+(e.forecast?` <span class=m>(f ${esc(e.forecast)} / p ${esc(e.previous)})</span>`:"")]));}catch(e){$("calnow").textContent="⚠ "+e;}}
-function renderMore(){$("moregrid").innerHTML=MORE.map(([id,ic,k])=>`<div class="tile" style="cursor:pointer;text-align:center" data-go="${id}"><div style="font-size:26px">${ic}</div><div class="k">${t(k)}</div></div>`).join("");$("moregrid").querySelectorAll("[data-go]").forEach(e=>e.onclick=()=>goPage(e.dataset.go));}
-// dashboard + health
-async function loadDash(){try{const s=await api("/api/status");const tr=s.training||{},sc=s.success||{};$("dtiles").innerHTML=tile(t("status_t"),esc(tr.stage||"—")+" "+(tr.progress?Math.round(tr.progress*100)+"%":""))+tile(t("playbook"),tr.playbook?"✓ "+(tr.playbook_tfs||[]).join(","):"✗",tr.playbook?"g":"r")+tile("Proven combos",tr.proven_combos??"—")+tile(t("success_cov"),sc.n??sc.count??JSON.stringify(sc).slice(0,20));$("dlog").textContent=(s.log||[]).join("\n");}catch(e){$("dlog").textContent="⚠ "+e;}}
-$("hrun").onclick=async()=>{busy("hst",1);try{const h=await api("/api/health",{quick:1,lang});$("hst").textContent=`${h.summary.errors} ${t("errors")} · ${h.summary.warns} ${t("warns")}`;$("hout").innerHTML=h.findings.map(f=>`<div class="${f.level==="error"?"r":(f.level==="warn"?"y":"m")}">${f.level==="error"?"⛔":(f.level==="warn"?"⚠":"ℹ")} <b>${esc(f.area)}</b> — ${esc(f.text)}</div>`).join("")||"✓";}catch(e){$("hst").textContent="⚠ "+e;}};
-// forward
-async function loadForward(upd){busy("fwst",1);try{const f=await api("/api/forward",upd?{update:1}:{});const o=f.report.overall||{};$("fwtiles").innerHTML=tile(t("n"),f.report.n_closed+" / "+f.report.n_open+" open")+tile(t("wr"),pct(o.wr),succCls({wr:o.wr,pf:o.pf,n:o.n}))+tile("PF",o.pf!=null?Number(o.pf).toFixed(2):"—")+tile(t("grade"),o.grade||"—")+tile(t("gap"),f.report.gap!=null?JSON.stringify(f.report.gap).slice(0,30):"—");
- tbl("fwsid",[t("strategy"),t("n"),t("wr"),"PF",t("grade")],Object.entries(f.report.by_sid||{}).map(([k,v])=>[esc(k),v.n,pct(v.wr),Number(v.pf||0).toFixed(2),v.grade||""]));
- tbl("fwopen",[t("when"),t("symbol"),"TF",t("strategy"),t("side"),t("entry"),t("sl"),t("tp")],(f.open||[]).slice(-40).reverse().map(r=>[esc(r.bar||r.time),esc(r.symbol),esc(r.tf),esc(r.sid),r.side===1?"▲":"▼",fmt(r.entry),fmt(r.stop),fmt(r.target)]));
- tbl("fwclosed",[t("when"),t("symbol"),"TF",t("strategy"),t("side"),"R",t("result")],(f.closed||[]).slice(-60).reverse().map(r=>[esc(r.bar||r.time),esc(r.symbol),esc(r.tf),esc(r.sid),r.side===1?"▲":"▼",`<span class="${(r.r||0)>0?"g":"r"}">${Number(r.r||0).toFixed(2)}</span>`,esc(r.outcome||r.exit_reason||"")]));$("fwst").textContent="";}catch(e){$("fwst").textContent="⚠ "+e;}}
-$("fwupd").onclick=()=>loadForward(1);
-// portfolio
-$("pbuild").onclick=async()=>{busy("pst",1);try{const p=await api("/api/portfolio",{tf:$("tf5").value,n:6,equity:$("peq").value});const st=p.stats||{};let h=`<div class="tiles">${Object.entries(st).slice(0,8).map(([k,v])=>tile(k,typeof v==="number"?fmt(v,4):esc(v))).join("")}</div>`;if(p.note)h+=`<div class="m">${esc(p.note)}</div>`;
- h+=`<div class="wrap"><table><tr><th>${t("symbol")}</th><th>${t("strategy")}</th><th>${t("weight")}</th><th>${t("wr")}</th><th>PF</th><th>${t("grade")}</th></tr>${(p.rows||[]).map(r=>`<tr><td>${esc(r.symbol||r.sym)}</td><td>${esc(r.sid)}</td><td>${r.weight!=null?pct(r.weight*100):"—"}</td><td>${pct(r.wr)}</td><td>${r.pf!=null?Number(r.pf).toFixed(2):"—"}</td><td>${esc(r.grade||"")}</td></tr>`).join("")}</table></div>`;$("pout").innerHTML=h;$("pst").textContent="";}catch(e){$("pst").textContent="⚠ "+e;}};
-// risk
-$("rcalc").onclick=async()=>{try{const r=await api("/api/risk",{equity:$("req").value,risk_pct:$("rrp").value,entry:$("ren").value,stop:$("rst").value,wr:$("rwr").value,rr:$("rrr").value});const p=r.position||{};
- $("rtiles").innerHTML=tile(t("risk")+" $",fmt(p.risk_amount))+tile("Units",fmt(p.units))+tile("Notional",fmt(p.notional))+tile("Stop %",fmt(p.stop_distance_pct,3)+"%")+tile("Kelly",typeof r.kelly==="number"?pct(r.kelly*100):JSON.stringify(r.kelly))+tile("Risk of ruin",typeof r.ruin==="number"?pct(r.ruin*100):JSON.stringify(r.ruin).slice(0,20))+tile(t("exp"),typeof r.expectancy==="number"?r.expectancy.toFixed(2):JSON.stringify(r.expectancy))+tile("Trades→ruin",esc(r.max_trades_to_ruin));
- $("rtg").innerHTML=`<div class="wrap"><table><tr><th>R</th><th>${t("tp")}</th></tr>${Object.entries(r.targets||{}).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${fmt(v)}</td></tr>`).join("")}</table></div>`;}catch(e){$("rtiles").innerHTML="⚠ "+e;}};
-// journal
-function jRender(j){tbl("jtbl",[t("date"),t("symbol"),t("side"),t("strategy"),t("entry"),t("sl"),t("exit"),"R",t("emotion"),t("j_notes"),""],(j.rows||[]).map((r,i)=>[esc(r.date),esc(r.symbol),esc(r.side),esc(r.strategy),fmt(r.entry),fmt(r.stop),fmt(r.exit),`<span class="${(r.r||0)>0?"g":"r"}">${r.r??"—"}</span>`,esc(r.emotion),esc(r.notes),`<button data-del="${i}" style="font-size:10px;padding:2px 6px">${t("delete")}</button>`]).reverse());
- $("jtbl").querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>jRender(await post("/api/journal",{},{op:"delete",idx:+b.dataset.del})));
- const a=j.audit;if(Array.isArray(a)&&a.length){const ks=Object.keys(a[0]);tbl("jaud",ks,a.map(r=>ks.map(k=>typeof r[k]==="number"?fmt(r[k],3):esc(r[k]))));}else if(a&&typeof a==="object"){tbl("jaud",["",""],Object.entries(a).map(([k,v])=>[esc(k),esc(typeof v==="object"?JSON.stringify(v):v)]));}else $("jaud").innerHTML="";}
-async function loadJournal(){try{jRender(await api("/api/journal"));}catch(e){}}
-$("jadd").onclick=async()=>{const row={date:$("jd").value||new Date().toISOString().slice(0,10),symbol:$("jsym").value,side:$("jside").value,strategy:$("jstr").value,entry:+$("jen").value||null,stop:+$("jsl").value||null,exit:+$("jex").value||null,r:+$("jr").value||0,emotion:$("jemo").value,notes:$("jn").value};jRender(await post("/api/journal",{},{op:"add",row}));};
-// patterns
-$("pscan").onclick=async()=>{busy("ptst",1);try{const r=await api("/api/patterns",{sym:$("sym6").value,tf:$("tf6").value,recent:8});const [c,p]=Array.isArray(r)?r:[r.candles||[],r.chart||[]];const nm=x=>lang==="fa"&&x.name_fa?x.name_fa:x.name;
- tbl("ptc",[t("name"),t("side"),t("when")],c.map(x=>[esc(nm(x)),x.side===1?"▲":(x.side===-1?"▼":"—"),esc(x.time||x.i||x.i_end||"")]));tbl("ptp",[t("name"),t("side"),"Level",t("tp"),t("when")],p.map(x=>[esc(nm(x)),x.side===1?"▲":(x.side===-1?"▼":"—"),fmt(x.level),fmt(x.target),esc(x.i_end??"")]));$("ptst").textContent=c.length+" + "+p.length;}catch(e){$("ptst").textContent="⚠ "+e;}};
-// analyst
-const mdLite=s=>esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/^### (.+)$/gm,"<h3>$1</h3>");
-async function analyst(q){busy("ast",1);try{const r=await api("/api/analyst",{sym:$("sym7").value,tf:$("tf7").value,lang,q:q||""});const rep=Array.isArray(r.report)?r.report.join("\n"):String(r.report||"");$("aout").innerHTML=(r.answer?`<div class="card" style="border-color:var(--accent2)"><b>Q:</b> ${esc(q)}<br>${mdLite(Array.isArray(r.answer)?r.answer.join("\n"):String(r.answer))}</div>`:"")+mdLite(rep);$("ast").textContent="";}catch(e){$("ast").textContent="⚠ "+e;}}
-$("arun").onclick=()=>analyst("");$("aask").onclick=()=>analyst($("aq").value);
-// vision
-$("vfile").onchange=()=>{const f=$("vfile").files[0];if(f){$("vimg").src=URL.createObjectURL(f);$("vimg").style.display="block";}};
-$("vrun").onclick=async()=>{const f=$("vfile").files[0];if(!f)return;busy("vst",1);try{const r=await post("/api/vision",{lang},f,f.type||"image/png");if(r.error)throw r.error;const num=r.numeric||{},ip=r.image_patterns||[],wc=r.whole_chart||{};let h="";
- const lines=r.text||r.summary||num.summary||num.text||null;if(lines)h+=mdLite(Array.isArray(lines)?lines.join("\n"):String(lines))+"\n";
- h+=`<b>${t("pt_candle")}:</b> ${(r.ex&&r.ex.n!=null?r.ex.n:(r.ex&&r.ex.df?r.ex.df.length:"?"))} candles · calib: ${esc(JSON.stringify(r.calibration||{}).slice(0,120))}\n`;
- if(num.patterns)h+=`<b>${t("n_patterns")}:</b> ${esc(JSON.stringify(num.patterns).slice(0,400))}\n`;if(ip.length)h+=`<b>Image patterns:</b> ${ip.map(x=>esc((x.name||x.label)+" "+(x.conf!=null?pct(x.conf*100):""))).join(", ")}\n`;if(wc&&wc.label)h+=`<b>Whole chart:</b> ${esc(wc.label)} ${wc.conf!=null?pct(wc.conf*100):""}\n`;
- if(r.overlay_text)h+=`<b>Overlays:</b> ${esc(Array.isArray(r.overlay_text)?r.overlay_text.join(" · "):r.overlay_text)}\n`;$("vout").innerHTML=h;$("vst").textContent="";}catch(e){$("vst").textContent="⚠ "+e;}};
-// ML + quant
-async function ml(train){busy("mlst",1);try{const r=await api("/api/ml",Object.assign({sym:$("sym8").value,tf:$("tf8").value},train?{train:1}:{}));$("mlout").innerHTML=r.has_model?`<b>${t("prob")}:</b> ${r.p_last!=null?pct(r.p_last*100):"—"}\n${esc(JSON.stringify(r.meta,null,1)).slice(0,1500)}`:`<span class="m">${t("no_model")}</span>\n${esc(JSON.stringify(r.models))}`;$("mlst").textContent="";}catch(e){$("mlst").textContent="⚠ "+e;}}
-$("mlget").onclick=()=>ml(0);$("mltrain").onclick=()=>ml(1);
-$("qrun").onclick=async()=>{busy("qst",1);try{const r=await api("/api/quant",{sym:$("sym9").value,sym2:$("sym9b").value,tf:$("tf9").value});const a=r.adf||{},c=r.coint||{};$("qtiles").innerHTML=tile("ADF",fmt(a.stat,3)+" "+(a.stationary?"✓":"✗"))+tile("Hurst",fmt(r.hurst,3))+tile(t("half_life"),fmt(r.half_life,3))+tile(t("coint"),(c.stat!=null?fmt(c.stat,3):"")+" "+(c.cointegrated||c.stationary?"✓":"✗"))+tile(t("hedge"),fmt(r.hedge,4));$("qst").textContent="";}catch(e){$("qst").textContent="⚠ "+e;}};
-// settings + indicator docs
-let INDOCS=null;async function loadSettings(){try{const a=await api("/api/alerts");const s=a.settings||{};$("smc").value=s.min_conf??60;$("stg").checked=!!s.telegram;$("schat").value=s.chat_id||"";tbl("shist",[t("when"),"",""],(a.history||[]).map(h=>[esc(h.time||h.t),esc(h.title),esc(h.body)]));}catch(e){}
- if(!INDOCS){INDOCS=await api("/api/indicators",{lang});}renderIndocs();}
-function renderIndocs(){const q=($("iq").value||"").toLowerCase();$("indocs").innerHTML=(INDOCS||[]).filter(x=>!q||(x.key+(x.uses||[]).join(" ")).toLowerCase().includes(q)).map(x=>`<details><summary>${esc(x.key.toUpperCase())} <span class="pill">${esc(x.place)}</span></summary><div style="padding:6px 0 10px"><div class="m">${esc(Object.entries(x.params).map(([k,v])=>k+"="+v).join(", "))}</div><b>${t("uses")}</b><ul>${(x.uses||[]).map(u=>`<li>${esc(u)}</li>`).join("")}</ul><b>${t("signals")}</b><ul>${(x.signals||[]).map(u=>`<li>${esc(u)}</li>`).join("")}</ul>${(x.pitfalls||[]).length?`<b>${t("pitfalls")}</b><ul>${x.pitfalls.map(u=>`<li>${esc(u)}</li>`).join("")}</ul>`:""}</div></details>`).join("");}
-$("iq").oninput=renderIndocs;
-$("ssave").onclick=async()=>{try{const body={min_conf:+$("smc").value,telegram:$("stg").checked,chat_id:$("schat").value};if($("stok").value)body.token=$("stok").value;await post("/api/alerts",{},body);$("sst").textContent=t("saved");}catch(e){$("sst").textContent="⚠ "+e;}};
-$("sprec").onclick=async()=>{const poll=async()=>{const s=await api("/api/success_precompute");$("sprst").textContent=(s.running?"⏳ ":"✓ ")+Math.round((s.p||0)*100)+"% "+esc(s.m||"");if(s.running)setTimeout(poll,3000);};poll();};
+// More grid
+function renderMore(){
+  const MORE=[['dash','🏠','Dashboard'],['more','📈','Advanced Chart']];
+  $('moregrid').innerHTML=MORE.map(([id,ic,k])=>`<div class="tile" style="cursor:pointer;text-align:center" data-go="${id}"><div style="font-size:26px">${ic}</div><div class="k">${k}</div></div>`).join('');
+  $('moregrid').querySelectorAll('[data-go]').forEach(e=>e.onclick=()=>goPage(e.dataset.go));
+}
+async function loadDash(){
+  try{
+    const s=await api('/api/status');
+    const tr=s.training||{}, sc=s.success||{};
+    $('dtiles').innerHTML=`<div class="tile"><div class="k">Training Stage</div><div class="v">${esc(tr.stage||'—')}</div></div>`+
+      `<div class="tile"><div class="k">Playbook</div><div class="v">${tr.playbook?'✓':''} ${(tr.playbook_tfs||[]).join(',')}</div></div>`+
+      `<div class="tile"><div class="k">Proven Combos</div><div class="v">${tr.proven_combos??'—'}</div></div>`;
+    $('dlog').textContent=(s.log||[]).join('\n');
+  }catch(e){ $('dlog').textContent='⚠ '+e; }
+}
+
 renderMore();
 init();
 </script>

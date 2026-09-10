@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<title>ProTrader — Advanced TradingView Chart</title>
+<style>
+:root{
+  --bg:#0b0e14;--panel:#131722;--panel2:#1c2230;--border:#2a2e39;
+  --text:#d1d4dc;--muted:#787b86;--accent:#2962ff;--accent2:#5c9bff;
+  --green:#26a69a;--red:#ef5350;--yellow:#ffb74d;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.5 -apple-system,Segoe UI,Roboto,Inter,sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+header{height:44px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0}
+header .brand{font-weight:800;color:#fff;font-size:15px}
+header .sym-info{font-size:12px;color:var(--muted);margin-left:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-toolbar{background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:4px 8px;gap:4px;flex-wrap:wrap;flex-shrink:0}
+.tv-toolbar .group{display:flex;align-items:center;gap:2px;padding:2px 6px;border-right:1px solid var(--border);margin-right:4px}
+.tv-toolbar .group:last-child{border-right:0}
+.tv-toolbar button,.tv-toolbar select{background:transparent;color:var(--text);border:1px solid transparent;border-radius:6px;padding:5px 8px;font-size:12.5px;cursor:pointer;transition:all .15s}
+.tv-toolbar button:hover{background:var(--panel2);border-color:var(--border)}
+.tv-toolbar button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tv-toolbar select{background:var(--panel2);border-color:var(--border);min-width:80px}
+.tv-toolbar select:hover{border-color:var(--accent)}
+.tv-toolbar .sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+#chart-container{flex:1;position:relative;background:var(--bg);min-height:0}
+#tv-chart{width:100%;height:100%}
+#tv-ohlc{position:absolute;top:8px;left:12px;z-index:3;background:var(--panel)cc;padding:4px 10px;border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;pointer-events:none;backdrop-filter:blur(4px);border:1px solid var(--border);max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tv-indicators-bar{position:absolute;top:8px;right:12px;z-index:3;display:flex;gap:6px;flex-wrap:wrap;max-width:40%;justify-content:flex-end}
+#tv-indicators-bar .ind-pill{background:var(--panel)ee;padding:2px 8px;border-radius:10px;font-size:11px;border:1px solid var(--border);backdrop-filter:blur(4px)}
+#bottom-panel{height:180px;background:var(--panel);border-top:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:height .2s}
+#bottom-panel.collapsed{height:32px}
+#bottom-panel .panel-header{height:32px;display:flex;align-items:center;padding:0 10px;gap:8px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+#bottom-panel .panel-header:hover{background:var(--panel2)}
+#bottom-panel .panel-content{flex:1;overflow:auto;padding:8px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin-bottom:8px}
+.tile{background:var(--panel2);border-radius:8px;padding:6px 10px;border:1px solid var(--border)}
+.tile .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}.tile .v{font-weight:700;font-size:14px;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.g{color:var(--green)}.r{color:var(--red)}.y{color:var(--yellow)}.m{color:var(--muted)}
+.pill{display:inline-block;padding:1px 6px;border-radius:10px;font-size:10.5px;background:var(--panel2);border:1px solid var(--border)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover{background:#3d74ff}
+.drawing-tools{display:flex;flex-direction:column;gap:2px;padding:4px;background:var(--panel);border-right:1px solid var(--border);width:36px;flex-shrink:0;align-items:center}
+.drawing-tools button{width:28px;height:28px;padding:0;display:flex;align-items:center;justify-content:center;font-size:14px;border-radius:6px}
+.right-tools{display:flex;flex-direction:column;gap:2px;padding:4px;background:var(--panel);border-left:1px solid var(--border);width:36px;flex-shrink:0;align-items:center}
+.main-layout{flex:1;display:flex;min-height:0}
+#loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;background:var(--panel);padding:16px 24px;border-radius:12px;border:1px solid var(--border);display:none}
+#loading.show{display:block}
+#tooltip{position:fixed;z-index:20;background:#000e;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;max-width:320px;pointer-events:none;display:none;backdrop-filter:blur(8px);line-height:1.5}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">◆ ProTrader</span>
+  <select id="sym" style="background:#1c2230;border:1px solid #2a2e39;border-radius:8px;padding:6px 10px;color:#d1d4dc;min-width:140px"></select>
+  <select id="tf" style="background:#1c2230;border:1px solid #2a2e39;border-radius:8px;padding:6px 8px;color:#d1d4dc"></select>
+  <select id="sid" style="background:#1c2230;border:1px solid #2a2e39;border-radius:8px;padding:6px 10px;color:#d1d4dc;min-width:200px;max-width:280px"></select>
+  <button class="primary" id="run" style="padding:6px 16px;border-radius:8px;border:0;cursor:pointer">Run Analysis</button>
+  <span id="status" style="font-size:11px;color:#787b86;margin-left:8px"></span>
+  <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+    <span id="price" style="font-weight:700;font-size:13px"></span>
+    <span id="change" style="font-size:12px"></span>
+    <button id="settings-btn" style="background:transparent;border:1px solid #2a2e39;border-radius:6px;padding:4px 8px;color:#787b86;cursor:pointer">⚙</button>
+  </div>
+</header>
+
+<div class="tv-toolbar">
+  <div class="group">
+    <button data-tf="1m">1m</button>
+    <button data-tf="5m">5m</button>
+    <button data-tf="15m">15m</button>
+    <button data-tf="1h" class="active">1h</button>
+    <button data-tf="4h">4h</button>
+    <button data-tf="1d">1D</button>
+    <button data-tf="1wk">1W</button>
+  </div>
+  <div class="group">
+    <button data-type="candle" class="active" title="Candlestick">🕯 Candle</button>
+    <button data-type="line" title="Line">〰 Line</button>
+    <button data-type="area" title="Area">⛰ Area</button>
+  </div>
+  <div class="group">
+    <button id="ind-btn" title="Indicators">ƒx Indicators</button>
+    <button id="compare-btn" title="Compare">⊕ Compare</button>
+    <select id="ind-select" style="display:none;min-width:160px"></select>
+  </div>
+  <div class="group">
+    <button data-tool="cursor" class="active" title="Cursor">⊕</button>
+    <button data-tool="trend" title="Trend Line">╱</button>
+    <button data-tool="hline" title="Horizontal Line">─</button>
+    <button data-tool="rect" title="Rectangle">▭</button>
+    <button data-tool="fib" title="Fib Retracement">𝔽</button>
+    <button data-tool="measure" title="Measure">📏</button>
+  </div>
+  <div class="group">
+    <button id="screenshot-btn" title="Screenshot">📷</button>
+    <button id="fullscreen-btn" title="Fullscreen">⛶</button>
+    <button id="settings-chart-btn" title="Chart Settings">⚙</button>
+  </div>
+  <div class="group" id="active-indicators" style="gap:4px"></div>
+</div>
+
+<div class="main-layout">
+  <div class="drawing-tools">
+    <button data-tool="cursor" class="active" title="Cursor (C)">⊕</button>
+    <button data-tool="trend" title="Trend Line (T)">╱</button>
+    <button data-tool="hline" title="Horizontal Line (H)">─</button>
+    <button data-tool="vline" title="Vertical Line (V)">│</button>
+    <button data-tool="ray" title="Ray">➚</button>
+    <button data-tool="rect" title="Rectangle (R)">▭</button>
+    <button data-tool="fib" title="Fib Retracement (F)">𝔽</button>
+    <button data-tool="measure" title="Measure (M)">📏</button>
+    <button data-tool="text" title="Text (T)">T</button>
+    <div style="height:1px;background:#2a2e39;width:20px;margin:4px 0"></div>
+    <button id="undo-btn" title="Undo (Ctrl+Z)">↶</button>
+    <button id="clear-drawings-btn" title="Clear All Drawings">🗑</button>
+  </div>
+  
+  <div id="chart-container">
+    <div id="tv-chart"></div>
+    <div id="tv-ohlc"></div>
+    <div id="tv-indicators-bar"></div>
+    <div id="loading">Loading chart data...</div>
+  </div>
+  
+  <div class="right-tools">
+    <button id="crosshair-btn" class="active" title="Crosshair">✛</button>
+    <button id="magnet-btn" title="Magnet Mode">🧲</button>
+    <button id="log-scale-btn" title="Log Scale">log</button>
+    <button id="auto-scale-btn" class="active" title="Auto Scale">A</button>
+  </div>
+</div>
+
+<div id="bottom-panel">
+  <div class="panel-header" id="panel-toggle">
+    <span style="font-weight:600">📊 Analysis & Signals</span>
+    <span id="panel-stats" style="margin-left:12px;font-size:11px;color:#787b86"></span>
+    <span style="margin-left:auto;font-size:10px">▼</span>
+  </div>
+  <div class="panel-content">
+    <div class="tiles" id="tiles"></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:300px">
+        <h4 style="margin:0 0 6px;font-size:12px;color:#5c9bff">Last Trades</h4>
+        <div style="max-height:120px;overflow:auto;border:1px solid #2a2e39;border-radius:8px">
+          <table id="trades"><tr><th>Entry</th><th>Side</th><th>R</th><th>PnL</th><th>Reason</th></tr></table>
+        </div>
+      </div>
+      <div style="flex:1;min-width:300px">
+        <h4 style="margin:0 0 6px;font-size:12px;color:#5c9bff">Success Rate</h4>
+        <div id="success-info" style="font-size:12px;padding:8px;background:#1c2230;border-radius:8px;border:1px solid #2a2e39"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script src="tv_advanced.js"></script>
+<script>
+const api = (p,q={})=>fetch(p+'?'+new URLSearchParams(q)).then(r=>r.json());
+const $ = id=>document.getElementById(id);
+const fmt = (x,d=6)=>x==null?'—':Number(x).toLocaleString(undefined,{maximumSignificantDigits:d});
+const pct = x=>x==null?'—':Number(x).toFixed(1)+'%';
+
+let currentData = null;
+let currentOverlays = {};
+let currentSignals = [];
+let activeIndicators = JSON.parse(localStorage.getItem('pt_active_indicators')||'[]');
+let chartReady = false;
+
+async function initApp(){
+  // Load meta
+  const meta = await api('/api/meta');
+  const syms = await api('/api/symbols');
+  
+  // Fill symbol select
+  const symSel = $('sym');
+  symSel.innerHTML = '';
+  for(const [cat, arr] of Object.entries(syms)){
+    const g = document.createElement('optgroup');
+    g.label = cat;
+    arr.forEach(s=>{
+      const o = document.createElement('option');
+      o.value = s;
+      o.textContent = s;
+      g.appendChild(o);
+    });
+    symSel.appendChild(g);
+  }
+  symSel.value = localStorage.getItem('pt_sym')||'BTC/USDT';
+  
+  // Timeframes
+  const tfSel = $('tf');
+  tfSel.innerHTML = meta.tfs.map(tf=>`<option ${tf==='1h'?'selected':''}>${tf}</option>`).join('');
+  tfSel.value = localStorage.getItem('pt_tf')||'1h';
+  
+  // Strategies
+  await loadStrategies();
+  
+  // Indicators catalog
+  await loadIndicators();
+  
+  // Init chart
+  $('loading').classList.add('show');
+  try{
+    await TVAdvanced.init('tv-chart');
+    chartReady = true;
+    $('loading').classList.remove('show');
+  }catch(e){
+    $('loading').textContent = 'Failed to load chart library: '+e;
+    console.error(e);
+  }
+  
+  // Bind events
+  $('sym').addEventListener('change', ()=>{ localStorage.setItem('pt_sym', $('sym').value); loadStrategies(); });
+  $('tf').addEventListener('change', ()=>{ localStorage.setItem('pt_tf', $('tf').value); run(); });
+  $('run').addEventListener('click', run);
+  $('panel-toggle').addEventListener('click', ()=>{
+    const p = $('bottom-panel');
+    p.classList.toggle('collapsed');
+  });
+  
+  // Timeframe toolbar
+  document.querySelectorAll('[data-tf]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('[data-tf]').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      $('tf').value = btn.dataset.tf;
+      localStorage.setItem('pt_tf', btn.dataset.tf);
+      run();
+    });
+  });
+  
+  // Chart type toolbar
+  document.querySelectorAll('[data-type]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('[data-type]').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      if(chartReady) TVAdvanced.setChartType(btn.dataset.type);
+    });
+  });
+  
+  // Drawing tools
+  document.querySelectorAll('[data-tool]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('[data-tool]').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      // For now, only handle hline
+      if(btn.dataset.tool==='hline'){
+        const price = prompt('Enter price for horizontal line:');
+        if(price && !isNaN(price)){
+          TVAdvanced.addDrawing('hline', [parseFloat(price)], '#facc15');
+        }
+      }
+    });
+  });
+  
+  $('ind-btn').addEventListener('click', ()=>{
+    const sel = $('ind-select');
+    sel.style.display = sel.style.display==='none' ? 'inline-block' : 'none';
+  });
+  
+  $('screenshot-btn').addEventListener('click', ()=>{
+    if(!chartReady) return;
+    const shot = TVAdvanced.screenshot();
+    if(shot){
+      const a = document.createElement('a');
+      a.href = shot;
+      a.download = `chart_${$('sym').value}_${$('tf').value}.png`;
+      a.click();
+    }
+  });
+  
+  $('fullscreen-btn').addEventListener('click', ()=>{
+    const el = $('chart-container');
+    if(document.fullscreenElement) document.exitFullscreen();
+    else el.requestFullscreen();
+  });
+  
+  $('clear-drawings-btn').addEventListener('click', ()=>{
+    if(confirm('Clear all drawings?')){
+      TVAdvanced.clearPriceLines();
+      TVAdvanced.clearOverlays();
+      activeIndicators = [];
+      localStorage.setItem('pt_active_indicators', JSON.stringify(activeIndicators));
+      updateActiveIndicatorsUI();
+      if(currentData) run(); // re-run to get back strategy overlays
+    }
+  });
+  
+  // Initial run
+  run();
+}
+
+async function loadStrategies(){
+  const sym = $('sym').value;
+  const tf = $('tf').value;
+  try{
+    const strats = await api('/api/strategies', {sym, tf, lang:'en'});
+    const sel = $('sid');
+    const cur = sel.value;
+    sel.innerHTML = '';
+    strats.forEach(s=>{
+      const o = document.createElement('option');
+      o.value = s.id;
+      o.textContent = `${s.name}${s.label?' ['+s.label+']':''} · ${s.category}`;
+      sel.appendChild(o);
+    });
+    if(cur) sel.value = cur;
+    else if(strats.length>0) sel.value = strats[0].id;
+  }catch(e){
+    console.error('loadStrategies failed', e);
+  }
+}
+
+let indicatorCatalog = [];
+async function loadIndicators(){
+  try{
+    indicatorCatalog = await api('/api/indicators', {lang:'en'});
+    const sel = $('ind-select');
+    sel.innerHTML = '<option value="">Select indicator...</option>' + 
+      indicatorCatalog.map(ind=>`<option value="${ind.key}">${ind.key.toUpperCase()} (${Object.entries(ind.params).map(([k,v])=>k+'='+v).join(',')})</option>`).join('');
+    sel.addEventListener('change', ()=>{
+      if(sel.value){
+        addIndicator(sel.value);
+        sel.value = '';
+        sel.style.display = 'none';
+      }
+    });
+  }catch(e){
+    console.error('loadIndicators failed', e);
+  }
+}
+
+async function addIndicator(key){
+  if(activeIndicators.includes(key)) return;
+  activeIndicators.push(key);
+  localStorage.setItem('pt_active_indicators', JSON.stringify(activeIndicators));
+  updateActiveIndicatorsUI();
+  
+  try{
+    const data = await api('/api/indicator', {sym:$('sym').value, tf:$('tf').value, key, n:800});
+    const colors = ['#5c9bff','#ffb74d','#ba68c8','#4dd0e1','#aed581','#ff8a65'];
+    let ci = Object.keys(currentOverlays).length;
+    
+    for(const [k, arr] of Object.entries(data.overlays||{})){
+      const color = colors[ci % colors.length];
+      TVAdvanced.addOverlay(k, arr, currentData.candles.t, color);
+      currentOverlays[k] = true;
+      ci++;
+    }
+    
+    // For panels, we would need separate pane - for now add as overlay if possible
+    // In future, add pane support
+  }catch(e){
+    console.error('addIndicator failed', e);
+  }
+}
+
+function updateActiveIndicatorsUI(){
+  const container = $('active-indicators');
+  container.innerHTML = activeIndicators.map((key,i)=>{
+    return `<span class="pill" style="display:inline-flex;align-items:center;gap:4px">${key.toUpperCase()} <button onclick="removeIndicator(${i})" style="background:none;border:0;color:#787b86;cursor:pointer;padding:0 2px">✕</button></span>`;
+  }).join('');
+}
+
+window.removeIndicator = function(idx){
+  activeIndicators.splice(idx,1);
+  localStorage.setItem('pt_active_indicators', JSON.stringify(activeIndicators));
+  updateActiveIndicatorsUI();
+  // Clear and re-run
+  TVAdvanced.clearOverlays();
+  currentOverlays = {};
+  if(currentData) renderOverlays(currentData);
+};
+
+async function run(){
+  const sym = $('sym').value;
+  const tf = $('tf').value;
+  const sid = $('sid').value;
+  
+  $('status').textContent = 'Loading...';
+  $('run').disabled = true;
+  $('loading').classList.add('show');
+  
+  try{
+    const data = await api('/api/run', {sym, tf, sid, n:800});
+    currentData = data;
+    
+    if(!chartReady){
+      await TVAdvanced.init('tv-chart');
+      chartReady = true;
+    }
+    
+    // Set candle data
+    TVAdvanced.setData(data.candles, {precision: sym.includes('USDT') && parseFloat(data.candles.c[data.candles.c.length-1])<1 ? 6 : 2});
+    
+    // Clear previous
+    TVAdvanced.clearOverlays();
+    TVAdvanced.clearPriceLines();
+    currentOverlays = {};
+    
+    // Render strategy overlays
+    renderOverlays(data);
+    
+    // Signals
+    TVAdvanced.setSignals(data.signals, data.candles);
+    currentSignals = data.signals;
+    
+    // Price lines for levels
+    (data.levels||[]).forEach(l=>{
+      TVAdvanced.addPriceLine(l.px, l.color||'#888', l.label);
+    });
+    
+    // Update price header
+    const last = data.candles.c[data.candles.c.length-1];
+    const prev = data.candles.c[data.candles.c.length-2];
+    const chg = prev ? (last/prev-1)*100 : 0;
+    $('price').textContent = fmt(last, 6);
+    $('change').textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
+    $('change').className = chg>=0?'g':'r';
+    
+    // Stats
+    renderStats(data);
+    
+    $('status').textContent = data.candles.venue||'OK';
+    $('loading').classList.remove('show');
+    
+    // Save state
+    localStorage.setItem('pt_sym', sym);
+    localStorage.setItem('pt_tf', tf);
+    
+  }catch(e){
+    $('status').textContent = '⚠ '+e;
+    $('loading').classList.remove('show');
+    console.error(e);
+  }finally{
+    $('run').disabled = false;
+  }
+}
+
+function renderOverlays(data){
+  const colors = ['#5c9bff','#ffb74d','#ba68c8','#4dd0e1','#aed581','#ff8a65','#f06292','#fff176'];
+  let ci = 0;
+  
+  for(const [k, arr] of Object.entries(data.overlays||{})){
+    const color = colors[ci % colors.length];
+    TVAdvanced.addOverlay(k, arr, data.candles.t, color);
+    currentOverlays[k] = true;
+    ci++;
+  }
+  
+  // Active indicators (from previous)
+  // They will be re-added on run if needed
+  const indBar = $('tv-indicators-bar');
+  indBar.innerHTML = Object.keys(data.overlays||{}).map((k,i)=>{
+    const col = colors[i % colors.length];
+    return `<span class="ind-pill" style="color:${col};border-color:${col}44">— ${k}</span>`;
+  }).join('');
+}
+
+function renderStats(data){
+  const s = data.stats;
+  const tile = (k,v,c='')=>`<div class="tile"><div class="k">${k}</div><div class="v ${c}">${v}</div></div>`;
+  $('tiles').innerHTML = 
+    tile('Win Rate', pct(s.win_rate), s.win_rate>=50?'g':'')+
+    tile('Profit Factor', (s.profit_factor||0).toFixed(2), s.profit_factor>=1?'g':'r')+
+    tile('Trades', s.trades)+
+    tile('Return', (s.return_pct||0).toFixed(1)+'%', s.return_pct>=0?'g':'r')+
+    tile('Max DD', (s.max_dd_pct||0).toFixed(1)+'%', 'r')+
+    tile('Expectancy', (s.avg_r||0).toFixed(2)+'R', s.avg_r>=0?'g':'r');
+  
+  $('panel-stats').textContent = `WR ${pct(s.win_rate)} · PF ${(s.profit_factor||0).toFixed(2)} · ${s.trades} trades`;
+  
+  $('trades').innerHTML = `<tr><th>Entry Time</th><th>Side</th><th>R</th><th>PnL</th><th>Reason</th></tr>`+
+    data.trades.slice().reverse().map(tr=>{
+      return `<tr><td>${tr.entry}</td><td class="${tr.side>0?'g':'r'}">${tr.side>0?'LONG':'SHORT'}</td><td class="${tr.r>=0?'g':'r'}">${(tr.r||0).toFixed(2)}</td><td class="${tr.pnl>=0?'g':'r'}">${fmt(tr.pnl,4)}</td><td class="m">${tr.reason||''}</td></tr>`;
+    }).join('');
+  
+  // Success info
+  const succ = data.success, oos = data.oos;
+  let html = '';
+  if(succ && succ.n){
+    html += `<span style="color:${succ.pf>=1.2?'#26a69a':'#ffb74d'}">📊 Success: ${pct(succ.wr)} · PF ${succ.pf.toFixed(2)} · n=${succ.n}</span>`;
+  } else {
+    html += `<span class="m">📊 Success: Not measured yet</span>`;
+  }
+  if(oos){
+    html += `<br><span class="m">🔬 OOS: ${pct(oos.wr)} [${oos.wr_lo?.toFixed(0)}–${oos.wr_hi?.toFixed(0)}] · PF ${oos.pf?.toFixed(2)} · ${oos.grade||''}</span>`;
+  }
+  $('success-info').innerHTML = html;
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', initApp);
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e=>{
+  if(e.key==='c' || e.key==='C'){
+    document.querySelector('[data-tool="cursor"]')?.click();
+  }
+  if(e.key==='h' || e.key==='H'){
+    const price = prompt('Price for horizontal line:');
+    if(price && !isNaN(price)) TVAdvanced.addDrawing('hline', [parseFloat(price)], '#facc15');
+  }
+});
+</script>
+</body>
+</html>

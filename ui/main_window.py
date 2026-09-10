@@ -15,6 +15,11 @@ from .ai_page import AIPage
 from .quant_page import QuantLabPage
 from .portfolio_page import PortfolioPage
 from .iran_gold_page import IranGoldPage
+try:
+    from .tradingview_page import TradingViewAdvancedPage
+    HAS_TV = True
+except Exception:
+    HAS_TV = False
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -47,6 +52,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ("nav_dash", "🏠", DashboardPage()),
             ("nav_desk", "🗞", DeskPage()),
             ("nav_chart", "📈", ChartPage()),
+            ("nav_tv", "📊", TradingViewAdvancedPage() if HAS_TV else ChartPage()),
             ("nav_scan", "📡", ScannerPage()),
             ("nav_advisor", "🎯", AdvisorPage()),
             ("nav_irangold", "🇮🇷", IranGoldPage()),
