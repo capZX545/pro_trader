@@ -15,6 +15,15 @@ from .ai_page import AIPage
 from .quant_page import QuantLabPage
 from .portfolio_page import PortfolioPage
 
+# Optional advanced TradingView page - safe fallback if missing
+try:
+    from .tradingview_page import TradingViewAdvancedPage
+    HAS_TV = True
+except Exception:
+    HAS_TV = False
+    TradingViewAdvancedPage = None
+
+
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -46,7 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ("nav_dash", "🏠", DashboardPage()),
             ("nav_desk", "🗞", DeskPage()),
             ("nav_chart", "📈", ChartPage()),
-            ("nav_tv", "📊", TradingViewAdvancedPage() if HAS_TV else ChartPage()),
+            ("nav_tv", "📊", TradingViewAdvancedPage() if HAS_TV and TradingViewAdvancedPage is not None else ChartPage()),
             ("nav_scan", "📡", ScannerPage()),
             ("nav_advisor", "🎯", AdvisorPage()),
             ("nav_forward", "🔬", ForwardPage()),
