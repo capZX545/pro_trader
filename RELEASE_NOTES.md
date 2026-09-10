@@ -1,3 +1,33 @@
+## v1.13.4 — Fix HAS_TV NameError - Program Not Running
+
+**User error: Traceback ... NameError: name 'HAS_TV' is not defined in ui/main_window.py line 49**
+
+### Root Cause:
+v1.13.3 restored working v1.12.0 but added nav_tv without defining HAS_TV flag - caused NameError on startup, program wouldn't run.
+
+### Fixed:
+- ui/main_window.py: Added safe import with HAS_TV flag
+```python
+try:
+    from .tradingview_page import TradingViewAdvancedPage
+    HAS_TV = True
+except Exception:
+    HAS_TV = False
+    TradingViewAdvancedPage = None
+```
+- nav_tv now: TradingViewAdvancedPage() if HAS_TV and TradingViewAdvancedPage is not None else ChartPage()
+- Safe fallback, no crash, runs like v1.12.0
+
+### Result:
+- ✅ Desktop runs without NameError, like v1.12.0 working version
+- ✅ Mobile runs without error
+- ✅ No breaking, safe fallback, English only
+- ✅ 196 strategies, real costs, Iran Gold, etc. all still there
+
+**Installers: Same as v1.13.3 (fixed) - desktop EXE + android APK in every release**
+
+---
+
 ## v1.13.3 — Fix: Desktop & Mobile Not Running - Restore Working v1.12.0 + Safe Advanced Chart
 
 **User report: برنامم اصلا ران نمیشه ن توی دسکتاپ ن توی موبایل چیکار کردی با برنامم؟؟؟؟ قبلش کار میکرد نسخه های قبلی**
