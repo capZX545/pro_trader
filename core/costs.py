@@ -19,15 +19,55 @@ COSTS = {
     "indices":     dict(commission=0.5,  spread_half=1.0, slip_atr=0.02),
     "forex":       dict(commission=0.3,  spread_half=0.8, slip_atr=0.02),
     "commodities": dict(commission=0.5,  spread_half=2.0, slip_atr=0.03),
+    # Iran Gold - real market costs (much higher than international)
+    # طلای ایران: کارمزد طلا فروشی + اسپرد خرید/فروش
+    # 18 عیار: 1% commission + 0.5% spread = 1.5% per side, 3% roundtrip
+    # سکه: 0.5% commission + 0.3% spread = 0.8% per side, 1.6% roundtrip
+    # ولی برای احتیاط بیشتر: commission بالاتر
+    "iran_gold":   dict(commission=100.0, spread_half=50.0, slip_atr=0.05),  # 1% + 0.5% = 150 bps per side
+    "iran_coin":   dict(commission=50.0, spread_half=30.0, slip_atr=0.04),   # 0.5% + 0.3% = 80 bps
+    "iran_coin_half": dict(commission=80.0, spread_half=50.0, slip_atr=0.05), # نیم: 0.8% + 0.5%
+    "iran_coin_quarter": dict(commission=100.0, spread_half=80.0, slip_atr=0.06), # ربع: 1% + 0.8%
+    "iran_coin_gram": dict(commission=150.0, spread_half=100.0, slip_atr=0.08), # گرمی: 1.5% + 1%
+    "iran_dollar": dict(commission=20.0, spread_half=20.0, slip_atr=0.03), # دلار آزاد: 0.2% + 0.2%
     "default":     dict(commission=5.0,  spread_half=2.0, slip_atr=0.03),
 }
 MAJORS = {"BTC/USDT", "ETH/USDT"}
 
 
 def asset_class(symbol_name):
+    # Iran Gold specific - must check first
+    if any(x in symbol_name for x in ["طلای 18", "طلای 24", "مثقال", "Gold 18K (Iran)", "Gold 24K (Iran)", "Mesghal"]):
+        return "iran_gold"
+    if "سکه امامی" in symbol_name or "سکه بهار" in symbol_name or "Emami Coin" in symbol_name or "Bahar Azadi" in symbol_name:
+        return "iran_coin"
+    if "نیم سکه" in symbol_name or "Half Coin" in symbol_name:
+        return "iran_coin_half"
+    if "ربع سکه" in symbol_name or "Quarter Coin" in symbol_name:
+        return "iran_coin_quarter"
+    if "گرمی" in symbol_name or "Gram Coin" in symbol_name:
+        return "iran_coin_gram"
+    if "دلار آزاد" in symbol_name or "USD/IRR" in symbol_name or "IR-USD" in symbol_name:
+        return "iran_dollar"
+    if "انس طلا" in symbol_name or "IR-OUNCE" in symbol_name:
+        return "commodities"  # Ounce is international
+    
     for cat, d in UNIVERSE.items():
         if symbol_name in d:
             c = cat.lower()
+            if "iran" in c or "gold" in c.lower() and "iran" in c:
+                # Iran Gold category
+                if "سکه" in symbol_name or "Coin" in symbol_name:
+                    if "نیم" in symbol_name or "Half" in symbol_name:
+                        return "iran_coin_half"
+                    if "ربع" in symbol_name or "Quarter" in symbol_name:
+                        return "iran_coin_quarter"
+                    if "گرمی" in symbol_name or "Gram" in symbol_name:
+                        return "iran_coin_gram"
+                    return "iran_coin"
+                if "دلار" in symbol_name or "Dollar" in symbol_name or "USD" in symbol_name:
+                    return "iran_dollar"
+                return "iran_gold"
             if c.startswith("crypto"):
                 return "crypto" if symbol_name in MAJORS else "crypto_alt"
             if "forex" in c or "fx" in c:

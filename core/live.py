@@ -66,7 +66,17 @@ def binance_usdt_universe(min_quote_volume_24h=1_000_000, force=False):
 
 
 def fetch_klines(bsym, tf="1h", limit=1000):
-    """History for one symbol via multi-venue failover (binance-vision → OKX → KuCoin → Gate → MEXC)."""
+    """History for one symbol via multi-venue failover (binance-vision → OKX → KuCoin → Gate → MEXC) + Iran Gold."""
+    # Iran Gold handling
+    try:
+        from core import iran_gold
+        if iran_gold.is_iran_gold_symbol(bsym):
+            df = iran_gold.get_ohlcv_iran_gold(bsym, tf, limit=limit)
+            df.attrs.update(symbol=bsym, tf=tf, venue="iran_gold", iran_gold=True)
+            return df
+    except Exception:
+        pass
+    
     from core import sources
     base = bsym[:-4] if bsym.upper().endswith("USDT") else bsym
     df, venue = sources.fetch_crypto(base, tf, limit=limit)
@@ -83,11 +93,12 @@ class LiveEngine:
     """Background threads: ticker websocket, kline websocket, analysis worker. Callbacks run in engine threads —
     the UI wraps them with Qt signals."""
 
-    def __init__(self, timeframe="1h", min_score=40, top_n=150, use_ml=False, on_tick=None, on_signal=None, on_status=None):
+    def __init__(self, timeframe="1h", min_score=40, top_n=150, use_ml=False, on_tick=None, on_signal=None, on_status=None, include_iran_gold=True):
         self.tf = timeframe
         self.min_score = min_score
         self.top_n = top_n
         self.use_ml = use_ml
+        self.include_iran_gold = include_iran_gold
         self.on_tick = on_tick or (lambda d: None)
         self.on_signal = on_signal or (lambda d: None)
         self.on_status = on_status or (lambda s: None)
