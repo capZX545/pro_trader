@@ -355,30 +355,140 @@ class StrategyIntelligencePage(QtWidgets.QWidget):
     
     def _on_top_double_click(self, item):
         row = item.row()
-        if row < 0 or row >= len(self.current_result.top_5):
+        if row < 0 or not self.current_result or row >= len(self.current_result.top_5):
             return
         s = self.current_result.top_5[row]
-        self._apply_strategy(s.strategy_id)
+        self._show_goto_options(s.strategy_id, s.strategy_name_fa)
     
     def _on_all_double_click(self, item):
         row = item.row()
-        # Get strategy id from second column text
         txt = self.all_table.item(row, 1).text()
-        # Extract id from "Name (id)" format
         if "(" in txt and ")" in txt:
             sid = txt.split("(")[-1].split(")")[0].strip()
-            self._apply_strategy(sid)
+            # Try to get name
+            name = txt.split("(")[0].strip()
+            self._show_goto_options(sid, name)
     
-    def _apply_strategy(self, sid: str):
-        """Apply strategy to chart page"""
+    def _show_goto_options(self, sid: str, name: str = ""):
+        """Show 2 options: Go to Chart / Go to Signal / Go to Trading Desk"""
         try:
             sym = self.symbol()
             tf = self.timeframe()
-            self.window().open_chart(sym, tf, sid)
-            self.status_label.setText(f"📈 {sid} اعمال شد به چارت {sym} {tf}")
+            
+            dlg = QtWidgets.QDialog(self)
+            dlg.setWindowTitle(f"🧠 {sid} - کجا بریم؟")
+            dlg.setMinimumWidth(420)
+            layout = QtWidgets.QVBoxLayout(dlg)
+            
+            # Info
+            info = QtWidgets.QLabel(
+                f"<b>{name or sid}</b><br>"
+                f"<span style='color:{C['muted']};'>{sym} · {tf} · {sid}</span><br><br>"
+                f"می‌خوای کجا بری؟<br>Where do you want to go?"
+            )
+            info.setTextFormat(QtCore.Qt.TextFormat.RichText)
+            info.setWordWrap(True)
+            layout.addWidget(info)
+            
+            # Buttons
+            btn_chart = QtWidgets.QPushButton("📈 برو به چارت / Go to Chart")
+            btn_chart.setObjectName("primary")
+            btn_chart.setMinimumHeight(40)
+            
+            btn_signal = QtWidgets.QPushButton("📡 برو به سیگنال‌ها / Go to Signals (Scanner)")
+            btn_signal.setMinimumHeight(40)
+            
+            btn_desk = QtWidgets.QPushButton("🗞 برو به تریدینگ دسک / Go to Trading Desk")
+            btn_desk.setMinimumHeight(40)
+            
+            btn_intel = QtWidgets.QPushButton("🧠 همینجا تحلیل کن / Analyze Here")
+            btn_intel.setMinimumHeight(36)
+            
+            layout.addWidget(btn_chart)
+            layout.addWidget(btn_signal)
+            layout.addWidget(btn_desk)
+            layout.addWidget(btn_intel)
+            
+            # Cancel
+            btn_cancel = QtWidgets.QPushButton("❌ بستن / Close")
+            layout.addWidget(btn_cancel)
+            
+            def go_chart():
+                dlg.accept()
+                try:
+                    self.window().open_chart(sym, tf, sid)
+                    self.status_label.setText(f"📈 {sid} اعمال شد به چارت {sym} {tf}")
+                except Exception as e:
+                    QtWidgets.QMessageBox.warning(self, "Error", str(e))
+            
+            def go_signal():
+                dlg.accept()
+                try:
+                    # Go to scanner and set context
+                    self.window().goto("nav_scan")
+                    # Try to set scanner TF if possible
+                    try:
+                        scanner = self.window().page("nav_scan")
+                        if hasattr(scanner, 'tf'):
+                            scanner.tf.setCurrentText(tf)
+                    except:
+                        pass
+                    self.status_label.setText(f"📡 رفت به اسکنر برای {sym} {tf} {sid}")
+                except Exception as e:
+                    QtWidgets.QMessageBox.warning(self, "Error", str(e))
+            
+            def go_desk():
+                dlg.accept()
+                try:
+                    self.window().goto("nav_desk")
+                    self.status_label.setText(f"🗞 رفت به تریدینگ دسک")
+                except Exception as e:
+                    QtWidgets.QMessageBox.warning(self, "Error", str(e))
+            
+            def analyze_here():
+                dlg.accept()
+                # Set this strategy as best and show in chart here
+                try:
+                    self.sym_combo.setCurrentText(sym)
+                    self.tf_combo.setCurrentText(tf)
+                    # Find and highlight this strategy
+                    for s in self.current_result.all_scored:
+                        if s.strategy_id == sid:
+                            # Show as best temporarily
+                            self.best_label.setText(
+                                f"<div style='font-size: 16px;'>"
+                                f"<b style='color: {C['green']}; font-size: 18px;'>{s.strategy_name_fa}</b><br>"
+                                f"<span style='color: {C['muted']};'>{s.strategy_name}</span><br><br>"
+                                f"<b>شناسه:</b> <code>{s.strategy_id}</code> | "
+                                f"<b>دسته:</b> {s.category} | "
+                                f"<b>Grade:</b> {s.grade}<br>"
+                                f"<b>امتیاز:</b> {s.total_score:.0f}/100 | "
+                                f"<b>WR:</b> {s.win_rate:.0f}% | <b>PF:</b> {s.profit_factor:.1f}<br>"
+                                f"</div>"
+                            )
+                            break
+                    self.status_label.setText(f"🧠 {sid} انتخاب شد - حالا تحلیل کن")
+                except Exception as e:
+                    QtWidgets.QMessageBox.warning(self, "Error", str(e))
+            
+            btn_chart.clicked.connect(go_chart)
+            btn_signal.clicked.connect(go_signal)
+            btn_desk.clicked.connect(go_desk)
+            btn_intel.clicked.connect(analyze_here)
+            btn_cancel.clicked.connect(dlg.reject)
+            
+            dlg.exec()
+            
         except Exception as e:
             QtWidgets.QMessageBox.warning(self, "Error", str(e))
     
+    def _apply_strategy(self, sid: str):
+        """Apply strategy to chart page - now shows options"""
+        self._show_goto_options(sid, sid)
+    
     def _apply_to_chart(self):
         if self.current_result and self.current_result.best:
-            self._apply_strategy(self.current_result.best.strategy_id)
+            self._show_goto_options(
+                self.current_result.best.strategy_id,
+                self.current_result.best.strategy_name_fa
+            )

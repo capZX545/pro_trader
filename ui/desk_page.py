@@ -36,11 +36,8 @@ class DeskPage(QtWidgets.QWidget):
             from core import desk as D
             return D.briefing(equity=eq, mode=mode, max_age=0, progress=progress)
         self.w = Worker(job)
-        try:
-            self.w.kw["progress"] = lambda p, s: self.w.progress.emit(p, s)
-            self.w.progress.connect(lambda p, s: (self.prog.setValue(p), self.status.setText(s)))
-        except Exception:
-            pass
+        # Worker auto-passes progress=emit if job has 'progress' param - just connect signal
+        self.w.progress.connect(lambda p, s: (self.prog.setValue(p), self.status.setText(s)))
         self.w.done.connect(self._show)
         self.w.error.connect(lambda e: (self.out.setPlainText("⚠ " + str(e)), self._done()))
         self.w.start()

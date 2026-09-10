@@ -437,7 +437,63 @@ class DashboardPage(QtWidgets.QWidget):
 
     def _open_strat(self, item):
         sid = self.top_tbl.item(item.row(), 0).data(QtCore.Qt.ItemDataRole.UserRole + 1)
-        self.window().open_chart(self.bar.symbol(), self.bar.timeframe(), sid)
+        if not sid:
+            return
+        sym = self.bar.symbol()
+        tf = self.bar.timeframe()
+        
+        dlg = QtWidgets.QDialog(self)
+        dlg.setWindowTitle(f"{sid} - کجا بریم؟")
+        dlg.setMinimumWidth(400)
+        lay = QtWidgets.QVBoxLayout(dlg)
+        info = QtWidgets.QLabel(f"<b>{sym}</b> · {tf} · <code>{sid}</code><br><br>کجا بریم؟")
+        info.setTextFormat(QtCore.Qt.TextFormat.RichText)
+        lay.addWidget(info)
+        
+        btn_chart = QtWidgets.QPushButton("📈 برو به چارت")
+        btn_chart.setObjectName("primary")
+        btn_chart.setMinimumHeight(40)
+        btn_scan = QtWidgets.QPushButton("📡 برو به سیگنال‌ها / Scanner")
+        btn_scan.setMinimumHeight(40)
+        btn_desk = QtWidgets.QPushButton("🗞 برو به تریدینگ دسک")
+        btn_desk.setMinimumHeight(40)
+        btn_intel = QtWidgets.QPushButton("🧠 هوش استراتژی")
+        btn_intel.setMinimumHeight(36)
+        lay.addWidget(btn_chart)
+        lay.addWidget(btn_scan)
+        lay.addWidget(btn_desk)
+        lay.addWidget(btn_intel)
+        btn_close = QtWidgets.QPushButton("❌ بستن")
+        lay.addWidget(btn_close)
+        
+        def go_chart():
+            dlg.accept()
+            self.window().open_chart(sym, tf, sid)
+        def go_scan():
+            dlg.accept()
+            try:
+                self.window().goto("nav_scan")
+            except:
+                pass
+        def go_desk():
+            dlg.accept()
+            try:
+                self.window().goto("nav_desk")
+            except:
+                pass
+        def go_intel():
+            dlg.accept()
+            try:
+                self.window().goto("nav_intelligence")
+            except:
+                pass
+        
+        btn_chart.clicked.connect(go_chart)
+        btn_scan.clicked.connect(go_scan)
+        btn_desk.clicked.connect(go_desk)
+        btn_intel.clicked.connect(go_intel)
+        btn_close.clicked.connect(dlg.reject)
+        dlg.exec()
 
 
 # ---------------------------------------------------------------- Chart & signals
@@ -662,54 +718,101 @@ class ChartPage(QtWidgets.QWidget):
             best = result.best
             market = result.market
             
-            # Show dialog with result
-            msg = QtWidgets.QMessageBox(self)
-            msg.setWindowTitle("🧠 هوش استراتژی - بهترین انتخاب")
-            msg.setIcon(QtWidgets.QMessageBox.Icon.Information)
+            # Show dialog with 3 options: Chart / Signals / Trading Desk
+            dlg = QtWidgets.QDialog(self)
+            dlg.setWindowTitle(f"🧠 {best.strategy_id} - کجا بریم؟ / Where to go?")
+            dlg.setMinimumWidth(480)
+            dlay = QtWidgets.QVBoxLayout(dlg)
             
-            # Build detailed text
-            text = f"""
-<b>نماد:</b> {sym} | <b>تایم‌فریم:</b> {tf}<br>
-<b>رژیم بازار:</b> {market.regime_fa} ({market.regime_en})<br>
-<b>ADX:</b> {market.adx:.0f} | <b>RSI:</b> {market.rsi:.0f} | <b>قدرت روند:</b> {market.trend_strength:.0f}%<br>
-<b>اطمینان بازار:</b> {market.confidence:.0f}%<br><br>
-
-<b style='color: #26a69a; font-size: 16px;'>✅ بهترین استراتژی:</b><br>
-<b style='font-size: 15px;'>{best.strategy_name_fa}</b><br>
-<span style='color: #787b86;'>{best.strategy_name}</span><br><br>
-
-<b>شناسه:</b> {best.strategy_id}<br>
-<b>دسته:</b> {best.category} | <b>Grade:</b> {best.grade}<br>
-<b>امتیاز:</b> <span style='color: #26a69a; font-size: 16px;'>{best.total_score:.0f}/100</span> | 
-<b>اطمینان:</b> {best.confidence:.0f}%<br>
-<b>WR:</b> {best.win_rate:.0f}% | <b>PF:</b> {best.profit_factor:.1f}<br><br>
-
-<b>دلیل انتخاب:</b><br>
-{best.reasoning_fa}<br><br>
-
-<b>جزئیات امتیاز:</b><br>
-• تایم‌فریم: {best.breakdown['tf_match']:.0f}/100<br>
-• تطابق رژیم: {best.breakdown['regime_match']:.0f}/100<br>
-• تاریخی: {best.breakdown['historical']:.0f}/100<br><br>
-
-<b>5 استراتژی برتر:</b><br>
-"""
-            for i, s in enumerate(result.top_5, 1):
-                text += f"{i}. {s.strategy_name_fa} - {s.total_score:.0f} - {s.category}<br>"
+            # Info with market regime
+            info = QtWidgets.QLabel(
+                f"<b>نماد:</b> {sym} | <b>تایم‌فریم:</b> {tf}<br>"
+                f"<b>رژیم بازار:</b> {market.regime_fa} ({market.regime_en})<br>"
+                f"<b>ADX:</b> {market.adx:.0f} | <b>RSI:</b> {market.rsi:.0f} | <b>قدرت روند:</b> {market.trend_strength:.0f}%<br>"
+                f"<b>اطمینان بازار:</b> {market.confidence:.0f}%<br><br>"
+                f"<b style='color: #26a69a; font-size: 16px;'>✅ بهترین استراتژی:</b><br>"
+                f"<b style='font-size: 15px;'>{best.strategy_name_fa}</b><br>"
+                f"<span style='color: #787b86;'>{best.strategy_name}</span><br><br>"
+                f"<b>شناسه:</b> {best.strategy_id} | <b>دسته:</b> {best.category} | <b>Grade:</b> {best.grade}<br>"
+                f"<b>امتیاز:</b> <span style='color: #26a69a; font-size: 16px;'>{best.total_score:.0f}/100</span> | "
+                f"<b>اطمینان:</b> {best.confidence:.0f}%<br>"
+                f"<b>WR:</b> {best.win_rate:.0f}% | <b>PF:</b> {best.profit_factor:.1f}<br><br>"
+                f"<b>دلیل:</b><br>{best.reasoning_fa}<br><br>"
+                f"می‌خوای کجا بری؟"
+            )
+            info.setTextFormat(QtCore.Qt.TextFormat.RichText)
+            info.setWordWrap(True)
+            dlay.addWidget(info)
             
-            text += f"""<br>
-آیا می‌خواهید این استراتژی روی چارت اعمال شود؟
-"""
-            msg.setTextFormat(QtCore.Qt.TextFormat.RichText)
-            msg.setText(text)
-            msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
-            msg.button(QtWidgets.QMessageBox.StandardButton.Yes).setText("✅ بله، اعمال کن")
-            msg.button(QtWidgets.QMessageBox.StandardButton.No).setText("❌ خیر")
+            # Buttons for goto options
+            btn_chart = QtWidgets.QPushButton(f"📈 اعمال به چارت / Apply to Chart - {sym} {tf}")
+            btn_chart.setObjectName("primary")
+            btn_chart.setMinimumHeight(42)
             
-            if msg.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-                # Apply to chart
+            btn_signal = QtWidgets.QPushButton("📡 برو به سیگنال‌ها / Go to Scanner")
+            btn_signal.setMinimumHeight(40)
+            
+            btn_desk = QtWidgets.QPushButton("🗞 برو به تریدینگ دسک / Go to Trading Desk")
+            btn_desk.setMinimumHeight(40)
+            
+            btn_intel = QtWidgets.QPushButton("🧠 برو به هوش استراتژی / Go to Intelligence Page")
+            btn_intel.setMinimumHeight(36)
+            
+            dlay.addWidget(btn_chart)
+            dlay.addWidget(btn_signal)
+            dlay.addWidget(btn_desk)
+            dlay.addWidget(btn_intel)
+            
+            btn_close = QtWidgets.QPushButton("❌ بستن")
+            dlay.addWidget(btn_close)
+            
+            def go_chart():
+                dlg.accept()
                 self.bar.set_strategy(best.strategy_id)
                 self.run()
+            
+            def go_signal():
+                dlg.accept()
+                try:
+                    self.window().goto("nav_scan")
+                    try:
+                        scanner = self.window().page("nav_scan")
+                        if hasattr(scanner, 'tf'):
+                            scanner.tf.setCurrentText(tf)
+                    except:
+                        pass
+                except Exception as e:
+                    QtWidgets.QMessageBox.warning(self, "Error", str(e))
+            
+            def go_desk():
+                dlg.accept()
+                try:
+                    self.window().goto("nav_desk")
+                except Exception as e:
+                    QtWidgets.QMessageBox.warning(self, "Error", str(e))
+            
+            def go_intel():
+                dlg.accept()
+                try:
+                    self.window().goto("nav_intelligence")
+                    try:
+                        intel_page = self.window().page("nav_intelligence")
+                        if hasattr(intel_page, 'sym_combo'):
+                            intel_page.sym_combo.setCurrentText(sym)
+                            intel_page.tf_combo.setCurrentText(tf)
+                            intel_page.analyze()
+                    except:
+                        pass
+                except Exception as e:
+                    QtWidgets.QMessageBox.warning(self, "Error", str(e))
+            
+            btn_chart.clicked.connect(go_chart)
+            btn_signal.clicked.connect(go_signal)
+            btn_desk.clicked.connect(go_desk)
+            btn_intel.clicked.connect(go_intel)
+            btn_close.clicked.connect(dlg.reject)
+            
+            dlg.exec()
         
         def error(e):
             self.intel_btn.setEnabled(True)
@@ -1435,8 +1538,62 @@ class ScannerPage(QtWidgets.QWidget):
 
     def _open(self, item):
         d = self.tbl.item(item.row(), 0).data(QtCore.Qt.ItemDataRole.UserRole)
-        if d:
-            self.window().open_chart(d[0], self.tf.currentText(), d[1])
+        if not d:
+            return
+        sym, sid = d[0], d[1]
+        tf = self.tf.currentText()
+        
+        # Show 2 options dialog: Chart / Signals / Trading Desk
+        dlg = QtWidgets.QDialog(self)
+        dlg.setWindowTitle(f"{sid} - کجا بریم؟")
+        dlg.setMinimumWidth(400)
+        lay = QtWidgets.QVBoxLayout(dlg)
+        
+        info = QtWidgets.QLabel(f"<b>{sym}</b> · {tf} · <code>{sid}</code><br><br>کجا بریم؟ / Where to go?")
+        info.setTextFormat(QtCore.Qt.TextFormat.RichText)
+        lay.addWidget(info)
+        
+        btn_chart = QtWidgets.QPushButton(f"📈 برو به چارت / Go to Chart")
+        btn_chart.setObjectName("primary")
+        btn_chart.setMinimumHeight(40)
+        btn_desk = QtWidgets.QPushButton("🗞 برو به تریدینگ دسک / Go to Trading Desk")
+        btn_desk.setMinimumHeight(40)
+        btn_intel = QtWidgets.QPushButton("🧠 برو به هوش استراتژی / Go to Intelligence")
+        btn_intel.setMinimumHeight(36)
+        lay.addWidget(btn_chart)
+        lay.addWidget(btn_desk)
+        lay.addWidget(btn_intel)
+        btn_close = QtWidgets.QPushButton("❌ بستن")
+        lay.addWidget(btn_close)
+        
+        def go_chart():
+            dlg.accept()
+            self.window().open_chart(sym, tf, sid)
+        def go_desk():
+            dlg.accept()
+            try:
+                self.window().goto("nav_desk")
+            except:
+                pass
+        def go_intel():
+            dlg.accept()
+            try:
+                self.window().goto("nav_intelligence")
+                try:
+                    p = self.window().page("nav_intelligence")
+                    p.sym_combo.setCurrentText(sym)
+                    p.tf_combo.setCurrentText(tf)
+                    p.analyze()
+                except:
+                    pass
+            except:
+                pass
+        
+        btn_chart.clicked.connect(go_chart)
+        btn_desk.clicked.connect(go_desk)
+        btn_intel.clicked.connect(go_intel)
+        btn_close.clicked.connect(dlg.reject)
+        dlg.exec()
 
 
 # ---------------------------------------------------------------- Backtester
