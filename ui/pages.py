@@ -1860,6 +1860,9 @@ class SettingsPage(QtWidgets.QWidget):
         super().__init__(parent)
         v = QtWidgets.QVBoxLayout(self)
         v.setContentsMargins(24, 20, 24, 20)
+        v.setSpacing(12)
+        
+        # === Main Settings Card ===
         c = Card(t("nav_settings"))
         f = QtWidgets.QFormLayout()
         self.lang = QtWidgets.QComboBox()
@@ -1869,6 +1872,65 @@ class SettingsPage(QtWidgets.QWidget):
         f.addRow(t("lang"), self.lang)
         self.clear = QtWidgets.QPushButton(t("cache_clear"))
         f.addRow(t("data_src"), self.clear)
+        
+        # === Advanced Features Card (NEW) ===
+        adv_card = Card("🚀 Advanced Features - قابلیت‌های پیشرفته")
+        adv_form = QtWidgets.QFormLayout()
+        
+        # Persistence / Background Analysis
+        self.autostart_cb = QtWidgets.QCheckBox("Auto-start on boot - اجرای خودکار هنگام بالا آمدن ویندوز")
+        self.minimize_cb = QtWidgets.QCheckBox("Minimize to tray instead of exit - بستن به سینی سیستم")
+        self.background_cb = QtWidgets.QCheckBox("Background analysis 24/7 - تحلیل 24 ساعته حتی وقتی برنامه بسته است")
+        try:
+            cur = json.load(open(SETTINGS_PATH))
+            self.autostart_cb.setChecked(cur.get("autostart_enabled", True))
+            self.minimize_cb.setChecked(cur.get("minimize_to_tray", True))
+            self.background_cb.setChecked(cur.get("background_analysis", True))
+        except Exception:
+            self.autostart_cb.setChecked(True)
+            self.minimize_cb.setChecked(True)
+            self.background_cb.setChecked(True)
+        
+        self.autostart_cb.toggled.connect(self._toggle_autostart)
+        self.minimize_cb.toggled.connect(self._toggle_minimize)
+        self.background_cb.toggled.connect(self._toggle_background)
+        
+        adv_form.addRow("🔄 Persistence", self.autostart_cb)
+        adv_form.addRow("📥 Tray Mode", self.minimize_cb)
+        adv_form.addRow("🧠 AI Analysis", self.background_cb)
+        
+        # Resilient Network Status
+        self.resilient_status = QtWidgets.QLabel("Checking...")
+        self.resilient_btn = QtWidgets.QPushButton("🌐 Test Anti-Filter Connection")
+        self.resilient_btn.clicked.connect(self._test_resilient)
+        resilient_row = QtWidgets.QHBoxLayout()
+        resilient_row.addWidget(self.resilient_status, 1)
+        resilient_row.addWidget(self.resilient_btn)
+        adv_form.addRow("🛡️ Anti-Filter", resilient_row)
+        
+        # Iran Gold Status
+        self.irangold_status = QtWidgets.QLabel("Checking...")
+        self.irangold_btn = QtWidgets.QPushButton("💰 Refresh Iran Gold Prices")
+        self.irangold_btn.clicked.connect(self._test_irangold)
+        iran_row = QtWidgets.QHBoxLayout()
+        iran_row.addWidget(self.irangold_status, 1)
+        iran_row.addWidget(self.irangold_btn)
+        adv_form.addRow("🇮🇷 طلای ایران", iran_row)
+        
+        # Evolution Status
+        self.evo_status = QtWidgets.QLabel("Checking...")
+        self.evo_btn = QtWidgets.QPushButton("🧬 Evolution Log")
+        self.evo_btn.clicked.connect(self._show_evolution)
+        evo_row = QtWidgets.QHBoxLayout()
+        evo_row.addWidget(self.evo_status, 1)
+        evo_row.addWidget(self.evo_btn)
+        adv_form.addRow("📈 Self-Improvement", evo_row)
+        
+        adv_card.v.addLayout(adv_form)
+        
+        # Load initial statuses
+        QtCore.QTimer.singleShot(500, self._load_advanced_status)
+        
         self.renderer = QtWidgets.QComboBox()
         self.renderer.addItem(t("chart_auto"), "auto"); self.renderer.addItem("pyqtgraph (GPU/QGraphicsView)", "pyqtgraph"); self.renderer.addItem(t("chart_compat"), "compat")
         try:
@@ -1907,6 +1969,7 @@ class SettingsPage(QtWidgets.QWidget):
             pass
         c.v.addLayout(f)
         v.addWidget(c)
+        v.addWidget(adv_card)
         try:
             from .portfolio_page import AlertsPanel
             al = Card(t("alerts")); al.add(AlertsPanel()); v.addWidget(al)
@@ -1995,6 +2058,124 @@ class SettingsPage(QtWidgets.QWidget):
         cur["lang"] = lang
         json.dump(cur, open(SETTINGS_PATH, "w"), indent=1)
         QtWidgets.QMessageBox.information(self, "OK", "Restart the app to apply language.\nبرای اعمال زبان، برنامه را دوباره باز کنید.")
+    
+    # === Advanced Features Methods ===
+    def _toggle_autostart(self, enabled):
+        try:
+            cur = json.load(open(SETTINGS_PATH))
+        except Exception:
+            cur = {}
+        cur["autostart_enabled"] = enabled
+        json.dump(cur, open(SETTINGS_PATH, "w"), indent=1, ensure_ascii=False)
+        try:
+            from core import persistence
+            if enabled:
+                persistence.ensure_autostart(True)
+            else:
+                persistence.uninstall_autostart()
+        except Exception as e:
+            QtWidgets.QMessageBox.warning(self, "Autostart", f"Failed: {e}")
+    
+    def _toggle_minimize(self, enabled):
+        try:
+            cur = json.load(open(SETTINGS_PATH))
+        except Exception:
+            cur = {}
+        cur["minimize_to_tray"] = enabled
+        json.dump(cur, open(SETTINGS_PATH, "w"), indent=1, ensure_ascii=False)
+    
+    def _toggle_background(self, enabled):
+        try:
+            cur = json.load(open(SETTINGS_PATH))
+        except Exception:
+            cur = {}
+        cur["background_analysis"] = enabled
+        json.dump(cur, open(SETTINGS_PATH, "w"), indent=1, ensure_ascii=False)
+        try:
+            from core import persistence, auto_evolution
+            if enabled:
+                persistence.start_background_service()
+                auto_evolution.start()
+            else:
+                auto_evolution.stop()
+        except Exception:
+            pass
+    
+    def _load_advanced_status(self):
+        try:
+            from core import resilient, persistence, auto_evolution, iran_gold
+            # Resilient
+            proxy = resilient.detect_system_proxy()
+            self.resilient_status.setText(f"Proxy: {proxy or 'Direct'} | Anti-filter active")
+            # Persistence
+            pid = persistence.get_background_pid()
+            running = persistence.is_background_running()
+            self.evo_status.setText(f"PID {pid} | Running: {running} | Auto-evolution active")
+            # Iran Gold
+            try:
+                prices = iran_gold.get_all_live_prices()
+                if prices:
+                    gold_price = prices.get("طلای 18 عیار / 750", {}).get("price", 0)
+                    self.irangold_status.setText(f"{len(prices)} symbols | 18K: {gold_price:,.0f} IRR")
+                else:
+                    self.irangold_status.setText("No data - will use synthetic")
+            except Exception as e:
+                self.irangold_status.setText(f"Error: {e}")
+        except Exception as e:
+            self.resilient_status.setText(f"Error: {e}")
+    
+    def _test_resilient(self):
+        self.resilient_status.setText("Testing...")
+        self.resilient_btn.setEnabled(False)
+        def _do():
+            try:
+                from core import resilient
+                health = resilient.health_check(verbose=True)
+                ok = sum(1 for v in health.values() if v)
+                total = len(health)
+                proxy = resilient.detect_system_proxy()
+                return f"✅ {ok}/{total} OK | Proxy: {proxy or 'Direct'} | {health}"
+            except Exception as e:
+                return f"❌ Failed: {e}"
+        def _done(result):
+            self.resilient_status.setText(result[:120])
+            self.resilient_btn.setEnabled(True)
+        w = Worker(lambda: _do())
+        w.done.connect(_done)
+        w.error.connect(lambda e: (self.resilient_status.setText(f"Error: {e}"), self.resilient_btn.setEnabled(True)))
+        w.start()
+    
+    def _test_irangold(self):
+        self.irangold_status.setText("Fetching...")
+        self.irangold_btn.setEnabled(False)
+        def _do():
+            try:
+                from core import iran_gold
+                prices = iran_gold.get_all_live_prices()
+                lines = []
+                for sym, data in list(prices.items())[:5]:
+                    lines.append(f"{sym}: {data['price']:,.0f}")
+                return "\n".join(lines) if lines else "No prices - using synthetic fallback"
+            except Exception as e:
+                return f"Failed: {e}"
+        def _done(result):
+            self.irangold_status.setText(result[:150])
+            self.irangold_btn.setEnabled(True)
+            QtWidgets.QMessageBox.information(self, "Iran Gold - طلای ایران", result)
+        w = Worker(lambda: _do())
+        w.done.connect(_done)
+        w.error.connect(lambda e: (self.irangold_status.setText(f"Error: {e}"), self.irangold_btn.setEnabled(True)))
+        w.start()
+    
+    def _show_evolution(self):
+        try:
+            from core import auto_evolution
+            status = auto_evolution.status()
+            log_tail = "\n".join(auto_evolution.tail(20))
+            msg = f"Generation: {status.get('generation', 0)}\nRunning: {status.get('running')}\nCurrent: {status.get('current_task')}\n\nLog:\n{log_tail}"
+            QtWidgets.QMessageBox.information(self, "Auto-Evolution - خودپیشرفت", msg)
+        except Exception as e:
+            QtWidgets.QMessageBox.warning(self, "Evolution", f"Error: {e}")
 
 
 # ---------------------------------------------------------------- Indicator Encyclopedia

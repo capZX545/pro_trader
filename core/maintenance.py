@@ -97,7 +97,63 @@ def task_forward():
             log(f"alerts: {len(sent)} new signal(s) pushed")
     except Exception as e:
         log(f"alerts error: {e}")
+    # Iran Gold signals scan
+    try:
+        from core import iran_gold
+        prices = iran_gold.get_all_live_prices()
+        if prices:
+            log(f"iran_gold: {len(prices)} symbols updated")
+    except Exception as e:
+        log(f"iran_gold error: {e}")
+    # Resilient network health
+    try:
+        from core import resilient
+        health = resilient.health_check()
+        failed = [k for k,v in health.items() if not v]
+        if failed:
+            log(f"resilient: failed hosts {failed} - anti-filter will retry with mirrors")
+        else:
+            log(f"resilient: all hosts OK - anti-filter active")
+    except Exception as e:
+        log(f"resilient health error: {e}")
     return r
+
+def task_iran_gold():
+    """Update Iran Gold prices and generate OHLCV caches"""
+    try:
+        from core import iran_gold
+        prices = iran_gold.get_all_live_prices()
+        # Pre-cache OHLCV for major Iran Gold symbols
+        for sym in ["طلای 18 عیار / 750", "سکه امامی", "دلار آزاد"][:2]:
+            try:
+                iran_gold.get_ohlcv_iran_gold(sym, "1d", limit=500)
+                iran_gold.get_ohlcv_iran_gold(sym, "1h", limit=500)
+            except Exception:
+                pass
+        return f"iran_gold updated {len(prices)} symbols"
+    except Exception as e:
+        return f"iran_gold failed: {e}"
+
+def task_resilient_check():
+    """Check and log resilient network status"""
+    try:
+        from core import resilient
+        health = resilient.health_check(verbose=False)
+        proxy = resilient.detect_system_proxy()
+        return f"resilient: proxy={proxy}, health={health}"
+    except Exception as e:
+        return f"resilient check failed: {e}"
+
+def task_auto_evolution_quick():
+    """Quick auto-evolution check"""
+    try:
+        from core import auto_evolution
+        # Just run performance analysis quickly
+        from core.auto_evolution import _task_analyze_performance
+        result = _task_analyze_performance()
+        return f"evolution: {result}"
+    except Exception as e:
+        return f"evolution quick failed: {e}"
 
 
 def task_health_autofix():
@@ -181,7 +237,7 @@ def _playbook_age_days():
     return 1e9 if not pb else (time.time() - pb.get("ts", 0)) / 86400
 
 
-def loop(forward_every=900, health_every=6 * 3600, playbook_every=7 * 86400):
+def loop(forward_every=900, health_every=6 * 3600, playbook_every=7 * 86400, iran_gold_every=1800, resilient_every=1800, evolution_every=3600):
     STATE["running"] = True
     _lower_priority()
     log("maintenance thread started (low priority)")
@@ -203,10 +259,17 @@ def loop(forward_every=900, health_every=6 * 3600, playbook_every=7 * 86400):
     if not full or _playbook_age_days() > 14:
         log("stage 2: full playbook in background (resumable)")
         _run("playbook", task_playbook); last_pb = time.time()
+    last_ig = last_rs = last_ev = 0.0
     while not _stop.is_set():
         now = time.time()
         if now - last_fw >= forward_every:
             _run("forward", task_forward); last_fw = time.time()
+        if now - last_ig >= iran_gold_every:
+            _run("iran_gold", task_iran_gold); last_ig = time.time()
+        if now - last_rs >= resilient_every:
+            _run("resilient", task_resilient_check); last_rs = time.time()
+        if now - last_ev >= evolution_every:
+            _run("evolution_quick", task_auto_evolution_quick); last_ev = time.time()
         if now - last_h >= health_every:
             _run("health", task_health_autofix); last_h = time.time()
         if now - last_pb >= playbook_every and _playbook_age_days() > 7:

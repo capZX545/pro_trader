@@ -21,9 +21,25 @@ import threading
 import requests
 import pandas as pd
 
-_S = requests.Session()
-_S.headers["User-Agent"] = "ProTrader/1.1 (+desktop analysis app)"
+# --- Resilient layer integration (anti-filter) ---
+try:
+    from core.resilient import session as _resilient_session_factory, detect_system_proxy
+    _S = _resilient_session_factory()
+    _S.headers["User-Agent"] = "ProTrader/2.5 (+resilient anti-filter + Iran Gold)"
+    print("[sources] Using resilient session with anti-filter")
+except Exception as e:
+    print(f"[sources] Resilient not available, fallback: {e}")
+    _S = requests.Session()
+    _S.headers["User-Agent"] = "ProTrader/1.1 (+desktop analysis app)"
 _TIMEOUT = 12
+
+# --- Iran Gold live price cache integration ---
+try:
+    from core import iran_gold as _IRAN_GOLD_SRC
+    _IRAN_AVAILABLE = True
+except Exception:
+    _IRAN_AVAILABLE = False
+
 
 # ------------------------------------------------------------------ interval maps
 _OKX_TF = {"1m": "1m", "3m": "3m", "5m": "5m", "15m": "15m", "30m": "30m", "1h": "1H", "2h": "2H", "4h": "4H", "6h": "6H", "12h": "12H",
@@ -193,7 +209,9 @@ def _order():
 
 
 def fetch_crypto(base: str, tf: str, limit: int = 1500, since_ms=None, min_bars: int = 50):
-    """Fetch OHLCV for `base`/USDT from the first healthy venue. Returns (df, venue_name). Raises if all fail."""
+    """Fetch OHLCV for `base`/USDT from the first healthy venue. Returns (df, venue_name). Raises if all fail.
+    Enhanced with resilient anti-filter layer and Iran Gold support.
+    """
     base = base.upper()
     errors = []
     for name, fn in _order():

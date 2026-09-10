@@ -15,6 +15,28 @@ import requests
 from core.paths import DATA_DIR as CACHE_DIR
 os.makedirs(CACHE_DIR, exist_ok=True)
 
+# --- Resilient network layer (anti-filter) ---
+try:
+    from core.resilient import session as resilient_session, detect_system_proxy, health_check as resilient_health
+    _RESILIENT_AVAILABLE = True
+    # Patch requests Session globally to use resilient
+    _RESILIENT_SESSION = resilient_session()
+except Exception as _e:
+    print(f"[data] resilient layer not available: {_e}")
+    _RESILIENT_AVAILABLE = False
+    _RESILIENT_SESSION = requests.Session()
+    _RESILIENT_SESSION.headers["User-Agent"] = "ProTrader/2.0"
+
+# --- Iran Gold integration ---
+try:
+    from core import iran_gold as _IRAN_GOLD
+    _IRAN_GOLD_AVAILABLE = True
+except Exception as _e:
+    print(f"[data] iran_gold not available: {_e}")
+    _IRAN_GOLD_AVAILABLE = False
+    _IRAN_GOLD = None
+
+
 # ---- Universe (symbol -> yahoo ticker, binance symbol or None) ----
 UNIVERSE = {
     "Crypto": {
@@ -53,7 +75,31 @@ UNIVERSE = {
         "SPY": ("SPY", None), "QQQ": ("QQQ", None), "IWM": ("IWM", None), "GLD": ("GLD", None), "TLT": ("TLT", None), "XLE": ("XLE", None),
         "XLF": ("XLF", None), "EEM": ("EEM", None), "HYG": ("HYG", None), "USO": ("USO", None),
     },
+    "Iran Gold": {
+        "طلای 18 عیار / 750": ("IR-GOLD-18K", None),
+        "طلای 24 عیار": ("IR-GOLD-24K", None),
+        "مثقال طلا": ("IR-MESGHAL", None),
+        "انس طلا": ("IR-OUNCE", None),
+        "سکه امامی": ("IR-SEKEH-EMAMI", None),
+        "سکه بهار آزادی": ("IR-SEKEH-BAHAR", None),
+        "نیم سکه": ("IR-NIM", None),
+        "ربع سکه": ("IR-ROB", None),
+        "سکه گرمی": ("IR-GERAMI", None),
+        "دلار آزاد": ("IR-USD", None),
+        "یورو آزاد": ("IR-EUR", None),
+        "Gold 18K (Iran)": ("IR-GOLD-18K", None),
+        "Gold 24K (Iran)": ("IR-GOLD-24K", None),
+        "Mesghal Gold": ("IR-MESGHAL", None),
+        "Emami Coin": ("IR-SEKEH-EMAMI", None),
+        "Bahar Azadi Coin": ("IR-SEKEH-BAHAR", None),
+        "Half Coin": ("IR-NIM", None),
+        "Quarter Coin": ("IR-ROB", None),
+        "Gram Coin": ("IR-GERAMI", None),
+        "USD/IRR Free": ("IR-USD", None),
+    },
 }
+
+IRAN_GOLD_UNIVERSE = UNIVERSE.get("Iran Gold", {})
 
 TIMEFRAMES = ["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "3d", "1wk", "1mo"]   # 1 minute → 1 month
 # bars of history to request from Binance per timeframe (≈ 70d / 100d / 120d / 1y / 2.7y / 4y)
@@ -71,6 +117,15 @@ _YF_BASE = {"3m": "1m", "2h": "1h", "4h": "1h", "6h": "1h", "12h": "1h", "3d": "
 
 
 def resolve(symbol_name: str):
+    # Iran Gold first (priority for Iranian users)
+    if _IRAN_GOLD_AVAILABLE and _IRAN_GOLD:
+        try:
+            if _IRAN_GOLD.is_iran_gold_symbol(symbol_name):
+                # Return as custom category with Iran Gold handling
+                return "Iran Gold", (symbol_name, None)
+        except Exception:
+            pass
+    
     for cat, d in UNIVERSE.items():
         if symbol_name in d:
             return cat, d[symbol_name]
@@ -130,22 +185,78 @@ def _fetch_binance(bsym: str, tf: str, limit: int = 1500, since_ms=None) -> pd.D
 
 def _fetch_yahoo(ticker: str, tf: str) -> pd.DataFrame:
     import yfinance as yf
+    # Apply resilient proxy detection for yfinance
+    if _RESILIENT_AVAILABLE:
+        try:
+            from core.resilient import detect_system_proxy
+            proxy = detect_system_proxy()
+            if proxy:
+                import os
+                os.environ.setdefault("HTTP_PROXY", proxy)
+                os.environ.setdefault("HTTPS_PROXY", proxy)
+        except Exception:
+            pass
+    
     interval = tf
     period = _PERIOD.get(tf, "2y")
     if tf in _YF_BASE:  # yahoo lacks this interval -> build from a finer one
         base = _YF_BASE[tf]
-        raw = yf.download(ticker, period=_PERIOD[base], interval=base, progress=False, auto_adjust=True, threads=False)
+        raw = None
+        for attempt in range(5):  # increased retries with resilient layer
+            try:
+                raw = yf.download(ticker, period=_PERIOD[base], interval=base, progress=False, auto_adjust=True, threads=False)
+                if raw is not None and not raw.empty:
+                    break
+            except Exception:
+                raw = None
+            time.sleep(1.5 * (attempt + 1))
+        if raw is None or raw.empty:
+            raise RuntimeError(f"No data for {ticker} (yahoo base {base})")
         raw = _normalize(raw)
         return resample(raw, tf)
     raw = None
-    for attempt in range(3):                      # Yahoo throttles (429) → short backoff then retry
+    for attempt in range(5):                      # Yahoo throttles (429) → short backoff then retry (enhanced)
         try:
             raw = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=True, threads=False)
-        except Exception:
+        except Exception as e:
+            # If yfinance fails, try direct Yahoo API via resilient session
+            if _RESILIENT_AVAILABLE and attempt >= 2:
+                try:
+                    from core.resilient import session as _rs
+                    import pandas as pd
+                    # Direct Yahoo chart API as fallback
+                    urls = [
+                        f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?range={period}&interval={interval}",
+                        f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?range={period}&interval={interval}",
+                    ]
+                    for url in urls:
+                        try:
+                            r = _rs().get(url, timeout=15)
+                            if r.status_code == 200:
+                                j = r.json()
+                                chart = j.get("chart", {}).get("result", [{}])[0]
+                                ts = chart.get("timestamp", [])
+                                quote = chart.get("indicators", {}).get("quote", [{}])[0]
+                                if ts and quote:
+                                    import pandas as pd
+                                    df = pd.DataFrame({
+                                        "open": quote.get("open", []),
+                                        "high": quote.get("high", []),
+                                        "low": quote.get("low", []),
+                                        "close": quote.get("close", []),
+                                        "volume": quote.get("volume", []),
+                                    }, index=pd.to_datetime(ts, unit="s"))
+                                    if not df.empty:
+                                        raw = df
+                                        break
+                        except Exception:
+                            continue
+                except Exception:
+                    pass
             raw = None
         if raw is not None and not raw.empty:
             break
-        time.sleep(1.5 * (attempt + 1))
+        time.sleep(1.5 * (attempt + 1) + (0.5 if _RESILIENT_AVAILABLE else 0))
     if raw is None or raw.empty:
         raise RuntimeError(f"No data for {ticker}")
     return _normalize(raw)
@@ -161,6 +272,18 @@ def resample(df: pd.DataFrame, rule: str) -> pd.DataFrame:
 
 
 def get_ohlcv(symbol_name: str, tf: str = "1h", use_cache: bool = True, max_age_sec: int = 300) -> pd.DataFrame:
+    # --- Iran Gold handling (طلای ایران) ---
+    if _IRAN_GOLD_AVAILABLE and _IRAN_GOLD:
+        try:
+            if _IRAN_GOLD.is_iran_gold_symbol(symbol_name):
+                # Use Iran Gold module directly
+                df = _IRAN_GOLD.get_ohlcv_iran_gold(symbol_name, tf)
+                df.attrs.update(symbol=symbol_name, tf=tf, source="iran_gold", iran_gold=True)
+                return df
+        except Exception as e:
+            print(f"[data] Iran Gold fetch failed for {symbol_name}: {e}, falling back")
+            # fall through to normal flow
+
     cat, (yt, bs) = resolve(symbol_name)
     key = f"{symbol_name}|{tf}"
     path = _cache_path(key)

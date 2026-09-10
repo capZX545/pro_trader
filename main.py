@@ -22,6 +22,16 @@ if "--web" in sys.argv:
     from core import webapp  # noqa: E402
     webapp.main([a for a in sys.argv[1:] if a != "--web"]); sys.exit(0)
 
+# --background : headless background service mode (analysis continues even when UI closed)
+# این حالت باعث میشه برنامه حتی وقتی ران نیست تحلیل کنه و خودشو پیشرفت بده
+# فقط کافیه یه بار ران بشه و تا وقتی از تسک منیجر متوقف نشده ادامه بده
+if "--background" in sys.argv or os.environ.get("PROTRADER_BACKGROUND") == "1":
+    # Background service mode - no UI, just continuous analysis
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from core.persistence import run_background_mode
+    run_background_mode()
+    sys.exit(0)
+
 from PyQt6 import QtWidgets, QtGui, QtCore  # noqa: E402
 from ui.theme import QSS, I18N  # noqa: E402
 
@@ -116,6 +126,69 @@ def main():
                 app.quit()
             QtCore.QTimer.singleShot(20000, _snap)
         QtCore.QTimer.singleShot(1500, _diag)
+    # === ADVANCED PERSISTENCE & AUTO-EVOLUTION LAYER ===
+    # حتی اگه فیلتر وصل نبود بتونه وصل بشه به چارتا + تحلیل پس‌زمینه + طلای ایران
+    try:
+        # 1) Resilient network layer (anti-filter)
+        from core import resilient
+        proxy = resilient.detect_system_proxy()
+        if proxy:
+            print(f"[ProTrader] Resilient proxy detected: {proxy}")
+        # Quick health check in background
+        import threading
+        def _bg_health():
+            try:
+                h = resilient.health_check()
+                print(f"[ProTrader] Network health: {h}")
+            except Exception:
+                pass
+        threading.Thread(target=_bg_health, daemon=True).start()
+    except Exception as e:
+        print(f"[ProTrader] Resilient init failed: {e}")
+
+    try:
+        # 2) Iran Gold background updater
+        from core import iran_gold
+        iran_gold.start_background_updater()
+        print("[ProTrader] Iran Gold (طلای ایران) live updater started")
+    except Exception as e:
+        print(f"[ProTrader] Iran Gold init failed: {e}")
+
+    try:
+        # 3) Persistence layer - auto-start + background service
+        from core import persistence
+        persistence.start_background_service()
+        # Auto-start on boot (one-time setup, user can disable in settings)
+        from core.paths import data as _pdata
+        import json as _json
+        settings_path = _pdata("settings.json")
+        _settings = {}
+        if os.path.exists(settings_path):
+            try:
+                _settings = _json.load(open(settings_path, encoding="utf-8"))
+            except Exception:
+                pass
+        # If user hasn't explicitly disabled autostart, enable it on first run
+        if _settings.get("autostart_enabled", None) is None:
+            # First run - enable autostart
+            try:
+                persistence.ensure_autostart(True)
+                _settings["autostart_enabled"] = True
+                _settings["background_analysis"] = True
+                _settings["minimize_to_tray"] = True
+                _json.dump(_settings, open(settings_path, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+                print("[ProTrader] Auto-start enabled for background analysis")
+            except Exception as e:
+                print(f"[ProTrader] Auto-start setup failed: {e}")
+        elif _settings.get("autostart_enabled"):
+            # Ensure it's still installed (in case user moved exe)
+            try:
+                persistence.ensure_autostart(True)
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"[ProTrader] Persistence init failed: {e}")
+
     # self-maintenance: forward-test outcomes, safe auto-fixes, playbook refresh when stale (daemon thread)
     if os.environ.get("PROTRADER_NO_MAINT") != "1":
         try:
@@ -123,14 +196,25 @@ def main():
             maintenance.start()
         except Exception:
             pass
+        # 4) Auto-evolution engine (self-improvement)
+        try:
+            from core import auto_evolution
+            auto_evolution.start()
+            print("[ProTrader] Auto-evolution engine started - خودشو پیشرفت میده")
+        except Exception as e:
+            print(f"[ProTrader] Auto-evolution failed: {e}")
+
     def _freeze():   # move ~200k start-up objects out of the cyclic GC → no more ~100 ms gen-2 pauses in the UI
         import gc
         gc.collect(); gc.freeze()
     QtCore.QTimer.singleShot(4000, _freeze)
     rc = app.exec()
     try:
-        from core import maintenance
+        from core import maintenance, auto_evolution, iran_gold, persistence
         maintenance.stop()
+        auto_evolution.stop()
+        iran_gold.stop_background_updater()
+        persistence.stop_background_service()
     except Exception:
         pass
     try:
