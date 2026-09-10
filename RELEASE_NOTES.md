@@ -1,3 +1,90 @@
+## v1.13.0 — Phase 26: Advanced TradingView Chart (online + desktop)
+
+**User request: Advanced online chart like TradingView, fully English, rates unchanged except gold (no toman conversion for others)**
+
+### Web Advanced Chart (TradingView Lightweight Charts v4)
+- **NEW `web/tv_advanced.js` (12KB): TradingView official library integration**
+  - Candlestick + Volume histogram (green/red), price scale on right, time scale bottom
+  - Crosshair with OHLC display (O H L C + Change% + Volume) on hover
+  - Overlays: 73 indicators (EMA, Bollinger, Ichimoku Kumo fill, etc.)
+  - Signals: ▲ Long / ▼ Short markers with success rate tooltip
+  - Price lines for SL/TP and support/resistance levels
+  - Drawing tools: hline, trend, fib, rect, measure
+  - Chart types: Candle, Line, Area (Heikin Ashi, Renko via indicators)
+  - Screenshot, fullscreen, indicator pills with remove
+  - Precision handling: crypto <1 = 6 decimals, crypto >=1 = 2, gold = 0 decimals (IRR original)
+  - **NO toman conversion for non-gold** (BTC stays USD, EUR/USD same)
+  - **FULLY ENGLISH ONLY** per user request
+
+- **NEW `web/advanced_chart.html` (22KB): Standalone advanced TradingView page**
+  - TradingView-like toolbar: Timeframes (1m-1W), chart types, indicators, drawings
+  - Left drawing toolbar (cursor, trend, hline, vline, ray, rect, fib, measure, text)
+  - Right tools (crosshair, magnet, log scale, auto scale)
+  - Bottom panel: backtest stats (WR, PF, Trades, Return, DD, Expectancy) + Last Trades + Success Rate
+  - OHLC overlay and indicator bar
+
+- **UPDATED `web/index.html`: Now uses TVAdvanced (lightweight-charts) as primary**
+  - Replaced canvas chart with TradingView Lightweight Charts v4
+  - TradingView toolbar with TF buttons (1m-1W active), chart type, indicators, drawings
+  - OHLC display on hover, price change in header
+  - Active indicators pills with remove button
+  - Screenshot and fullscreen buttons
+  - English only, no toman conversion (gold keeps original IRR price)
+  - Backward compatible with all existing APIs
+
+### Desktop Advanced Chart
+- **NEW `ui/chart_advanced_toolbar.py`: TradingView-like toolbar for desktop**
+  - TradingViewToolbar: TF selector (1m-1mo), chart types (Candle, Line, Area, Heikin Ashi, Renko)
+  - Indicators (ƒx), Compare (⊕), Screenshot (📷), Fullscreen (⛶), Settings (⚙)
+  - Price info label showing current price + change%
+  - ChartStatusBar: OHLC + volume + change% like TradingView bottom bar
+
+- **NEW `ui/tradingview_page.py`: Full TradingView advanced page for desktop**
+  - Symbol/TF/Strategy selector with live price header
+  - TradingView toolbar integration
+  - Main split: chart (1000px) + right panel (400px) with stats tiles, signals table, trades table
+  - Hover shows OHLC in status bar and toolbar
+  - Chart type switching (heikin, renko via indicators), screenshot, jump to signal
+  - Fully English, no toman conversion
+
+- **UPDATED `ui/pages.py` ChartPage:**
+  - Added TradingViewToolbar at top (TFs, chart types, screenshot, settings)
+  - Added ChartStatusBar for OHLC on hover
+  - Added methods: _on_advanced_hover, _on_chart_type, _on_screenshot, _on_chart_settings
+  - Keeps existing drawing tools + adds advanced toolbar
+  - English only
+
+- **UPDATED `ui/main_window.py`:**
+  - Added new nav: 📊 Advanced Chart (nav_tv) → TradingViewAdvancedPage
+
+- **UPDATED `core/webapp.py`:**
+  - Added `/api/chart_config`: chart types, timeframes, drawing tools, indicators count
+  - Static files tv_advanced.js and advanced_chart.html served automatically
+
+### TradingView-level Features
+- ✅ Lightweight Charts v4 (TradingView official, CDN with fallback)
+- ✅ Candlestick + Volume + Overlays + Signals markers
+- ✅ Price lines for SL/TP/Support/Resistance
+- ✅ Drawing tools (hline, trend, fib, rect, measure, text, ray, vline)
+- ✅ Timeframe toolbar (1m,3m,5m,15m,30m,1h,2h,4h,6h,12h,1d,1W,1M)
+- ✅ Chart types (Candle, Line, Area, Heikin Ashi, Renko)
+- ✅ Crosshair with OHLC, price scale right, time scale bottom
+- ✅ Screenshot, fullscreen, indicator management
+- ✅ Bottom panel with stats, trades, success rate
+- ✅ 196 strategies for ALL charts (Crypto, Forex, Commodities, Stocks, ETFs, Iran Gold)
+- ✅ English only (per user: زبان برناممو عوض نکنی کامل انگلیسی بمونه)
+- ✅ No toman conversion for non-gold (per user: همین نرخ بمونن جز طلا بقیه رو تبدیل به تومن نکنی)
+- ✅ Gold keeps original IRR price with 0 decimals
+
+### Installable Release v1.13
+- Windows: ProTrader-1.13.0-windows-x64-portable.zip + installer
+- Linux: ProTrader-1.13.0-linux-x64.tar.gz
+- macOS: ProTrader-1.13.0-macos-arm64.dmg
+- Web/Mobile: ProTrader-1.13.0-web-mobile.zip
+- Android: ProTrader-1.13.0-android.apk
+
+---
+
 ## v1.12.0 — Phase 25: Trading Desk (daily briefing) — core/desk.py
 
 - **New page "Trading Desk"** (desktop nav, web/mobile "More → Trading desk", API `/api/desk`): one bilingual document, in the order a professional desk works:
