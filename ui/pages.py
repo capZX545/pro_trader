@@ -17,10 +17,11 @@ from .theme import C, t, I18N
 from .widgets import Card, StatTile, Badge, side_badge, hline, stars, make_table, cell, ncell, Worker, color_for, success_tip, row_tooltip
 from .chart import ChartWidget, EquityChart
 try:
-    from .chart_advanced_toolbar import TradingViewToolbar, ChartStatusBar, AdvancedChartWidget
-    HAS_ADVANCED = True
-except Exception:
-    HAS_ADVANCED = False
+    from .chart_advanced_toolbar import TradingViewToolbar, ChartStatusBar
+    HAS_ADV_TB = True
+except Exception as e:
+    print(f"[ChartPage] Advanced toolbar not available: {e}")
+    HAS_ADV_TB = False
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from core.paths import data as _data
@@ -468,17 +469,20 @@ class ChartPage(QtWidgets.QWidget):
         self.clock_lbl.setToolTip(t("clock_tip"))
         self.bar.layout().addWidget(self.clock_lbl)
         v.addWidget(self.bar)
-        # === Advanced TradingView-style toolbar (Phase 26) ===
-        if HAS_ADVANCED:
-            self.tv_toolbar = TradingViewToolbar()
-            self.tv_toolbar.timeframeChanged.connect(lambda tf: (self.bar.tf.setCurrentText(tf), self.run()))
-            self.tv_toolbar.chartTypeChanged.connect(self._on_chart_type)
-            self.tv_toolbar.screenshotRequested.connect(self._on_screenshot)
-            self.tv_toolbar.settingsRequested.connect(self._on_chart_settings)
-            v.addWidget(self.tv_toolbar)
-            
-            self.chart_status = ChartStatusBar()
-            # Will be added after chart
+        # === Advanced TradingView toolbar (optional, safe) ===
+        self.tv_toolbar = None
+        self.chart_status = None
+        if HAS_ADV_TB:
+            try:
+                self.tv_toolbar = TradingViewToolbar()
+                self.tv_toolbar.timeframeChanged.connect(lambda tf: (self.bar.tf.setCurrentText(tf), self.run()))
+                self.tv_toolbar.chartTypeChanged.connect(self._on_chart_type)
+                self.tv_toolbar.screenshotRequested.connect(self._on_screenshot)
+                v.addWidget(self.tv_toolbar)
+            except Exception as e:
+                print(f"[ChartPage] Failed to create advanced toolbar: {e}")
+                self.tv_toolbar = None
+        
         # TradingView-style tool strip
         tools = QtWidgets.QHBoxLayout(); tools.setSpacing(4)
         from .chart_tools import TOOLS
@@ -513,7 +517,6 @@ class ChartPage(QtWidgets.QWidget):
         self.chart = ChartWidget()
         self.chart.signalClicked.connect(self._on_chart_signal_click)
         self.chart.drawingsChanged.connect(self._save_drawings)
-        self.chart.barHovered.connect(self._on_advanced_hover)
         split.addWidget(self.chart)
         right = QtWidgets.QWidget()
         rv = QtWidgets.QVBoxLayout(right)
@@ -567,10 +570,9 @@ class ChartPage(QtWidgets.QWidget):
         self._clock.start(1000)
 
     def _on_advanced_hover(self, i):
-        """Advanced TradingView-style status bar update on hover"""
-        if not hasattr(self, 'chart_status'):
-            return
         try:
+            if not hasattr(self, 'chart_status') or self.chart_status is None:
+                return
             df = self.chart.df
             if df is None or not (0 <= i < len(df)):
                 return
@@ -578,84 +580,46 @@ class ChartPage(QtWidgets.QWidget):
             prev = df.iloc[i-1] if i>0 else r
             chg = (r.close/prev.close-1)*100 if prev.close else 0
             self.chart_status.set_ohlc(r.open, r.high, r.low, r.close, r.volume, chg)
-            if hasattr(self, 'tv_toolbar'):
+            if hasattr(self, 'tv_toolbar') and self.tv_toolbar:
                 self.tv_toolbar.set_price_info(f"{r.close:,.6g} {chg:+.2f}%")
         except Exception:
             pass
 
     def _on_chart_type(self, ctype):
-        """Switch chart type like TradingView"""
         try:
-            # For now, we keep candlestick but can implement Heikin Ashi, Renko via chart_indicators
             if ctype == "heikin":
                 self.chart.add_indicator("heikin_ashi", {})
             elif ctype == "renko":
                 self.chart.add_indicator("renko", {})
-            elif ctype in ("line", "area"):
-                # Change candle display via settings
-                from core.paths import data as _data
-                import json, os
-                settings_path = _data("settings.json")
-                try:
-                    cur = json.load(open(settings_path)) if os.path.exists(settings_path) else {}
-                except:
-                    cur = {}
-                cur["chart_type"] = ctype
-                json.dump(cur, open(settings_path, "w"), indent=1)
-                self.chart.refresh_same()
         except Exception as e:
             print(f"chart type switch failed: {e}")
 
     def _on_screenshot(self):
-        """TradingView-like screenshot"""
         try:
             pixmap = self.chart.grab()
-            from PyQt6.QtWidgets import QFileDialog
             import datetime
             fname = f"chart_{self.bar.symbol()}_{self.bar.timeframe()}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-            path, _ = QFileDialog.getSaveFileName(self, "Save Chart Screenshot", fname, "PNG (*.png)")
+            path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save Screenshot", fname, "PNG (*.png)")
             if path:
                 pixmap.save(path)
         except Exception as e:
             print(f"screenshot failed: {e}")
 
     def _on_chart_settings(self):
-        """Chart settings dialog like TradingView"""
         try:
-            from PyQt6.QtWidgets import QDialog, QFormLayout, QCheckBox, QSpinBox, QDialogButtonBox
+            from PyQt6.QtWidgets import QDialog, QFormLayout, QCheckBox, QDialogButtonBox
             dlg = QDialog(self)
-            dlg.setWindowTitle("Chart Settings - TradingView Style")
+            dlg.setWindowTitle("Chart Settings")
             dlg.resize(400, 300)
             layout = QFormLayout(dlg)
-            
-            # Grid
-            grid_cb = QCheckBox()
-            grid_cb.setChecked(True)
+            grid_cb = QCheckBox(); grid_cb.setChecked(True)
             layout.addRow("Show Grid", grid_cb)
-            
-            # Volume
-            vol_cb = QCheckBox()
-            vol_cb.setChecked(True)
+            vol_cb = QCheckBox(); vol_cb.setChecked(True)
             layout.addRow("Show Volume", vol_cb)
-            
-            # Crosshair
-            cross_cb = QCheckBox()
-            cross_cb.setChecked(True)
-            layout.addRow("Show Crosshair", cross_cb)
-            
-            # Price line
-            price_cb = QCheckBox()
-            price_cb.setChecked(True)
-            layout.addRow("Show Price Line", price_cb)
-            
             btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            btns.accepted.connect(dlg.accept)
-            btns.rejected.connect(dlg.reject)
+            btns.accepted.connect(dlg.accept); btns.rejected.connect(dlg.reject)
             layout.addRow(btns)
-            
-            if dlg.exec():
-                # Apply settings
-                pass
+            dlg.exec()
         except Exception as e:
             print(f"settings dialog failed: {e}")
 
@@ -1970,9 +1934,6 @@ class SettingsPage(QtWidgets.QWidget):
         super().__init__(parent)
         v = QtWidgets.QVBoxLayout(self)
         v.setContentsMargins(24, 20, 24, 20)
-        v.setSpacing(12)
-        
-        # === Main Settings Card ===
         c = Card(t("nav_settings"))
         f = QtWidgets.QFormLayout()
         self.lang = QtWidgets.QComboBox()
@@ -1982,65 +1943,6 @@ class SettingsPage(QtWidgets.QWidget):
         f.addRow(t("lang"), self.lang)
         self.clear = QtWidgets.QPushButton(t("cache_clear"))
         f.addRow(t("data_src"), self.clear)
-        
-        # === Advanced Features Card (NEW) ===
-        adv_card = Card("🚀 Advanced Features - قابلیت‌های پیشرفته")
-        adv_form = QtWidgets.QFormLayout()
-        
-        # Persistence / Background Analysis
-        self.autostart_cb = QtWidgets.QCheckBox("Auto-start on boot - اجرای خودکار هنگام بالا آمدن ویندوز")
-        self.minimize_cb = QtWidgets.QCheckBox("Minimize to tray instead of exit - بستن به سینی سیستم")
-        self.background_cb = QtWidgets.QCheckBox("Background analysis 24/7 - تحلیل 24 ساعته حتی وقتی برنامه بسته است")
-        try:
-            cur = json.load(open(SETTINGS_PATH))
-            self.autostart_cb.setChecked(cur.get("autostart_enabled", True))
-            self.minimize_cb.setChecked(cur.get("minimize_to_tray", True))
-            self.background_cb.setChecked(cur.get("background_analysis", True))
-        except Exception:
-            self.autostart_cb.setChecked(True)
-            self.minimize_cb.setChecked(True)
-            self.background_cb.setChecked(True)
-        
-        self.autostart_cb.toggled.connect(self._toggle_autostart)
-        self.minimize_cb.toggled.connect(self._toggle_minimize)
-        self.background_cb.toggled.connect(self._toggle_background)
-        
-        adv_form.addRow("🔄 Persistence", self.autostart_cb)
-        adv_form.addRow("📥 Tray Mode", self.minimize_cb)
-        adv_form.addRow("🧠 AI Analysis", self.background_cb)
-        
-        # Resilient Network Status
-        self.resilient_status = QtWidgets.QLabel("Checking...")
-        self.resilient_btn = QtWidgets.QPushButton("🌐 Test Anti-Filter Connection")
-        self.resilient_btn.clicked.connect(self._test_resilient)
-        resilient_row = QtWidgets.QHBoxLayout()
-        resilient_row.addWidget(self.resilient_status, 1)
-        resilient_row.addWidget(self.resilient_btn)
-        adv_form.addRow("🛡️ Anti-Filter", resilient_row)
-        
-        # Iran Gold Status
-        self.irangold_status = QtWidgets.QLabel("Checking...")
-        self.irangold_btn = QtWidgets.QPushButton("💰 Refresh Iran Gold Prices")
-        self.irangold_btn.clicked.connect(self._test_irangold)
-        iran_row = QtWidgets.QHBoxLayout()
-        iran_row.addWidget(self.irangold_status, 1)
-        iran_row.addWidget(self.irangold_btn)
-        adv_form.addRow("🇮🇷 طلای ایران", iran_row)
-        
-        # Evolution Status
-        self.evo_status = QtWidgets.QLabel("Checking...")
-        self.evo_btn = QtWidgets.QPushButton("🧬 Evolution Log")
-        self.evo_btn.clicked.connect(self._show_evolution)
-        evo_row = QtWidgets.QHBoxLayout()
-        evo_row.addWidget(self.evo_status, 1)
-        evo_row.addWidget(self.evo_btn)
-        adv_form.addRow("📈 Self-Improvement", evo_row)
-        
-        adv_card.v.addLayout(adv_form)
-        
-        # Load initial statuses
-        QtCore.QTimer.singleShot(500, self._load_advanced_status)
-        
         self.renderer = QtWidgets.QComboBox()
         self.renderer.addItem(t("chart_auto"), "auto"); self.renderer.addItem("pyqtgraph (GPU/QGraphicsView)", "pyqtgraph"); self.renderer.addItem(t("chart_compat"), "compat")
         try:
@@ -2079,7 +1981,6 @@ class SettingsPage(QtWidgets.QWidget):
             pass
         c.v.addLayout(f)
         v.addWidget(c)
-        v.addWidget(adv_card)
         try:
             from .portfolio_page import AlertsPanel
             al = Card(t("alerts")); al.add(AlertsPanel()); v.addWidget(al)
@@ -2168,124 +2069,6 @@ class SettingsPage(QtWidgets.QWidget):
         cur["lang"] = lang
         json.dump(cur, open(SETTINGS_PATH, "w"), indent=1)
         QtWidgets.QMessageBox.information(self, "OK", "Restart the app to apply language.\nبرای اعمال زبان، برنامه را دوباره باز کنید.")
-    
-    # === Advanced Features Methods ===
-    def _toggle_autostart(self, enabled):
-        try:
-            cur = json.load(open(SETTINGS_PATH))
-        except Exception:
-            cur = {}
-        cur["autostart_enabled"] = enabled
-        json.dump(cur, open(SETTINGS_PATH, "w"), indent=1, ensure_ascii=False)
-        try:
-            from core import persistence
-            if enabled:
-                persistence.ensure_autostart(True)
-            else:
-                persistence.uninstall_autostart()
-        except Exception as e:
-            QtWidgets.QMessageBox.warning(self, "Autostart", f"Failed: {e}")
-    
-    def _toggle_minimize(self, enabled):
-        try:
-            cur = json.load(open(SETTINGS_PATH))
-        except Exception:
-            cur = {}
-        cur["minimize_to_tray"] = enabled
-        json.dump(cur, open(SETTINGS_PATH, "w"), indent=1, ensure_ascii=False)
-    
-    def _toggle_background(self, enabled):
-        try:
-            cur = json.load(open(SETTINGS_PATH))
-        except Exception:
-            cur = {}
-        cur["background_analysis"] = enabled
-        json.dump(cur, open(SETTINGS_PATH, "w"), indent=1, ensure_ascii=False)
-        try:
-            from core import persistence, auto_evolution
-            if enabled:
-                persistence.start_background_service()
-                auto_evolution.start()
-            else:
-                auto_evolution.stop()
-        except Exception:
-            pass
-    
-    def _load_advanced_status(self):
-        try:
-            from core import resilient, persistence, auto_evolution, iran_gold
-            # Resilient
-            proxy = resilient.detect_system_proxy()
-            self.resilient_status.setText(f"Proxy: {proxy or 'Direct'} | Anti-filter active")
-            # Persistence
-            pid = persistence.get_background_pid()
-            running = persistence.is_background_running()
-            self.evo_status.setText(f"PID {pid} | Running: {running} | Auto-evolution active")
-            # Iran Gold
-            try:
-                prices = iran_gold.get_all_live_prices()
-                if prices:
-                    gold_price = prices.get("طلای 18 عیار / 750", {}).get("price", 0)
-                    self.irangold_status.setText(f"{len(prices)} symbols | 18K: {gold_price:,.0f} IRR")
-                else:
-                    self.irangold_status.setText("No data - will use synthetic")
-            except Exception as e:
-                self.irangold_status.setText(f"Error: {e}")
-        except Exception as e:
-            self.resilient_status.setText(f"Error: {e}")
-    
-    def _test_resilient(self):
-        self.resilient_status.setText("Testing...")
-        self.resilient_btn.setEnabled(False)
-        def _do():
-            try:
-                from core import resilient
-                health = resilient.health_check(verbose=True)
-                ok = sum(1 for v in health.values() if v)
-                total = len(health)
-                proxy = resilient.detect_system_proxy()
-                return f"✅ {ok}/{total} OK | Proxy: {proxy or 'Direct'} | {health}"
-            except Exception as e:
-                return f"❌ Failed: {e}"
-        def _done(result):
-            self.resilient_status.setText(result[:120])
-            self.resilient_btn.setEnabled(True)
-        w = Worker(lambda: _do())
-        w.done.connect(_done)
-        w.error.connect(lambda e: (self.resilient_status.setText(f"Error: {e}"), self.resilient_btn.setEnabled(True)))
-        w.start()
-    
-    def _test_irangold(self):
-        self.irangold_status.setText("Fetching...")
-        self.irangold_btn.setEnabled(False)
-        def _do():
-            try:
-                from core import iran_gold
-                prices = iran_gold.get_all_live_prices()
-                lines = []
-                for sym, data in list(prices.items())[:5]:
-                    lines.append(f"{sym}: {data['price']:,.0f}")
-                return "\n".join(lines) if lines else "No prices - using synthetic fallback"
-            except Exception as e:
-                return f"Failed: {e}"
-        def _done(result):
-            self.irangold_status.setText(result[:150])
-            self.irangold_btn.setEnabled(True)
-            QtWidgets.QMessageBox.information(self, "Iran Gold - طلای ایران", result)
-        w = Worker(lambda: _do())
-        w.done.connect(_done)
-        w.error.connect(lambda e: (self.irangold_status.setText(f"Error: {e}"), self.irangold_btn.setEnabled(True)))
-        w.start()
-    
-    def _show_evolution(self):
-        try:
-            from core import auto_evolution
-            status = auto_evolution.status()
-            log_tail = "\n".join(auto_evolution.tail(20))
-            msg = f"Generation: {status.get('generation', 0)}\nRunning: {status.get('running')}\nCurrent: {status.get('current_task')}\n\nLog:\n{log_tail}"
-            QtWidgets.QMessageBox.information(self, "Auto-Evolution - خودپیشرفت", msg)
-        except Exception as e:
-            QtWidgets.QMessageBox.warning(self, "Evolution", f"Error: {e}")
 
 
 # ---------------------------------------------------------------- Indicator Encyclopedia
