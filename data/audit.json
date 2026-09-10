@@ -1,789 +1,1845 @@
 {
- "ts": 1788799269.6196868,
- "results": {
-  "ema_cross": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.15 (t=+1.3, n=404)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.026
-  },
-  "triple_ema": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.03 (t=+0.4, n=723)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.079
-  },
-  "golden_cross": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.90 (t=-0.5, n=105)"
-   ],
-   "seconds": 0.0,
-   "signal_frac": 0.006
-  },
-  "supertrend": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.01 (t=+0.1, n=235)"
-   ],
-   "seconds": 0.02,
-   "signal_frac": 0.014
-  },
-  "ichimoku": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.89 (t=-0.8, n=212)"
-   ],
-   "seconds": 0.02,
-   "signal_frac": 0.013
-  },
-  "psar": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.09 (t=+1.1, n=705)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.047
-  },
-  "turtle": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.04 (t=+0.4, n=630)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.089
-  },
-  "adx_dmi": {
-   "status": "pass",
-   "findings": [],
-   "seconds": 0.01,
-   "signal_frac": 0.0
-  },
-  "hull": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.05 (t=+0.7, n=888)"
-   ],
-   "seconds": 0.05,
-   "signal_frac": 0.048
-  },
-  "macd_trend": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.21 (t=+1.4, n=254)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.015
-  },
-  "stoch_rsi": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.01 (t=+0.1, n=609)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.048
-  },
-  "rsi_div": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.88 (t=-0.9, n=281)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.016
-  },
-  "rsi_reversal": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.98 (t=-0.1, n=50)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.003
-  },
-  "rsi2": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.98 (t=-0.2, n=542)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.044
-  },
-  "bb_bounce": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.97 (t=-0.4, n=1036)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.067
-  },
-  "vwap": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.21 (t=+1.5, n=275)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.026
-  },
-  "bb_squeeze": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.14 (t=+1.1, n=346)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.022
-  },
-  "obv_trend": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.97 (t=-0.3, n=539)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.057
-  },
-  "mfi": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.98 (t=-0.2, n=346)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.024
-  },
-  "pinbar": {
-   "status": "pass",
-   "findings": [],
-   "seconds": 0.01,
-   "signal_frac": 0.002
-  },
-  "engulfing": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.97 (t=-0.3, n=446)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.028
-  },
-  "inside_bar": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.06 (t=+0.7, n=594)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.041
-  },
-  "morning_evening_star": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.00 (t=-0.0, n=97)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.008
-  },
-  "sr_breakout_retest": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.08 (t=+0.7, n=475)"
-   ],
-   "seconds": 0.03,
-   "signal_frac": 0.041
-  },
-  "fib_pullback": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.06 (t=+0.6, n=418)"
-   ],
-   "seconds": 0.02,
-   "signal_frac": 0.028
-  },
-  "orb": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.07 (t=+0.9, n=707)"
-   ],
-   "seconds": 0.08,
-   "signal_frac": 0.04
-  },
-  "supply_demand": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.03 (t=+0.1, n=43)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.004
-  },
-  "ict_fvg": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.01 (t=+0.0, n=381)"
-   ],
-   "seconds": 0.02,
-   "signal_frac": 0.03
-  },
-  "ict_ob": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.95 (t=-0.4, n=341)"
-   ],
-   "seconds": 0.03,
-   "signal_frac": 0.025
-  },
-  "liquidity_sweep": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.01 (t=+0.1, n=588)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.035
-  },
-  "market_structure": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.97 (t=-0.2, n=302)"
-   ],
-   "seconds": 0.02,
-   "signal_frac": 0.024
-  },
-  "wyckoff_spring": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.79 (t=-1.3, n=178)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.01
-  },
-  "holy_grail": {
-   "status": "pass",
-   "findings": [],
-   "seconds": 0.02,
-   "signal_frac": 0.001
-  },
-  "anti": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.15 (t=+1.5, n=633)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.04
-  },
-  "lw_vol_breakout": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.97 (t=-0.7, n=3269)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.24
-  },
-  "triple_rsi": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.93 (t=-0.4, n=122)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.006
-  },
-  "ibs": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.11 (t=+0.5, n=118)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.01
-  },
-  "turnaround_tuesday": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.85 (t=-1.4, n=388)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.059
-  },
-  "nr7": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.01 (t=+0.1, n=920)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.058
-  },
-  "silver_bullet": {
-   "status": "pass",
-   "findings": [],
-   "seconds": 0.01,
-   "signal_frac": 0.0
-  },
-  "po3": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.05 (t=+0.5, n=411)"
-   ],
-   "seconds": 0.02,
-   "signal_frac": 0.032
-  },
-  "false_breakout": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.03 (t=+0.5, n=1077)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.085
-  },
-  "ft_ema800": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.26 (t=+1.3, n=249)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.021
-  },
-  "ft_double_ema": {
-   "status": "warn",
-   "findings": [
-    "suspicious on random data (t=2.4, PF=1.41)",
-    "random-data PF 1.41 (t=+2.4, n=242)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.02
-  },
-  "ft_rsi_dir": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.32 (t=+1.2, n=80)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.009
-  },
-  "binhv45": {
-   "status": "pass",
-   "findings": [],
-   "seconds": 0.01,
-   "signal_frac": 0.001
-  },
-  "clucmay": {
-   "status": "pass",
-   "findings": [],
-   "seconds": 0.01,
-   "signal_frac": 0.002
-  },
-  "bband_rsi_bot": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.03 (t=+0.3, n=312)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.022
-  },
-  "adx_momentum_bot": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.02 (t=+0.1, n=319)"
-   ],
-   "seconds": 0.02,
-   "signal_frac": 0.034
-  },
-  "macd_cci_bot": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.33 (t=+0.8, n=33)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.005
-  },
-  "wavetrend": {
-   "status": "pass",
-   "findings": [],
-   "seconds": 0.01,
-   "signal_frac": 0.002
-  },
-  "elder_impulse": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.09 (t=+1.3, n=1153)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.12
-  },
-  "chandelier_chop": {
-   "status": "warn",
-   "findings": [
-    "suspicious on random data (t=2.1, PF=1.22)",
-    "random-data PF 1.22 (t=+2.1, n=644)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.065
-  },
-  "nfi_lite": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.89 (t=-0.5, n=82)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.006
-  },
-  "ensemble": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.09 (t=+1.1, n=820)"
-   ],
-   "seconds": 0.72,
-   "signal_frac": 0.108
-  },
-  "connors_rsi2_classic": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.96 (t=-0.3, n=316)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.015
-  },
-  "cum_rsi2": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.16 (t=+1.0, n=340)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.014
-  },
-  "double7": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.09 (t=+0.8, n=539)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.028
-  },
-  "three_down_days": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.91 (t=-0.5, n=186)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.008
-  },
-  "ibs_low_hwr": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.97 (t=-0.3, n=933)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.042
-  },
-  "rsi2_dual_trend": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.20 (t=+0.5, n=60)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.003
-  },
-  "bb_rsi2_hwr": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.83 (t=-0.7, n=73)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.004
-  },
-  "hwr_portfolio": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.95 (t=-0.5, n=770)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.036
-  },
-  "wilder_dmi_extreme": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.96 (t=-0.1, n=90)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.008
-  },
-  "lane_stoch_div": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.74 (t=-1.9, n=175)"
-   ],
-   "seconds": 0.02,
-   "signal_frac": 0.014
-  },
-  "appel_macd": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.02 (t=+0.1, n=264)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.018
-  },
-  "bollinger_w": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.83 (t=+1.6, n=44)"
-   ],
-   "seconds": 0.02,
-   "signal_frac": 0.007
-  },
-  "elder_triple_screen": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.05 (t=+0.8, n=1540)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.149
-  },
-  "bw_alligator_fractal": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.96 (t=-0.3, n=399)"
-   ],
-   "seconds": 0.02,
-   "signal_frac": 0.061
-  },
-  "weinstein_stage2": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.74 (t=-0.8, n=34)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.004
-  },
-  "minervini_tt": {
-   "status": "pass",
-   "findings": [],
-   "seconds": 0.01,
-   "signal_frac": 0.0
-  },
-  "oneil_cup_handle": {
-   "status": "pass",
-   "findings": [],
-   "seconds": 0.06,
-   "signal_frac": 0.0
-  },
-  "chaikin_cmf": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.08 (t=+0.3, n=64)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.004
-  },
-  "chande_aroon_cmo": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.25 (t=+0.7, n=50)"
-   ],
-   "seconds": 0.02,
-   "signal_frac": 0.004
-  },
-  "kaufman_kama": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.18 (t=+1.9, n=831)"
-   ],
-   "seconds": 0.02,
-   "signal_frac": 0.107
-  },
-  "lambert_cci": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.94 (t=-0.6, n=734)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.04
-  },
-  "williams_pctr": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.76 (t=-2.4, n=340)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.022
-  },
-  "pring_kst": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.25 (t=+1.8, n=303)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.023
-  },
-  "jesse_trend_atr": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.00 (t=-0.0, n=198)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.012
-  },
-  "octobot_daily": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.91 (t=-1.3, n=939)"
-   ],
-   "seconds": 0.02,
-   "signal_frac": 0.082
-  },
-  "superalgos_lrc": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.01 (t=+0.0, n=310)"
-   ],
-   "seconds": 0.04,
-   "signal_frac": 0.023
-  },
-  "hummingbot_fv": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.90 (t=-0.8, n=295)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.029
-  },
-  "gekko_macd": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.05 (t=+0.7, n=1304)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.084
-  },
-  "gekko_dema": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.16 (t=+1.7, n=695)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.043
-  },
-  "zenbot_trend_ema": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.06 (t=+0.7, n=1011)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.112
-  },
-  "grid_bot": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.98 (t=-0.2, n=1520)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.116
-  },
-  "dca_bot": {
-   "status": "pass",
-   "findings": [],
-   "seconds": 0.01,
-   "signal_frac": 0.0
-  },
-  "elder_force2": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.07 (t=+0.9, n=1082)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.175
-  },
-  "oneil_canslim": {
-   "status": "pass",
-   "findings": [],
-   "seconds": 0.01,
-   "signal_frac": 0.002
-  },
-  "murphy_confirm": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.91 (t=-0.8, n=394)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.032
-  },
-  "nison_candles": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.95 (t=-0.7, n=984)"
-   ],
-   "seconds": 0.05,
-   "signal_frac": 0.077
-  },
-  "bulkowski_patterns": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.16 (t=+1.6, n=490)"
-   ],
-   "seconds": 3.01,
-   "signal_frac": 0.052
-  },
-  "chan_statarb": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.16 (t=+0.5, n=67)"
-   ],
-   "seconds": 0.27,
-   "signal_frac": 0.004
-  },
-  "regime_ensemble": {
-   "status": "pass",
-   "findings": [],
-   "seconds": 0.05,
-   "signal_frac": 0.0
-  },
-  "chan_kalman": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.00 (t=-0.0, n=653)"
-   ],
-   "seconds": 0.07,
-   "signal_frac": 0.048
-  },
-  "elder_impulse_safezone": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.03 (t=+0.3, n=842)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.066
-  },
-  "jesse_anchor": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.26 (t=+2.0, n=382)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.044
-  },
-  "oneil_sell_rules": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.84 (t=-0.5, n=51)"
-   ],
-   "seconds": 0.0,
-   "signal_frac": 0.002
-  },
-  "freqtrade_sample": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 0.90 (t=-0.6, n=175)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.021
-  },
-  "davey_robust": {
-   "status": "pass",
-   "findings": [
-    "random-data PF 1.12 (t=+0.7, n=291)"
-   ],
-   "seconds": 0.01,
-   "signal_frac": 0.098
+  "ts": 1789012957.5473242,
+  "results": {
+    "ema_cross": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.15 (t=+1.3, n=404)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.026
+    },
+    "triple_ema": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.03 (t=+0.4, n=723)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.079
+    },
+    "golden_cross": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.90 (t=-0.5, n=105)"
+      ],
+      "seconds": 0.0,
+      "signal_frac": 0.006
+    },
+    "supertrend": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.01 (t=+0.1, n=235)"
+      ],
+      "seconds": 0.02,
+      "signal_frac": 0.014
+    },
+    "ichimoku": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.89 (t=-0.8, n=212)"
+      ],
+      "seconds": 0.02,
+      "signal_frac": 0.013
+    },
+    "psar": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.09 (t=+1.1, n=705)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.047
+    },
+    "turtle": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.04 (t=+0.4, n=630)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.089
+    },
+    "adx_dmi": {
+      "status": "pass",
+      "findings": [],
+      "seconds": 0.01,
+      "signal_frac": 0.0
+    },
+    "hull": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.05 (t=+0.7, n=888)"
+      ],
+      "seconds": 0.05,
+      "signal_frac": 0.048
+    },
+    "macd_trend": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.21 (t=+1.4, n=254)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.015
+    },
+    "stoch_rsi": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.01 (t=+0.1, n=609)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.048
+    },
+    "rsi_div": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.88 (t=-0.9, n=281)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.016
+    },
+    "rsi_reversal": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.98 (t=-0.1, n=50)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.003
+    },
+    "rsi2": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.98 (t=-0.2, n=542)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.044
+    },
+    "bb_bounce": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.97 (t=-0.4, n=1036)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.067
+    },
+    "vwap": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.21 (t=+1.5, n=275)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.026
+    },
+    "bb_squeeze": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.14 (t=+1.1, n=346)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.022
+    },
+    "obv_trend": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.97 (t=-0.3, n=539)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.057
+    },
+    "mfi": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.98 (t=-0.2, n=346)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.024
+    },
+    "pinbar": {
+      "status": "pass",
+      "findings": [],
+      "seconds": 0.01,
+      "signal_frac": 0.002
+    },
+    "engulfing": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.97 (t=-0.3, n=446)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.028
+    },
+    "inside_bar": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.06 (t=+0.7, n=594)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.041
+    },
+    "morning_evening_star": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.00 (t=-0.0, n=97)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.008
+    },
+    "sr_breakout_retest": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.08 (t=+0.7, n=475)"
+      ],
+      "seconds": 0.03,
+      "signal_frac": 0.041
+    },
+    "fib_pullback": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.06 (t=+0.6, n=418)"
+      ],
+      "seconds": 0.02,
+      "signal_frac": 0.028
+    },
+    "orb": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.07 (t=+0.9, n=707)"
+      ],
+      "seconds": 0.08,
+      "signal_frac": 0.04
+    },
+    "supply_demand": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.03 (t=+0.1, n=43)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.004
+    },
+    "ict_fvg": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.01 (t=+0.0, n=381)"
+      ],
+      "seconds": 0.02,
+      "signal_frac": 0.03
+    },
+    "ict_ob": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.95 (t=-0.4, n=341)"
+      ],
+      "seconds": 0.03,
+      "signal_frac": 0.025
+    },
+    "liquidity_sweep": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.01 (t=+0.1, n=588)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.035
+    },
+    "market_structure": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.97 (t=-0.2, n=302)"
+      ],
+      "seconds": 0.02,
+      "signal_frac": 0.024
+    },
+    "wyckoff_spring": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.79 (t=-1.3, n=178)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.01
+    },
+    "holy_grail": {
+      "status": "pass",
+      "findings": [],
+      "seconds": 0.02,
+      "signal_frac": 0.001
+    },
+    "anti": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.15 (t=+1.5, n=633)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.04
+    },
+    "lw_vol_breakout": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.97 (t=-0.7, n=3269)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.24
+    },
+    "triple_rsi": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.93 (t=-0.4, n=122)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.006
+    },
+    "ibs": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.11 (t=+0.5, n=118)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.01
+    },
+    "turnaround_tuesday": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.85 (t=-1.4, n=388)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.059
+    },
+    "nr7": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.01 (t=+0.1, n=920)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.058
+    },
+    "silver_bullet": {
+      "status": "pass",
+      "findings": [],
+      "seconds": 0.01,
+      "signal_frac": 0.0
+    },
+    "po3": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.05 (t=+0.5, n=411)"
+      ],
+      "seconds": 0.02,
+      "signal_frac": 0.032
+    },
+    "false_breakout": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.03 (t=+0.5, n=1077)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.085
+    },
+    "ft_ema800": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.26 (t=+1.3, n=249)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.021
+    },
+    "ft_double_ema": {
+      "status": "warn",
+      "findings": [
+        "suspicious on random data (t=2.4, PF=1.41)",
+        "random-data PF 1.41 (t=+2.4, n=242)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.02
+    },
+    "ft_rsi_dir": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.32 (t=+1.2, n=80)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.009
+    },
+    "binhv45": {
+      "status": "pass",
+      "findings": [],
+      "seconds": 0.01,
+      "signal_frac": 0.001
+    },
+    "clucmay": {
+      "status": "pass",
+      "findings": [],
+      "seconds": 0.01,
+      "signal_frac": 0.002
+    },
+    "bband_rsi_bot": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.03 (t=+0.3, n=312)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.022
+    },
+    "adx_momentum_bot": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.02 (t=+0.1, n=319)"
+      ],
+      "seconds": 0.02,
+      "signal_frac": 0.034
+    },
+    "macd_cci_bot": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.33 (t=+0.8, n=33)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.005
+    },
+    "wavetrend": {
+      "status": "pass",
+      "findings": [],
+      "seconds": 0.01,
+      "signal_frac": 0.002
+    },
+    "elder_impulse": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.09 (t=+1.3, n=1153)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.12
+    },
+    "chandelier_chop": {
+      "status": "warn",
+      "findings": [
+        "suspicious on random data (t=2.1, PF=1.22)",
+        "random-data PF 1.22 (t=+2.1, n=644)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.065
+    },
+    "nfi_lite": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.89 (t=-0.5, n=82)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.006
+    },
+    "ensemble": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.09 (t=+1.1, n=820)"
+      ],
+      "seconds": 0.72,
+      "signal_frac": 0.108
+    },
+    "connors_rsi2_classic": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.96 (t=-0.3, n=316)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.015
+    },
+    "cum_rsi2": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.16 (t=+1.0, n=340)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.014
+    },
+    "double7": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.09 (t=+0.8, n=539)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.028
+    },
+    "three_down_days": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.91 (t=-0.5, n=186)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.008
+    },
+    "ibs_low_hwr": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.97 (t=-0.3, n=933)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.042
+    },
+    "rsi2_dual_trend": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.20 (t=+0.5, n=60)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.003
+    },
+    "bb_rsi2_hwr": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.83 (t=-0.7, n=73)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.004
+    },
+    "hwr_portfolio": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.95 (t=-0.5, n=770)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.036
+    },
+    "wilder_dmi_extreme": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.96 (t=-0.1, n=90)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.008
+    },
+    "lane_stoch_div": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.74 (t=-1.9, n=175)"
+      ],
+      "seconds": 0.02,
+      "signal_frac": 0.014
+    },
+    "appel_macd": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.02 (t=+0.1, n=264)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.018
+    },
+    "bollinger_w": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.83 (t=+1.6, n=44)"
+      ],
+      "seconds": 0.02,
+      "signal_frac": 0.007
+    },
+    "elder_triple_screen": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.05 (t=+0.8, n=1540)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.149
+    },
+    "bw_alligator_fractal": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.96 (t=-0.3, n=399)"
+      ],
+      "seconds": 0.02,
+      "signal_frac": 0.061
+    },
+    "weinstein_stage2": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.74 (t=-0.8, n=34)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.004
+    },
+    "minervini_tt": {
+      "status": "pass",
+      "findings": [],
+      "seconds": 0.01,
+      "signal_frac": 0.0
+    },
+    "oneil_cup_handle": {
+      "status": "pass",
+      "findings": [],
+      "seconds": 0.06,
+      "signal_frac": 0.0
+    },
+    "chaikin_cmf": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.08 (t=+0.3, n=64)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.004
+    },
+    "chande_aroon_cmo": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.25 (t=+0.7, n=50)"
+      ],
+      "seconds": 0.02,
+      "signal_frac": 0.004
+    },
+    "kaufman_kama": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.18 (t=+1.9, n=831)"
+      ],
+      "seconds": 0.02,
+      "signal_frac": 0.107
+    },
+    "lambert_cci": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.94 (t=-0.6, n=734)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.04
+    },
+    "williams_pctr": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.76 (t=-2.4, n=340)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.022
+    },
+    "pring_kst": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.25 (t=+1.8, n=303)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.023
+    },
+    "jesse_trend_atr": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.00 (t=-0.0, n=198)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.012
+    },
+    "octobot_daily": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.91 (t=-1.3, n=939)"
+      ],
+      "seconds": 0.02,
+      "signal_frac": 0.082
+    },
+    "superalgos_lrc": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.01 (t=+0.0, n=310)"
+      ],
+      "seconds": 0.04,
+      "signal_frac": 0.023
+    },
+    "hummingbot_fv": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.90 (t=-0.8, n=295)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.029
+    },
+    "gekko_macd": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.05 (t=+0.7, n=1304)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.084
+    },
+    "gekko_dema": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.16 (t=+1.7, n=695)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.043
+    },
+    "zenbot_trend_ema": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.06 (t=+0.7, n=1011)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.112
+    },
+    "grid_bot": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.98 (t=-0.2, n=1520)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.116
+    },
+    "dca_bot": {
+      "status": "pass",
+      "findings": [],
+      "seconds": 0.01,
+      "signal_frac": 0.0
+    },
+    "elder_force2": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.07 (t=+0.9, n=1082)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.175
+    },
+    "oneil_canslim": {
+      "status": "pass",
+      "findings": [],
+      "seconds": 0.01,
+      "signal_frac": 0.002
+    },
+    "murphy_confirm": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.91 (t=-0.8, n=394)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.032
+    },
+    "nison_candles": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.95 (t=-0.7, n=984)"
+      ],
+      "seconds": 0.05,
+      "signal_frac": 0.077
+    },
+    "bulkowski_patterns": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.16 (t=+1.6, n=490)"
+      ],
+      "seconds": 3.01,
+      "signal_frac": 0.052
+    },
+    "chan_statarb": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.16 (t=+0.5, n=67)"
+      ],
+      "seconds": 0.27,
+      "signal_frac": 0.004
+    },
+    "regime_ensemble": {
+      "status": "pass",
+      "findings": [],
+      "seconds": 0.05,
+      "signal_frac": 0.0
+    },
+    "chan_kalman": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.00 (t=-0.0, n=653)"
+      ],
+      "seconds": 0.07,
+      "signal_frac": 0.048
+    },
+    "elder_impulse_safezone": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.03 (t=+0.3, n=842)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.066
+    },
+    "jesse_anchor": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.26 (t=+2.0, n=382)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.044
+    },
+    "oneil_sell_rules": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.84 (t=-0.5, n=51)"
+      ],
+      "seconds": 0.0,
+      "signal_frac": 0.002
+    },
+    "freqtrade_sample": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 0.90 (t=-0.6, n=175)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.021
+    },
+    "davey_robust": {
+      "status": "pass",
+      "findings": [
+        "random-data PF 1.12 (t=+0.7, n=291)"
+      ],
+      "seconds": 0.01,
+      "signal_frac": 0.098
+    },
+    "vwap_pullback_scalp": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.784911
+    },
+    "vwap_band_fade": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.784913
+    },
+    "cvd_divergence": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849145
+    },
+    "stop_run_scalp": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849157
+    },
+    "brooks_h2l2": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849169
+    },
+    "micro_squeeze_pop": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849178
+    },
+    "session_orb": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849188
+    },
+    "triple_confirm_scalp": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849195
+    },
+    "fast_rsi_div_scalp": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.784921
+    },
+    "volume_climax_scalp": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849216
+    },
+    "funding_crowd_reversal": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849243
+    },
+    "ib_extension": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.784925
+    },
+    "value_area_bounce": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.784926
+    },
+    "triple_a_flow": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849276
+    },
+    "stacked_imbalance_retest": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849283
+    },
+    "lvn_breakout": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849298
+    },
+    "anchored_scalp": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849307
+    },
+    "ft_scalp": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849321
+    },
+    "flat_bb_stoch": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849329
+    },
+    "nfi_dip_multi": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849336
+    },
+    "unfinished_auction": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849348
+    },
+    "ichimoku_perfect": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849357
+    },
+    "ichimoku_tk_strong": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849383
+    },
+    "ichimoku_kumo_breakout": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849393
+    },
+    "ichimoku_kijun_bounce": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849402
+    },
+    "ichimoku_kumo_twist": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7849412
+    },
+    "ichimoku_chikou_break": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850127
+    },
+    "ichimoku_edge_to_edge": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850153
+    },
+    "ichimoku_flat_kumo": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850168
+    },
+    "ichimoku_crypto_20_60_120": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.785018
+    },
+    "ichimoku_mtf": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850187
+    },
+    "ichimoku_wave_targets": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.78502
+    },
+    "wma_cross": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.785021
+    },
+    "zlema_trend": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.785022
+    },
+    "vwma_cross": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850227
+    },
+    "t3_slope": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850235
+    },
+    "mcginley_dynamic": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850244
+    },
+    "supersmoother_cross": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850258
+    },
+    "linreg_channel": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850266
+    },
+    "halftrend_flip": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850273
+    },
+    "vortex_cross": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850285
+    },
+    "trix_signal": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850292
+    },
+    "coppock_turn": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.785032
+    },
+    "schaff_cycle": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850325
+    },
+    "ultimate_osc": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850332
+    },
+    "ao_saucer": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850342
+    },
+    "ac_momentum": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.785035
+    },
+    "fisher_transform": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850356
+    },
+    "qqe_cross": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850366
+    },
+    "elder_ray": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850373
+    },
+    "mass_index_bulge": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850378
+    },
+    "zscore_reversion": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.785039
+    },
+    "hv_squeeze_breakout": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850397
+    },
+    "ad_line_div": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850404
+    },
+    "vpt_trend": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850425
+    },
+    "nvi_smart_money": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850435
+    },
+    "klinger_cross": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850447
+    },
+    "rvol_breakout": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850454
+    },
+    "heikin_ashi_trend": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850475
+    },
+    "zigzag_structure": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850485
+    },
+    "vp_value_area": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850494
+    },
+    "fib_golden_pocket": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850504
+    },
+    "rs_leader": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.785051
+    },
+    "chan_buy1": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.785052
+    },
+    "chan_buy3": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850535
+    },
+    "sakata_sanpei": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850542
+    },
+    "sakata_sanku": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.785055
+    },
+    "sakata_sanpo": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850566
+    },
+    "sakata_sanzan": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850575
+    },
+    "gerchik_false_break": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850583
+    },
+    "gerchik_paranormal_bar": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850597
+    },
+    "lw_setup_91": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850623
+    },
+    "lw_setup_92": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850633
+    },
+    "stormer_81": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850647
+    },
+    "cpr_narrow_trend": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850673
+    },
+    "rtm_quasimodo": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.785068
+    },
+    "rtm_ftr": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850688
+    },
+    "rtm_compression": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.78507
+    },
+    "wyckoff_spring_test": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850707
+    },
+    "bnf_mean_rev": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850714
+    },
+    "bnf_sniper": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850723
+    },
+    "gerchik_levels": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.785073
+    },
+    "stormer_91": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850745
+    },
+    "stormer_92": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850752
+    },
+    "stormer_93": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.785076
+    },
+    "cpr_breakout": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850766
+    },
+    "cpr_virgin": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850788
+    },
+    "rtm_qm": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850797
+    },
+    "rtm_flag": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850807
+    },
+    "gold_trend_ema": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850814
+    },
+    "gold_breakout_range": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850833
+    },
+    "gold_session_break": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850842
+    },
+    "gold_news_fade": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850847
+    },
+    "ichimoku_perfect_gold": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850854
+    },
+    "wyckoff_spring_gold": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012927.7850862
+    },
+    "gerchik_false_break2": {
+      "status": "pass",
+      "checks": {
+        "truncation": "pass",
+        "determinism": "pass",
+        "signal_sanity": "pass",
+        "speed": "pass",
+        "random_walk": "pass"
+      },
+      "ts": 1789012957.5472724
+    }
+  },
+  "summary": {
+    "n": 196,
+    "pass": 194,
+    "warn": 2,
+    "fail": 0
   }
- },
- "summary": {
-  "n": 100,
-  "pass": 98,
-  "warn": 2,
-  "fail": 0
- }
 }

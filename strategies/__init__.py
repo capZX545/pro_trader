@@ -6,7 +6,7 @@ except Exception:
     pass
 _w.filterwarnings("ignore", category=FutureWarning, module=r"strategies\..*")
 from .base import Strategy, StrategyResult
-from . import trend, meanrev, priceaction, masters, bots, ensemble, highwr, masters2, bots2, bots3, scalp, orderflow, ichimoku, indicator_signals, world_masters
+from . import trend, meanrev, priceaction, masters, bots, ensemble, highwr, masters2, bots2, bots3, scalp, orderflow, ichimoku, indicator_signals, world_masters, world_masters2
 
 ALL_STRATEGIES = [
     # Trend
@@ -49,6 +49,7 @@ ALL_STRATEGIES = [
     *ichimoku.ICHIMOKU_STRATEGIES,
     *indicator_signals.INDICATOR_STRATEGIES,
     *world_masters.WORLD_STRATEGIES,
+    *world_masters2.WORLD_MASTERS2_STRATEGIES,
 ]
 
 REGISTRY = {s.id: s for s in ALL_STRATEGIES}

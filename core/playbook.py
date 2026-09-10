@@ -29,6 +29,7 @@ GROUPS = {
                "DAX", "SPY", "QQQ", "IWM", "EEM"],
     "commodities": ["Gold (XAU/USD)", "Silver (XAG/USD)", "Crude Oil (WTI)", "Brent Oil", "Copper", "Natural Gas", "Platinum", "GLD", "USO"],
     "forex": ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD", "USD/CHF", "NZD/USD", "EUR/GBP", "EUR/JPY", "GBP/JPY", "AUD/JPY"],
+    "iran_gold": ["طلای 18 عیار / 750", "سکه امامی", "دلار آزاد", "انس طلا", "طلای 24 عیار", "نیم سکه", "ربع سکه"],
 }
 # min bars of history for a (tf) to be worth testing
 MIN_BARS = {"1m": 5000, "3m": 4000, "5m": 3000, "15m": 2000, "30m": 1500, "1h": 1500, "2h": 1200, "4h": 800, "6h": 700, "12h": 600, "1d": 600, "3d": 300, "1wk": 200, "1mo": 100}
@@ -43,6 +44,9 @@ def group_of(symbol):
     for g, syms in GROUPS.items():
         if symbol in syms:
             return g
+    # Iran Gold detection
+    if any(x in symbol for x in ["طلا", "سکه", "مثقال", "IR-GOLD", "IR-SEKEH", "IR-MESGHAL", "IR-NIM", "IR-ROB", "IR-USD"]):
+        return "iran_gold"
     if symbol.upper().endswith("/USDT"):
         return "crypto"
     return "stocks"

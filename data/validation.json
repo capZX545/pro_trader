@@ -48602,5 +48602,1349 @@
    }
   ],
   "ts": 1788761803.6656694
+ },
+ "vwap_pullback_scalp": {
+  "id": "vwap_pullback_scalp",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095053,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "vwap_band_fade": {
+  "id": "vwap_band_fade",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095086,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "cvd_divergence": {
+  "id": "cvd_divergence",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095105,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "stop_run_scalp": {
+  "id": "stop_run_scalp",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509512,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "brooks_h2l2": {
+  "id": "brooks_h2l2",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509521,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "micro_squeeze_pop": {
+  "id": "micro_squeeze_pop",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095222,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "session_orb": {
+  "id": "session_orb",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095239,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "triple_confirm_scalp": {
+  "id": "triple_confirm_scalp",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095255,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "fast_rsi_div_scalp": {
+  "id": "fast_rsi_div_scalp",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095272,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "volume_climax_scalp": {
+  "id": "volume_climax_scalp",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095284,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "funding_crowd_reversal": {
+  "id": "funding_crowd_reversal",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095296,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ib_extension": {
+  "id": "ib_extension",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095308,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "value_area_bounce": {
+  "id": "value_area_bounce",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095572,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "triple_a_flow": {
+  "id": "triple_a_flow",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095599,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "stacked_imbalance_retest": {
+  "id": "stacked_imbalance_retest",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095618,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "lvn_breakout": {
+  "id": "lvn_breakout",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095634,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "anchored_scalp": {
+  "id": "anchored_scalp",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095649,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ft_scalp": {
+  "id": "ft_scalp",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509566,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "flat_bb_stoch": {
+  "id": "flat_bb_stoch",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095673,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "nfi_dip_multi": {
+  "id": "nfi_dip_multi",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095687,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "unfinished_auction": {
+  "id": "unfinished_auction",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509574,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ichimoku_perfect": {
+  "id": "ichimoku_perfect",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095751,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ichimoku_tk_strong": {
+  "id": "ichimoku_tk_strong",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095768,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ichimoku_kumo_breakout": {
+  "id": "ichimoku_kumo_breakout",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095778,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ichimoku_kijun_bounce": {
+  "id": "ichimoku_kijun_bounce",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095806,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ichimoku_kumo_twist": {
+  "id": "ichimoku_kumo_twist",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509583,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ichimoku_chikou_break": {
+  "id": "ichimoku_chikou_break",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095844,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ichimoku_edge_to_edge": {
+  "id": "ichimoku_edge_to_edge",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095856,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ichimoku_flat_kumo": {
+  "id": "ichimoku_flat_kumo",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509587,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ichimoku_crypto_20_60_120": {
+  "id": "ichimoku_crypto_20_60_120",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095882,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ichimoku_mtf": {
+  "id": "ichimoku_mtf",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095897,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ichimoku_wave_targets": {
+  "id": "ichimoku_wave_targets",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095913,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "wma_cross": {
+  "id": "wma_cross",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095925,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "zlema_trend": {
+  "id": "zlema_trend",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095942,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "vwma_cross": {
+  "id": "vwma_cross",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095952,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "t3_slope": {
+  "id": "t3_slope",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095963,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "mcginley_dynamic": {
+  "id": "mcginley_dynamic",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095978,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "supersmoother_cross": {
+  "id": "supersmoother_cross",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5095992,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "linreg_channel": {
+  "id": "linreg_channel",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096004,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "halftrend_flip": {
+  "id": "halftrend_flip",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096025,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "vortex_cross": {
+  "id": "vortex_cross",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096052,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "trix_signal": {
+  "id": "trix_signal",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096064,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "coppock_turn": {
+  "id": "coppock_turn",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096078,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "schaff_cycle": {
+  "id": "schaff_cycle",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509609,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ultimate_osc": {
+  "id": "ultimate_osc",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096102,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ao_saucer": {
+  "id": "ao_saucer",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096126,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ac_momentum": {
+  "id": "ac_momentum",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096138,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "fisher_transform": {
+  "id": "fisher_transform",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509615,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "qqe_cross": {
+  "id": "qqe_cross",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096164,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "elder_ray": {
+  "id": "elder_ray",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096176,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "mass_index_bulge": {
+  "id": "mass_index_bulge",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096192,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "zscore_reversion": {
+  "id": "zscore_reversion",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096204,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "hv_squeeze_breakout": {
+  "id": "hv_squeeze_breakout",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096219,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ad_line_div": {
+  "id": "ad_line_div",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096252,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "vpt_trend": {
+  "id": "vpt_trend",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096266,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "nvi_smart_money": {
+  "id": "nvi_smart_money",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096292,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "klinger_cross": {
+  "id": "klinger_cross",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096304,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "rvol_breakout": {
+  "id": "rvol_breakout",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096316,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "heikin_ashi_trend": {
+  "id": "heikin_ashi_trend",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509633,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "zigzag_structure": {
+  "id": "zigzag_structure",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096357,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "vp_value_area": {
+  "id": "vp_value_area",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509637,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "fib_golden_pocket": {
+  "id": "fib_golden_pocket",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096383,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "rs_leader": {
+  "id": "rs_leader",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096397,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "chan_buy1": {
+  "id": "chan_buy1",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096412,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "chan_buy3": {
+  "id": "chan_buy3",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096426,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "sakata_sanpei": {
+  "id": "sakata_sanpei",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096438,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "sakata_sanku": {
+  "id": "sakata_sanku",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096452,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "sakata_sanpo": {
+  "id": "sakata_sanpo",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096467,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "sakata_sanzan": {
+  "id": "sakata_sanzan",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096478,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "gerchik_false_break": {
+  "id": "gerchik_false_break",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509649,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "gerchik_paranormal_bar": {
+  "id": "gerchik_paranormal_bar",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096507,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "lw_setup_91": {
+  "id": "lw_setup_91",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096536,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "lw_setup_92": {
+  "id": "lw_setup_92",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096548,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "stormer_81": {
+  "id": "stormer_81",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509656,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "cpr_narrow_trend": {
+  "id": "cpr_narrow_trend",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096586,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "rtm_quasimodo": {
+  "id": "rtm_quasimodo",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096612,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "rtm_ftr": {
+  "id": "rtm_ftr",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096624,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "rtm_compression": {
+  "id": "rtm_compression",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096638,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "wyckoff_spring_test": {
+  "id": "wyckoff_spring_test",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509665,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "bnf_mean_rev": {
+  "id": "bnf_mean_rev",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509668,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "bnf_sniper": {
+  "id": "bnf_sniper",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096693,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "gerchik_levels": {
+  "id": "gerchik_levels",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096707,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "stormer_91": {
+  "id": "stormer_91",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096722,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "stormer_92": {
+  "id": "stormer_92",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509673,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "stormer_93": {
+  "id": "stormer_93",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096745,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "cpr_breakout": {
+  "id": "cpr_breakout",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096757,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "cpr_virgin": {
+  "id": "cpr_virgin",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096772,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "rtm_qm": {
+  "id": "rtm_qm",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096796,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "rtm_flag": {
+  "id": "rtm_flag",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509681,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "gold_trend_ema": {
+  "id": "gold_trend_ema",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096822,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "gold_breakout_range": {
+  "id": "gold_breakout_range",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096834,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "gold_session_break": {
+  "id": "gold_session_break",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096846,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "gold_news_fade": {
+  "id": "gold_news_fade",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096858,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "ichimoku_perfect_gold": {
+  "id": "ichimoku_perfect_gold",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.509687,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "wyckoff_spring_gold": {
+  "id": "wyckoff_spring_gold",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012927.5096884,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
+ },
+ "gerchik_false_break2": {
+  "id": "gerchik_false_break2",
+  "grade": "B",
+  "score": 65,
+  "checks": {
+   "determinism": true,
+   "no_lookahead": true,
+   "signal_sanity": true,
+   "speed": true,
+   "random_walk": true
+  },
+  "ts": 1789012957.244266,
+  "note": "Auto-enabled for all charts including Iran Gold - all markets"
  }
 }
