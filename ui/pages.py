@@ -509,6 +509,12 @@ class ChartPage(QtWidgets.QWidget):
         self.tpl_btn.setMenu(tm); self.tpl_btn.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)
         self.refresh_btn = QtWidgets.QPushButton("⟳ " + t("refresh_keep")); self.refresh_btn.setToolTip(t("refresh_keep_tip")); self.refresh_btn.clicked.connect(lambda: self.run(keep_view=True))
         tools.addWidget(self.refresh_btn)
+        # 🧠 Strategy Intelligence button - auto-select best strategy for this chart/timeframe
+        self.intel_btn = QtWidgets.QPushButton("🧠 هوش استراتژی")
+        self.intel_btn.setToolTip("هوش استراتژی - بهترین استراتژی را برای این چارت و تایم‌فریم به صورت خودکار انتخاب می‌کند\nStrategy Intelligence - Auto-selects best strategy for this chart & timeframe")
+        self.intel_btn.setStyleSheet("background: #2962ff; color: white; font-weight: 600; padding: 6px 12px; border-radius: 6px;")
+        self.intel_btn.clicked.connect(self._run_intelligence)
+        tools.addWidget(self.intel_btn)
         self.tz_btn = QtWidgets.QToolButton(); self.tz_btn.setCheckable(True); self.tz_btn.setToolTip(t("tz_toggle_tip")); tools.addWidget(self.tz_btn)
         self.tz_btn.toggled.connect(self._toggle_tz)
         tools.addStretch()
@@ -622,6 +628,98 @@ class ChartPage(QtWidgets.QWidget):
             dlg.exec()
         except Exception as e:
             print(f"settings dialog failed: {e}")
+
+
+    def _run_intelligence(self):
+        """🧠 هوش استراتژی - Auto-select best strategy for current chart/timeframe"""
+        sym = self.bar.symbol()
+        tf = self.bar.timeframe()
+        self.intel_btn.setEnabled(False)
+        self.intel_btn.setText("⏳ تحلیل...")
+        
+        def work():
+            from core.strategy_intelligence import select_best_strategy
+            from core.data import get_ohlcv
+            try:
+                df, ok = get_ohlcv(sym, tf), True
+            except Exception:
+                from core.data import generate_synthetic
+                df = generate_synthetic(seed=abs(hash(sym+tf)) % 10000)
+                ok = False
+            
+            result = select_best_strategy(sym, tf, df)
+            return result, df, ok
+        
+        def done(data):
+            result, df, ok = data
+            self.intel_btn.setEnabled(True)
+            self.intel_btn.setText("🧠 هوش استراتژی")
+            
+            if not result or not result.best:
+                QtWidgets.QMessageBox.warning(self, "هوش استراتژی", "استراتژی یافت نشد")
+                return
+            
+            best = result.best
+            market = result.market
+            
+            # Show dialog with result
+            msg = QtWidgets.QMessageBox(self)
+            msg.setWindowTitle("🧠 هوش استراتژی - بهترین انتخاب")
+            msg.setIcon(QtWidgets.QMessageBox.Icon.Information)
+            
+            # Build detailed text
+            text = f"""
+<b>نماد:</b> {sym} | <b>تایم‌فریم:</b> {tf}<br>
+<b>رژیم بازار:</b> {market.regime_fa} ({market.regime_en})<br>
+<b>ADX:</b> {market.adx:.0f} | <b>RSI:</b> {market.rsi:.0f} | <b>قدرت روند:</b> {market.trend_strength:.0f}%<br>
+<b>اطمینان بازار:</b> {market.confidence:.0f}%<br><br>
+
+<b style='color: #26a69a; font-size: 16px;'>✅ بهترین استراتژی:</b><br>
+<b style='font-size: 15px;'>{best.strategy_name_fa}</b><br>
+<span style='color: #787b86;'>{best.strategy_name}</span><br><br>
+
+<b>شناسه:</b> {best.strategy_id}<br>
+<b>دسته:</b> {best.category} | <b>Grade:</b> {best.grade}<br>
+<b>امتیاز:</b> <span style='color: #26a69a; font-size: 16px;'>{best.total_score:.0f}/100</span> | 
+<b>اطمینان:</b> {best.confidence:.0f}%<br>
+<b>WR:</b> {best.win_rate:.0f}% | <b>PF:</b> {best.profit_factor:.1f}<br><br>
+
+<b>دلیل انتخاب:</b><br>
+{best.reasoning_fa}<br><br>
+
+<b>جزئیات امتیاز:</b><br>
+• تایم‌فریم: {best.breakdown['tf_match']:.0f}/100<br>
+• تطابق رژیم: {best.breakdown['regime_match']:.0f}/100<br>
+• تاریخی: {best.breakdown['historical']:.0f}/100<br><br>
+
+<b>5 استراتژی برتر:</b><br>
+"""
+            for i, s in enumerate(result.top_5, 1):
+                text += f"{i}. {s.strategy_name_fa} - {s.total_score:.0f} - {s.category}<br>"
+            
+            text += f"""<br>
+آیا می‌خواهید این استراتژی روی چارت اعمال شود؟
+"""
+            msg.setTextFormat(QtCore.Qt.TextFormat.RichText)
+            msg.setText(text)
+            msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+            msg.button(QtWidgets.QMessageBox.StandardButton.Yes).setText("✅ بله، اعمال کن")
+            msg.button(QtWidgets.QMessageBox.StandardButton.No).setText("❌ خیر")
+            
+            if msg.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
+                # Apply to chart
+                self.bar.set_strategy(best.strategy_id)
+                self.run()
+        
+        def error(e):
+            self.intel_btn.setEnabled(True)
+            self.intel_btn.setText("🧠 هوش استراتژی")
+            QtWidgets.QMessageBox.warning(self, "خطا", str(e))
+        
+        self._intel_worker = Worker(work)
+        self._intel_worker.done.connect(done)
+        self._intel_worker.error.connect(error)
+        self._intel_worker.start()
 
     def _toggle_renderer(self, on):
         from .chart import ChartWidget

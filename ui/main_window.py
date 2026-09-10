@@ -23,6 +23,15 @@ except Exception:
     HAS_TV = False
     TradingViewAdvancedPage = None
 
+# Strategy Intelligence - هوش استراتژی
+try:
+    from .strategy_intelligence_page import StrategyIntelligencePage
+    HAS_INTEL = True
+except Exception as e:
+    print(f"[MainWindow] Strategy Intelligence not available: {e}")
+    HAS_INTEL = False
+    StrategyIntelligencePage = None
+
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -56,6 +65,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ("nav_desk", "🗞", DeskPage()),
             ("nav_chart", "📈", ChartPage()),
             ("nav_tv", "📊", TradingViewAdvancedPage() if HAS_TV and TradingViewAdvancedPage is not None else ChartPage()),
+            ("nav_intelligence", "🧠", StrategyIntelligencePage() if HAS_INTEL and StrategyIntelligencePage is not None else ChartPage()),
             ("nav_scan", "📡", ScannerPage()),
             ("nav_advisor", "🎯", AdvisorPage()),
             ("nav_forward", "🔬", ForwardPage()),

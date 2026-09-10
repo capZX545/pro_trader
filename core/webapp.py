@@ -522,7 +522,83 @@ def api_alert_scan(q):
     return _clean(AL.scan(tfs=[t for t in q.get("tfs", "1h,4h").split(",") if t], lang=q.get("lang", "fa"), dry=q.get("dry") == "1"))
 
 
-ROUTES = {"/api/meta": api_meta, "/api/chart_config": api_chart_config, "/api/quality": api_quality, "/api/plan": api_plan, "/api/desk": api_desk, "/api/cluster": api_cluster, "/api/calendar": api_calendar, "/api/notifications": api_notifications, "/api/alert_scan": api_alert_scan, "/api/symbols": api_symbols, "/api/strategies": api_strategies, "/api/ohlcv": api_ohlcv, "/api/run": api_run,
+def api_intelligence(q):
+    """🧠 Strategy Intelligence - auto-select best strategy for symbol/tf based on regime, timeframe, and proven performance"""
+    from core.strategy_intelligence import select_best_strategy
+    sym = q.get("sym", "BTC/USDT")
+    tf = q.get("tf", "1h")
+    
+    try:
+        result = select_best_strategy(sym, tf)
+        
+        # Convert to JSON-safe dict
+        market = dict(
+            regime=result.market.regime,
+            regime_fa=result.market.regime_fa,
+            regime_en=result.market.regime_en,
+            trend_strength=result.market.trend_strength,
+            volatility_level=result.market.volatility_level,
+            volatility_vs_median=result.market.volatility_vs_median,
+            adx=result.market.adx,
+            rsi=result.market.rsi,
+            ema_trend=result.market.ema_trend,
+            volume_trend=result.market.volume_trend,
+            confidence=result.market.confidence,
+        )
+        
+        def score_to_dict(s):
+            return dict(
+                id=s.strategy_id,
+                name=s.strategy_name,
+                name_fa=s.strategy_name_fa,
+                category=s.category,
+                score=s.total_score,
+                breakdown=s.breakdown,
+                win_rate=s.win_rate,
+                profit_factor=s.profit_factor,
+                grade=s.grade,
+                success_label=s.success_label,
+                reasoning_fa=s.reasoning_fa,
+                reasoning_en=s.reasoning_en,
+                confidence=s.confidence,
+            )
+        
+        best = score_to_dict(result.best) if result.best else None
+        top_5 = [score_to_dict(s) for s in result.top_5]
+        top_20 = [score_to_dict(s) for s in result.all_scored[:20]]
+        
+        # Build summaries from result (avoid double computation)
+        summary_fa = f"""🧠 هوش استراتژی - {sym} {tf}
+بازار: {result.market.regime_fa} (ADX {result.market.adx:.0f}, RSI {result.market.rsi:.0f})
+قدرت روند: {result.market.trend_strength:.0f}% | نوسان: {result.market.volatility_level:.0f}%
+✅ بهترین: {result.best.strategy_name_fa} ({result.best.strategy_id}) - امتیاز {result.best.total_score:.0f}/100
+دلیل: {result.best.reasoning_fa}
+"""
+        summary_en = f"""🧠 Strategy Intelligence - {sym} {tf}
+Market: {result.market.regime_en} (ADX {result.market.adx:.0f}, RSI {result.market.rsi:.0f})
+Trend: {result.market.trend_strength:.0f}% | Volatility: {result.market.volatility_level:.0f}%
+✅ Best: {result.best.strategy_name} ({result.best.strategy_id}) - Score {result.best.total_score:.0f}/100
+Reason: {result.best.reasoning_en}
+"""
+        
+        return dict(
+            symbol=sym,
+            timeframe=tf,
+            market=market,
+            best=best,
+            top_5=top_5,
+            top_20=top_20,
+            total_scored=len(result.all_scored),
+            analysis_time_ms=result.analysis_time_ms,
+            summary_fa=summary_fa,
+            summary_en=summary_en,
+        )
+    except Exception as e:
+        import traceback
+        return dict(error=str(e), trace=traceback.format_exc()[-1000:])
+
+
+ROUTES = {"/api/meta": api_meta, "/api/chart_config": api_chart_config, "/api/quality": api_quality, "/api/plan": api_plan, "/api/desk": api_desk, "/api/cluster": api_cluster, "/api/calendar": api_calendar, "/api/notifications": api_notifications, "/api/alert_scan": api_alert_scan, "/api/intelligence": api_intelligence, "/api/symbols": api_symbols, "/api/strategies": api_strategies, "/api/ohlcv": api_ohlcv, "/api/run": api_run,
           "/api/signals": api_signals, "/api/advise": api_advise, "/api/fast": api_fast, "/api/library": api_library, "/api/clock": api_clock,
           "/api/success": api_success,
           "/api/indicators": api_indicators, "/api/indicator": api_indicator, "/api/drawings": api_drawings, "/api/forward": api_forward,
